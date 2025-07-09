@@ -1,0 +1,1606 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { PokerCardList } from './PokerCard';
+import { FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaCheck } from 'react-icons/fa';
+import { HandRangeGrid, HandRangeButton, btnOpenRaiseRange, HandInfo, getRangeForPosition } from './HandRange';
+
+// Position type
+type PositionType = 'SB' | 'BB' | 'UTG' | 'UTG1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'MP';
+
+// テーブル上のポジション情報の型定義
+interface PositionInfo {
+  label: string;
+  x: number;
+  y: number;
+  isHero: boolean;
+}
+
+// PokerTable で使用するスポットの型定義
+export interface Spot {
+  id: string;
+  name?: string;
+  description: string;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'intermediate' | 'beginner' | 'advanced';
+  currentStreet?: 'preflop' | 'flop' | 'turn' | 'river';
+  street?: 'preflop' | 'flop' | 'turn' | 'river';
+  heroPosition?: string;
+  heroHand?: string | string[];
+  potSize?: number;
+  pot?: number;
+  correctAction?: string;
+  optimalAction?: string;
+  explanation?: string;
+  evData?: {
+    [action: string]: number;
+  };
+  evs?: {
+    [action: string]: number;
+  };
+  board?: string[];
+  positions?: Record<string, { 
+    active: boolean; 
+    stack: number;
+    isHero?: boolean;
+    actions?: string[];
+  }>;
+  players?: {
+    position: string;
+    stack: number;
+    hand: any;
+    hasAction: boolean;
+  }[];
+  correctBetSize?: number;
+  preflopActions?: string[];
+  
+  // MTT特有のフィールド
+  tournamentType?: 'standard' | 'turbo' | 'hyper';
+  tournamentStage?: 'early' | 'middle' | 'bubble' | 'final_table';
+  icmFactors?: {
+    payoutStructure?: number[];
+    playerChipStacks?: number[];
+    remainingPlayers?: number;
+  };
+  icmPressure?: 'low' | 'medium' | 'high' | 'extreme';
+  stackDepth?: string; // "15BB", "30BB", etc.
+  frequencies?: {
+    [action: string]: number;
+  };
+  
+  // vs オープン用の追加情報
+  openRaiserPosition?: string; // オープンレイズしたプレイヤーのポジション
+  openRaiseSize?: number;     // オープンレイズのサイズ
+  
+  // アクションタイプ (push_fold など)
+  actionType?: string;
+}
+
+// アクションボタンの型定義
+interface ActionButton {
+  label: string;
+  action: string;
+  colorClass: string;
+}
+
+export interface PokerTableProps {
+  currentSpot: Spot;
+  selectedAction: string | null;
+  isCorrect?: boolean;
+  showResults?: boolean;
+  onActionSelect?: (action: string, betSize?: number) => void;
+  availableActions?: string[];
+  heroHand?: string[];
+  potSize?: number;
+  onNextSpot?: () => void;
+  onRepeatSpot?: () => void; // 繰り返し機能のコールバック
+  positionRangeData?: Record<string, HandInfo>; // ポジションごとのレンジデータ
+  stackSize?: string; // スタックサイズを追加
+  cpuActionEnabled?: boolean; // CPUアクション機能の有効/無効
+  onActionCompleted?: () => void; // CPU行動が完了した時のコールバック
+}
+
+export const PokerTable: React.FC<PokerTableProps> = ({ 
+  currentSpot, 
+  selectedAction,
+  isCorrect = false,
+  showResults = false,
+  onActionSelect,
+  availableActions = ['FOLD', 'CHECK', 'CALL', 'RAISE'],
+  heroHand,
+  potSize,
+  onNextSpot,
+  onRepeatSpot,
+  positionRangeData,
+  stackSize = '100',
+  cpuActionEnabled = false,
+  onActionCompleted
+}) => {
+  // モバイル判定を無効化（常にPCレイアウトを使用）
+  const isMobile = false;
+  
+  // ハンドレンジの表示状態管理
+  const [showHandRange, setShowHandRange] = useState(false);
+
+  // アクション結果の表示状態管理
+  const [showActionResult, setShowActionResult] = useState(true);
+  // アクション結果の不透明度管理
+  const [actionResultOpacity, setActionResultOpacity] = useState(1);
+  // アクション結果のトランスフォーム管理（位置）
+  const [actionResultTransform, setActionResultTransform] = useState('translate(-100%, 0)');
+
+  // CPUプレイヤーのアクション状態管理
+  const [cpuActionPlayers, setCpuActionPlayers] = useState<string[]>([]);
+  const [currentCpuIndex, setCurrentCpuIndex] = useState<number>(-1);
+  const [cpuActionResults, setCpuActionResults] = useState<Record<string, {action: string, result?: string}>>({});
+  const [cpuActionComplete, setCpuActionComplete] = useState(false);
+  
+  // アクション順序の初期化
+  const [actionOrder, setActionOrder] = useState<string[]>([]);
+
+  // 選択されたアクションが変更されたときに表示し、数秒後に非表示にする
+  useEffect(() => {
+    if (selectedAction) {
+      // 表示状態をリセット
+      setShowActionResult(true);
+      setActionResultOpacity(0); // 最初は透明に設定
+      // 左から入ってくるエフェクト用のトランスフォーム初期設定
+      setActionResultTransform('translate(-100%, 0)');
+      
+      // 表示用タイマー - 遅延を短くして即座に表示開始
+      const showTimer = setTimeout(() => {
+        setActionResultOpacity(1); // フェードイン
+        setActionResultTransform('translate(-50%, 0)'); // 中央に移動
+      }, 10); // 遅延を50msから10msに短縮
+      
+      // 1.5秒後にフェードアウト開始
+      const fadeOutTimer = setTimeout(() => {
+        setActionResultOpacity(0); // フェードアウト開始
+        setActionResultTransform('translate(-50%, 0) translateX(30px)'); // 右に移動（距離を短く）
+      }, 1500);
+      
+      // 2秒後に表示を消すタイマー
+      const hideTimer = setTimeout(() => {
+        setShowActionResult(false);
+      }, 2000);
+      
+      // コンポーネントがアンマウントされるときにタイマーをクリア
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(fadeOutTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [selectedAction]);
+
+  // アクション順序の初期化
+  useEffect(() => {
+    if (currentSpot && currentSpot.heroPosition) {
+      // アクション順序を定義（UTGから始まる）
+      const allPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+      
+      // ヒーローのインデックスを取得
+      const heroIndex = allPositions.indexOf(currentSpot.heroPosition);
+      
+      if (heroIndex !== -1) {
+        // ヒーローから次のBBまでのプレイヤーをアクション順に設定
+        const playersAfterHero = allPositions.slice(heroIndex + 1);
+        
+        // ヒーローの後ろのプレイヤーがアクション順序になる
+        setActionOrder(playersAfterHero);
+        
+        // CPUプレイヤーが有効な場合は初期化
+        if (cpuActionEnabled) {
+          setCpuActionPlayers(playersAfterHero);
+          setCpuActionResults({});
+          setCpuActionComplete(false);
+          setCurrentCpuIndex(-1); // 初期状態では何も実行していない
+        }
+      }
+    }
+  }, [currentSpot, cpuActionEnabled]);
+
+  // ヒーローポジションに基づいたレンジデータを取得
+  const heroPosition = currentSpot.heroPosition || 'UTG1';
+  const rangeData = positionRangeData || getRangeForPosition(heroPosition);
+
+  // ポットサイズを取得する関数
+  const getPotSize = (): number => {
+    if (potSize !== undefined) {
+      return potSize;
+    }
+    if (currentSpot.potSize !== undefined) {
+      return currentSpot.potSize;
+    }
+    if (currentSpot.pot !== undefined) {
+      return currentSpot.pot;
+    }
+    return 0;
+  };
+
+  // CPUプレイヤーのアクションを実行する関数
+  const executeNextCpuAction = () => {
+    if (!cpuActionEnabled || currentCpuIndex >= cpuActionPlayers.length - 1) {
+      // すべてのCPUプレイヤーのアクションが完了した場合
+      setCpuActionComplete(true);
+      if (onActionCompleted) {
+        onActionCompleted();
+      }
+      return;
+    }
+    
+    // 次のCPUプレイヤーへ
+    const nextIndex = currentCpuIndex + 1;
+    setCurrentCpuIndex(nextIndex);
+    
+    // 次のプレイヤーのポジションを取得
+    const nextPosition = cpuActionPlayers[nextIndex];
+    
+    // CPU行動のタイプを生成
+    const cpuHandType = generateCpuHandType();
+    // アクションを決定
+    const cpuAction = getCpuAction(nextPosition, cpuHandType);
+    
+    // アクション結果を保存
+    setCpuActionResults(prev => ({
+      ...prev,
+      [nextPosition]: {
+        action: cpuAction,
+        result: formatCpuActionResult(cpuAction, nextPosition)
+      }
+    }));
+    
+    // 少し遅延して次のCPUプレイヤーのアクションを実行
+    setTimeout(() => {
+      executeNextCpuAction();
+    }, 1000); // 1秒後に次のCPUプレイヤーのアクションを実行
+  };
+
+  // CPU用のハンドタイプをランダムに生成
+  const generateCpuHandType = () => {
+    const handStrengths = ['premium', 'strong', 'medium', 'weak', 'trash'];
+    // ランダムにハンド強さを選択（ランダム性を高めるための重み付け）
+    const weights = [10, 20, 30, 25, 15]; // 合計100
+    
+    const totalWeight = weights.reduce((acc, weight) => acc + weight, 0);
+    let random = Math.random() * totalWeight;
+    
+    for (let i = 0; i < weights.length; i++) {
+      if (random < weights[i]) {
+        return handStrengths[i];
+      }
+      random -= weights[i];
+    }
+    
+    return handStrengths[Math.floor(Math.random() * handStrengths.length)];
+  };
+
+  // CPU用の3ベットサイズを取得
+  const getCpu3betSize = (position: string) => {
+    // ポジションに基づいて3ベットサイズを決定
+    if (['BTN', 'CO'].includes(position)) {
+      return 7; // ボタンやカットオフからは小さめの3ベット
+    } else if (['SB', 'BB'].includes(position)) {
+      return 9; // ブラインドからは大きめの3ベット
+    }
+    return 8; // その他のポジションからは標準的な3ベット
+  };
+
+  // CPUのアクションを決定する関数
+  const getCpuAction = (position: string, handType: string) => {
+    // GTOレンジに基づく行動決定のシミュレーション
+    // 実際には現在のGTOデータベースからの参照やAIによる決定を行う
+    
+    // ハンドタイプとポジションに基づく行動確率
+    const actionProbabilities: Record<string, Record<string, number>> = {
+      'premium': { 'FOLD': 0, 'CALL': 20, 'RAISE': 80 },
+      'strong': { 'FOLD': 10, 'CALL': 50, 'RAISE': 40 },
+      'medium': { 'FOLD': 30, 'CALL': 60, 'RAISE': 10 },
+      'weak': { 'FOLD': 70, 'CALL': 30, 'RAISE': 0 },
+      'trash': { 'FOLD': 95, 'CALL': 5, 'RAISE': 0 }
+    };
+    
+    // ポジションによる調整
+    let positionAdjustment: Record<string, Record<string, number>> = {
+      'SB': { 'FOLD': -10, 'CALL': 0, 'RAISE': 10 }, // SBはよりアグレッシブに
+      'BB': { 'FOLD': -20, 'CALL': 10, 'RAISE': 10 }, // BBは防衛的に
+      'BTN': { 'FOLD': -5, 'CALL': -5, 'RAISE': 10 }, // BTNはレイズ寄り
+      'CO': { 'FOLD': 0, 'CALL': 0, 'RAISE': 0 } // COは標準的
+    };
+    
+    // その他のポジションの調整
+    if (!positionAdjustment[position]) {
+      positionAdjustment[position] = { 'FOLD': 5, 'CALL': 0, 'RAISE': -5 }; // アーリーポジションはタイト
+    }
+    
+    // 調整された確率を計算
+    const adjustedProbabilities: Record<string, number> = {
+      'FOLD': Math.max(0, Math.min(100, actionProbabilities[handType]['FOLD'] + (positionAdjustment[position]['FOLD'] || 0))),
+      'CALL': Math.max(0, Math.min(100, actionProbabilities[handType]['CALL'] + (positionAdjustment[position]['CALL'] || 0))),
+      'RAISE': Math.max(0, Math.min(100, actionProbabilities[handType]['RAISE'] + (positionAdjustment[position]['RAISE'] || 0)))
+    };
+    
+    // 合計が100になるように正規化
+    const total = adjustedProbabilities['FOLD'] + adjustedProbabilities['CALL'] + adjustedProbabilities['RAISE'];
+    
+    if (total > 0) {
+      adjustedProbabilities['FOLD'] = (adjustedProbabilities['FOLD'] / total) * 100;
+      adjustedProbabilities['CALL'] = (adjustedProbabilities['CALL'] / total) * 100;
+      adjustedProbabilities['RAISE'] = (adjustedProbabilities['RAISE'] / total) * 100;
+    }
+    
+    // 確率に基づいてアクションを選択
+    const random = Math.random() * 100;
+    
+    if (random < adjustedProbabilities['FOLD']) {
+      return 'FOLD';
+    } else if (random < adjustedProbabilities['FOLD'] + adjustedProbabilities['CALL']) {
+      return 'CALL';
+          } else {
+      // レイズの場合はサイズも決定
+      const raiseSize = getCpu3betSize(position);
+      return `RAISE ${raiseSize}`;
+    }
+  };
+
+  // CPUのアクション結果をフォーマットする関数
+  const formatCpuActionResult = (action: string, position: string) => {
+    if (action === 'FOLD') {
+      return 'フォールド';
+    } else if (action === 'CALL') {
+      return 'コール';
+    } else if (action.startsWith('RAISE')) {
+      const match = action.match(/RAISE (\d+(\.\d+)?)/);
+      const raiseAmount = match ? match[1] : '?';
+      return `${raiseAmount}BBにレイズ`;
+    } else if (action === 'ALL IN') {
+      return 'オールイン';
+    }
+    return '';
+  };
+
+  // ヒーローのアクションが選択された後にCPUアクションを開始
+  useEffect(() => {
+    if (cpuActionEnabled && selectedAction && !cpuActionComplete) {
+      // 少し遅延してCPUアクションを開始
+      setTimeout(() => {
+        executeNextCpuAction();
+      }, 1000);
+    }
+  }, [selectedAction, cpuActionEnabled]);
+
+  // アクションが完了しているかチェックする関数
+  const isCPUActionComplete = () => {
+    return cpuActionComplete;
+  };
+
+  // ポジションがアクティブかどうかをチェックする関数
+  const isActionActive = (position: string) => {
+    if (!cpuActionEnabled) return false;
+    
+    // 現在のCPUプレイヤーインデックスを取得
+    const playerIndex = cpuActionPlayers.indexOf(position);
+    return playerIndex === currentCpuIndex;
+  };
+
+  // ポジションがアクション待ちかどうかをチェックする関数
+  const isWaitingForAction = (position: string) => {
+    if (!cpuActionEnabled) return false;
+    
+    // 現在のCPUプレイヤーインデックスを取得
+    const playerIndex = cpuActionPlayers.indexOf(position);
+    return playerIndex > currentCpuIndex && playerIndex < cpuActionPlayers.length;
+  };
+
+  // CPUアクション結果を取得する関数
+  const getCpuActionResult = (position: string) => {
+    return cpuActionResults[position]?.action || null;
+  };
+
+  // アクション結果をフォーマットする関数
+  const formatActionResult = (): { element: JSX.Element; evaluationLevel: 'perfect' | 'optimal' | 'acceptable' | 'suboptimal' } => {
+    if (!selectedAction) return { element: <></>, evaluationLevel: 'suboptimal' };
+    
+    // 評価レベルのデフォルト値
+    let evaluationLevel: 'perfect' | 'optimal' | 'acceptable' | 'suboptimal' = 'optimal';
+    
+    // アクションの種類と頻度を取得
+    const actionType = selectedAction.split(' ')[0]; // "RAISE", "CALL", "FOLD", "ALL IN"
+    let actionFrequency = 0;
+    
+    // 頻度ベースの評価（frequencies情報がある場合）
+    if (currentSpot.frequencies && Object.keys(currentSpot.frequencies).length > 0) {
+      // 選択したアクションの頻度を直接取得（既にパーセント形式）
+      const selectedFrequency = currentSpot.frequencies[selectedAction] || 0;
+      actionFrequency = selectedFrequency; // パーセントとして直接使用
+      
+      // 最大頻度のアクションを見つける
+      let maxFrequency = 0;
+      let maxFrequencyAction = '';
+      
+      Object.entries(currentSpot.frequencies).forEach(([action, frequency]) => {
+        if (frequency > maxFrequency) {
+          maxFrequency = frequency;
+          maxFrequencyAction = action;
+        }
+      });
+      
+      // 頻度に基づいて評価
+      if (selectedAction === maxFrequencyAction) {
+        // 最大頻度のアクションを選んだ場合は大正解（perfect）
+        evaluationLevel = 'perfect';
+      } else if (selectedFrequency >= 30) {
+        // 頻度が30%以上のアクションを選んだ場合は正解（optimal）
+        evaluationLevel = 'optimal';
+      } else if (selectedFrequency >= 10) {
+        // 頻度が10%以上のアクションを選んだ場合は許容範囲（acceptable）
+        evaluationLevel = 'acceptable';
+      } else {
+        // 頻度が10%未満のアクションを選んだ場合は不正解（suboptimal）
+        evaluationLevel = 'suboptimal';
+      }
+    }
+    // 頻度情報がない場合は従来の評価方法を使用
+    else {
+      // 正しいアクションとの比較（正解がない場合は常にoptimal）
+      if (currentSpot.correctAction) {
+        if (selectedAction === currentSpot.correctAction) {
+          evaluationLevel = 'perfect';
+        } else if (
+          // リスクの低いアクションを選んだ場合（コールvs.レイズなど）
+          (currentSpot.correctAction === 'RAISE' && selectedAction === 'CALL') ||
+          (currentSpot.correctAction === 'CALL' && selectedAction === 'FOLD')
+        ) {
+          evaluationLevel = 'acceptable';
+        } else {
+          evaluationLevel = 'suboptimal';
+        }
+      }
+      
+      // 頻度情報がない場合の頻度計算（評価レベルに基づく調整）
+      if (evaluationLevel === 'perfect') {
+        // 大正解の場合は状況に応じた頻度（パーセント形式）
+        if (actionType === 'FOLD') actionFrequency = 95;   // フォールドの大正解
+        else if (actionType === 'CALL') actionFrequency = 75;  // コールの大正解  
+        else if (actionType === 'RAISE') actionFrequency = 65;  // レイズの大正解
+        else if (actionType === 'ALL') actionFrequency = 90;   // オールインの大正解
+        else actionFrequency = 80;  // その他
+      } else if (evaluationLevel === 'optimal') {
+        // 正解の場合は中程度の頻度（パーセント形式）
+        if (actionType === 'FOLD') actionFrequency = 60;   // フォールド正解
+        else if (actionType === 'CALL') actionFrequency = 50;  // コール正解
+        else if (actionType === 'RAISE') actionFrequency = 40;  // レイズ正解
+        else if (actionType === 'ALL') actionFrequency = 55;   // オールイン正解
+        else actionFrequency = 45;  // その他
+      } else if (evaluationLevel === 'acceptable') {
+        // 許容範囲の場合は低めの頻度（パーセント形式）
+        if (actionType === 'FOLD') actionFrequency = 30;
+        else if (actionType === 'CALL') actionFrequency = 25;
+        else if (actionType === 'RAISE') actionFrequency = 20;
+        else if (actionType === 'ALL') actionFrequency = 15;
+        else actionFrequency = 20;
+      } else if (evaluationLevel === 'suboptimal') {
+        // 不正解の場合は極めて低い頻度（パーセント形式）
+        if (actionType === 'FOLD') actionFrequency = 5;
+        else if (actionType === 'CALL') actionFrequency = 10;
+        else if (actionType === 'RAISE') actionFrequency = 5;
+        else if (actionType === 'ALL') actionFrequency = 2;
+        else actionFrequency = 5;
+      }
+    }
+    
+    // 頻度の表示形式（パーセントで表示）
+    const frequencyText = ` ${Math.round(actionFrequency)}%`;
+    
+    // アクションに応じた表示（英語で表示）
+    const actionLabel = (() => {
+      switch (actionType) {
+        case 'FOLD': return 'FOLD';
+        case 'CHECK': return 'CHECK';
+        case 'CALL': return 'CALL';
+        case 'RAISE': return 'RAISE';
+        case 'ALL': return 'ALL IN'; // "ALL IN"の場合
+        case 'MIN': return 'MIN'; // MINレイズの場合
+        default: return actionType;
+      }
+    })();
+    
+    // isCorrectによる強制的な上書き
+    if (isCorrect && (evaluationLevel === 'suboptimal' || evaluationLevel === 'acceptable')) {
+      evaluationLevel = 'optimal';
+    } else if (!isCorrect && (evaluationLevel === 'perfect' || evaluationLevel === 'optimal' || evaluationLevel === 'acceptable')) {
+      evaluationLevel = 'suboptimal';
+    }
+    
+    // 評価レベルに応じた表示
+    if (evaluationLevel === 'perfect' || evaluationLevel === 'optimal' || evaluationLevel === 'acceptable') {
+      // 正解の場合（シンプルなボックスのみ）
+      return {
+        element: (
+          <div className="bg-green-500 text-white px-3 py-2 rounded-sm text-sm whitespace-nowrap flex items-center shadow-lg border border-green-400">
+            {actionLabel}{frequencyText}
+          </div>
+        ),
+        evaluationLevel
+      };
+    } else {
+      // 不正解の場合（シンプルなボックス）
+      return {
+        element: (
+          <div className="bg-red-500 text-white px-3 py-2 rounded-sm text-sm whitespace-nowrap flex items-center shadow-lg border border-red-400">
+            {actionLabel}{frequencyText}
+          </div>
+        ),
+        evaluationLevel
+      };
+    }
+  };
+
+  // ポジションの表示名を取得する関数
+  const getPositionDisplayName = (position: string): string => {
+    // ポジション名のみ返す
+    return position === 'UTG1' ? 'UTG+1' : position;
+  };
+
+  // アクションが終わったポジションかどうかを判断する関数
+  const isActionComplete = (position: string): boolean => {
+    // オープンレイザーは常にアクティブ状態を保つ（vsオープンの場合）
+    if (position === currentSpot.openRaiserPosition) {
+      return false;
+    }
+    
+    // ヒーローのポジション
+    const heroPos = currentSpot.heroPosition || '';
+    
+    // アクション順序を定義（UTGから始まる）
+    const actionOrder = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    
+    // ヒーローとチェックするポジションのインデックスを取得
+    const heroIndex = actionOrder.indexOf(heroPos);
+    const posIndex = actionOrder.indexOf(position);
+    
+    // インデックスが存在しない場合はfalse
+    if (heroIndex === -1 || posIndex === -1) return false;
+    
+    // ヒーローより前にアクションするポジションはアクションが終わっている
+    return posIndex < heroIndex;
+  };
+
+  // ポジションのスタック数を計算する関数
+  const getPositionStack = (position: string): string => {
+    // stackSizeが文字列なので数値に変換
+    const baseStack = parseInt(stackSize);
+    
+    // ブラインドポジションはスタックが減る
+    if (position === 'SB') {
+      return `${baseStack - 0.5}`;
+    } else if (position === 'BB') {
+      return `${baseStack - 1}`;
+    }
+    
+    // ヒーローがレイズした場合
+    if (position === currentSpot.heroPosition && selectedAction && selectedAction.startsWith('RAISE')) {
+      // レイズ額を抽出して減算
+      const raiseMatch = selectedAction.match(/RAISE (\d+(\.\d+)?)/);
+      if (raiseMatch && raiseMatch[1]) {
+        const raiseAmount = parseFloat(raiseMatch[1]);
+        return `${(baseStack - raiseAmount).toFixed(1)}`;
+      }
+    }
+    
+    // オープンレイザーの場合、レイズ額分のスタックを減らす
+    if (position === currentSpot.openRaiserPosition && currentSpot.openRaiseSize) {
+      return `${(baseStack - currentSpot.openRaiseSize).toFixed(1)}`;
+    }
+    
+    // その他のポジションは指定されたスタックサイズをそのまま使用
+    return `${baseStack}`;
+  };
+
+  // PCレイアウト用のポジション計算関数
+  const calculatePCPositions = (): Record<string, PositionInfo> => {
+    // ポジション座標を明示的に定義
+    const positions: Record<string, PositionInfo> = {};
+
+    // ヒーローのポジションを特定
+    const heroPos = currentSpot.heroPosition || '';
+    
+    // 実際のポーカーテーブルでの席順（時計回り）: BTN→SB→BB→UTG→UTG+1→LJ→HJ→CO→BTN
+    // プリフロップのアクション順: UTG→UTG+1→LJ→HJ→CO→BTN→SB→BB→UTG
+    
+    if (heroPos === 'BTN') {
+      // BTNがヒーローの場合（6時位置）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 55, isHero: true };      // ヒーロー位置（6時→高さを55に修正）
+      positions['SB'] = { label: 'SB', x: 25, y: 55, isHero: false };       // 左下（7-8時）
+      positions['BB'] = { label: 'BB', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['UTG'] = { label: 'UTG', x: 25, y: 15, isHero: false };     // 左上（10-11時）
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 15, isHero: false };   // 上（12時）
+      positions['LJ'] = { label: 'LJ', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['HJ'] = { label: 'HJ', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['CO'] = { label: 'CO', x: 75, y: 55, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'SB') {
+      // SBがヒーローの場合（6時位置）
+      positions['SB'] = { label: 'SB', x: 50, y: 55, isHero: true };        // ヒーロー位置（6時→高さを55に修正）
+      positions['BB'] = { label: 'BB', x: 25, y: 55, isHero: false };       // 左下（7-8時）
+      positions['UTG'] = { label: 'UTG', x: 15, y: 35, isHero: false };     // 左（9時）
+      positions['UTG1'] = { label: 'UTG+1', x: 25, y: 15, isHero: false };   // 左上（10-11時）
+      positions['LJ'] = { label: 'LJ', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['HJ'] = { label: 'HJ', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['CO'] = { label: 'CO', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['BTN'] = { label: 'BTN', x: 75, y: 55, isHero: false };     // 右下（4-5時）
+    } else if (heroPos === 'BB') {
+      // BBがヒーローの場合（6時位置）
+      positions['BB'] = { label: 'BB', x: 50, y: 55, isHero: true };        // ヒーロー位置（6時→高さを55に修正）
+      positions['UTG'] = { label: 'UTG', x: 25, y: 55, isHero: false };     // 左下（7-8時）
+      positions['UTG1'] = { label: 'UTG+1', x: 15, y: 35, isHero: false };   // 左（9時）
+      positions['LJ'] = { label: 'LJ', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['HJ'] = { label: 'HJ', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['CO'] = { label: 'CO', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['BTN'] = { label: 'BTN', x: 85, y: 35, isHero: false };     // 右（3時）
+      positions['SB'] = { label: 'SB', x: 75, y: 55, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'UTG') {
+      // UTGがヒーローの場合（6時位置）
+      positions['UTG'] = { label: 'UTG', x: 50, y: 55, isHero: true };      // ヒーロー位置（6時→高さを55に修正）
+      positions['UTG1'] = { label: 'UTG+1', x: 25, y: 55, isHero: false };   // 左下（7-8時）
+      positions['LJ'] = { label: 'LJ', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['HJ'] = { label: 'HJ', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['CO'] = { label: 'CO', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['BTN'] = { label: 'BTN', x: 75, y: 15, isHero: false };     // 右上（1-2時）
+      positions['SB'] = { label: 'SB', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['BB'] = { label: 'BB', x: 75, y: 55, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'UTG1') {
+      // UTG1がヒーローの場合（6時位置）
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 55, isHero: true };    // ヒーロー位置（6時→高さを55に修正）
+      positions['LJ'] = { label: 'LJ', x: 25, y: 55, isHero: false };       // 左下（7-8時）
+      positions['HJ'] = { label: 'HJ', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['CO'] = { label: 'CO', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 15, isHero: false };     // 上（12時）
+      positions['SB'] = { label: 'SB', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['BB'] = { label: 'BB', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['UTG'] = { label: 'UTG', x: 75, y: 55, isHero: false };     // 右下（4-5時）
+    } else if (heroPos === 'LJ') {
+      // LJがヒーローの場合（6時位置）
+      positions['LJ'] = { label: 'LJ', x: 50, y: 55, isHero: true };        // ヒーロー位置（6時→高さを55に修正）
+      positions['HJ'] = { label: 'HJ', x: 25, y: 55, isHero: false };       // 左下（7-8時）
+      positions['CO'] = { label: 'CO', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['BTN'] = { label: 'BTN', x: 25, y: 15, isHero: false };     // 左上（10-11時）
+      positions['SB'] = { label: 'SB', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['BB'] = { label: 'BB', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['UTG'] = { label: 'UTG', x: 85, y: 35, isHero: false };     // 右（3時）
+      positions['UTG1'] = { label: 'UTG+1', x: 75, y: 55, isHero: false };   // 右下（4-5時）
+    } else if (heroPos === 'HJ') {
+      // HJがヒーローの場合（6時位置）
+      positions['HJ'] = { label: 'HJ', x: 50, y: 55, isHero: true };        // ヒーロー位置（6時→高さを55に修正）
+      positions['CO'] = { label: 'CO', x: 25, y: 55, isHero: false };       // 左下（7-8時）
+      positions['BTN'] = { label: 'BTN', x: 15, y: 35, isHero: false };     // 左（9時）
+      positions['SB'] = { label: 'SB', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['BB'] = { label: 'BB', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['UTG'] = { label: 'UTG', x: 75, y: 15, isHero: false };     // 右上（1-2時）
+      positions['UTG1'] = { label: 'UTG+1', x: 85, y: 35, isHero: false };   // 右（3時）
+      positions['LJ'] = { label: 'LJ', x: 75, y: 55, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'CO') {
+      // COがヒーローの場合（6時位置）
+      positions['CO'] = { label: 'CO', x: 50, y: 55, isHero: true };        // ヒーロー位置（6時→高さを55に修正）
+      positions['BTN'] = { label: 'BTN', x: 25, y: 55, isHero: false };     // 左下（7-8時）
+      positions['SB'] = { label: 'SB', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['BB'] = { label: 'BB', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['UTG'] = { label: 'UTG', x: 50, y: 15, isHero: false };     // 上（12時）
+      positions['UTG1'] = { label: 'UTG+1', x: 75, y: 15, isHero: false };   // 右上（1-2時）
+      positions['LJ'] = { label: 'LJ', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['HJ'] = { label: 'HJ', x: 75, y: 55, isHero: false };       // 右下（4-5時）
+    } else {
+      // デフォルト配置（BTNがヒーロー）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 68, isHero: heroPos === 'BTN' };
+      positions['SB'] = { label: 'SB', x: 25, y: 55, isHero: heroPos === 'SB' };
+      positions['BB'] = { label: 'BB', x: 15, y: 35, isHero: heroPos === 'BB' };
+      positions['UTG'] = { label: 'UTG', x: 25, y: 15, isHero: heroPos === 'UTG' };
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 15, isHero: heroPos === 'UTG1' };
+      positions['LJ'] = { label: 'LJ', x: 75, y: 15, isHero: heroPos === 'LJ' };
+      positions['HJ'] = { label: 'HJ', x: 85, y: 35, isHero: heroPos === 'HJ' };
+      positions['CO'] = { label: 'CO', x: 75, y: 55, isHero: heroPos === 'CO' };
+    }
+
+    return positions;
+  };
+  
+  // モバイルレイアウト用のポジション計算関数
+  const calculateMobilePositions = (): Record<string, PositionInfo> => {
+    // ポジション座標を明示的に定義
+    const positions: Record<string, PositionInfo> = {};
+
+    // ヒーローのポジションを特定
+    const heroPos = currentSpot.heroPosition || '';
+    
+    // 実際のポーカーテーブルでの席順（時計回り）: BTN→SB→BB→UTG→UTG+1→LJ→HJ→CO→BTN
+    // プリフロップのアクション順: UTG→UTG+1→LJ→HJ→CO→BTN→SB→BB→UTG
+    
+    if (heroPos === 'BTN') {
+      // BTNがヒーローの場合（6時位置）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 62, isHero: true };      // ヒーロー位置（6時）
+      positions['SB'] = { label: 'SB', x: 25, y: 50, isHero: false };       // 左下（7-8時）
+      positions['BB'] = { label: 'BB', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['UTG'] = { label: 'UTG', x: 25, y: 20, isHero: false };     // 左上（10-11時）
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 15, isHero: false };   // 上（12時）
+      positions['LJ'] = { label: 'LJ', x: 75, y: 20, isHero: false };       // 右上（1-2時）
+      positions['HJ'] = { label: 'HJ', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['CO'] = { label: 'CO', x: 75, y: 50, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'SB') {
+      // SBがヒーローの場合（6時位置）
+      positions['SB'] = { label: 'SB', x: 50, y: 62, isHero: true };        // ヒーロー位置（6時）
+      positions['BB'] = { label: 'BB', x: 25, y: 50, isHero: false };       // 左下（7-8時）
+      positions['UTG'] = { label: 'UTG', x: 15, y: 35, isHero: false };     // 左（9時）
+      positions['UTG1'] = { label: 'UTG+1', x: 25, y: 20, isHero: false };   // 左上（10-11時）
+      positions['LJ'] = { label: 'LJ', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['HJ'] = { label: 'HJ', x: 75, y: 20, isHero: false };       // 右上（1-2時）
+      positions['CO'] = { label: 'CO', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['BTN'] = { label: 'BTN', x: 75, y: 50, isHero: false };     // 右下（4-5時）
+    } else if (heroPos === 'BB') {
+      // BBがヒーローの場合（6時位置）
+      positions['BB'] = { label: 'BB', x: 50, y: 62, isHero: true };        // ヒーロー位置（6時）
+      positions['UTG'] = { label: 'UTG', x: 25, y: 50, isHero: false };     // 左下（7-8時）
+      positions['UTG1'] = { label: 'UTG+1', x: 15, y: 35, isHero: false };   // 左（9時）
+      positions['LJ'] = { label: 'LJ', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['HJ'] = { label: 'HJ', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['CO'] = { label: 'CO', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['BTN'] = { label: 'BTN', x: 85, y: 35, isHero: false };     // 右（3時）
+      positions['SB'] = { label: 'SB', x: 75, y: 50, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'UTG') {
+      // UTGがヒーローの場合（6時位置）
+      positions['UTG'] = { label: 'UTG', x: 50, y: 62, isHero: true };      // ヒーロー位置（6時）
+      positions['UTG1'] = { label: 'UTG+1', x: 25, y: 50, isHero: false };   // 左下（7-8時）
+      positions['LJ'] = { label: 'LJ', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['HJ'] = { label: 'HJ', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['CO'] = { label: 'CO', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['BTN'] = { label: 'BTN', x: 75, y: 15, isHero: false };     // 右上（1-2時）
+      positions['SB'] = { label: 'SB', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['BB'] = { label: 'BB', x: 75, y: 50, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'UTG1') {
+      // UTG1がヒーローの場合（6時位置）
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 62, isHero: true };    // ヒーロー位置（6時）
+      positions['LJ'] = { label: 'LJ', x: 25, y: 50, isHero: false };       // 左下（7-8時）
+      positions['HJ'] = { label: 'HJ', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['CO'] = { label: 'CO', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 15, isHero: false };     // 上（12時）
+      positions['SB'] = { label: 'SB', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['BB'] = { label: 'BB', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['UTG'] = { label: 'UTG', x: 75, y: 50, isHero: false };     // 右下（4-5時）
+    } else if (heroPos === 'LJ') {
+      // LJがヒーローの場合（6時位置）
+      positions['LJ'] = { label: 'LJ', x: 50, y: 62, isHero: true };        // ヒーロー位置（6時）
+      positions['HJ'] = { label: 'HJ', x: 25, y: 50, isHero: false };       // 左下（7-8時）
+      positions['CO'] = { label: 'CO', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['BTN'] = { label: 'BTN', x: 25, y: 15, isHero: false };     // 左上（10-11時）
+      positions['SB'] = { label: 'SB', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['BB'] = { label: 'BB', x: 75, y: 15, isHero: false };       // 右上（1-2時）
+      positions['UTG'] = { label: 'UTG', x: 85, y: 35, isHero: false };     // 右（3時）
+      positions['UTG1'] = { label: 'UTG+1', x: 75, y: 50, isHero: false };   // 右下（4-5時）
+    } else if (heroPos === 'HJ') {
+      // HJがヒーローの場合（6時位置）
+      positions['HJ'] = { label: 'HJ', x: 50, y: 62, isHero: true };        // ヒーロー位置（6時）
+      positions['CO'] = { label: 'CO', x: 25, y: 50, isHero: false };       // 左下（7-8時）
+      positions['BTN'] = { label: 'BTN', x: 15, y: 35, isHero: false };     // 左（9時）
+      positions['SB'] = { label: 'SB', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['BB'] = { label: 'BB', x: 50, y: 15, isHero: false };       // 上（12時）
+      positions['UTG'] = { label: 'UTG', x: 75, y: 15, isHero: false };     // 右上（1-2時）
+      positions['UTG1'] = { label: 'UTG+1', x: 85, y: 35, isHero: false };   // 右（3時）
+      positions['LJ'] = { label: 'LJ', x: 75, y: 50, isHero: false };       // 右下（4-5時）
+    } else if (heroPos === 'CO') {
+      // COがヒーローの場合（6時位置）
+      positions['CO'] = { label: 'CO', x: 50, y: 62, isHero: true };        // ヒーロー位置（6時）
+      positions['BTN'] = { label: 'BTN', x: 25, y: 50, isHero: false };     // 左下（7-8時）
+      positions['SB'] = { label: 'SB', x: 15, y: 35, isHero: false };       // 左（9時）
+      positions['BB'] = { label: 'BB', x: 25, y: 15, isHero: false };       // 左上（10-11時）
+      positions['UTG'] = { label: 'UTG', x: 50, y: 15, isHero: false };     // 上（12時）
+      positions['UTG1'] = { label: 'UTG+1', x: 75, y: 15, isHero: false };   // 右上（1-2時）
+      positions['LJ'] = { label: 'LJ', x: 85, y: 35, isHero: false };       // 右（3時）
+      positions['HJ'] = { label: 'HJ', x: 75, y: 50, isHero: false };       // 右下（4-5時）
+    } else {
+      // デフォルト配置（BTNがヒーロー）
+      positions['BTN'] = { label: 'BTN', x: 50, y: 62, isHero: heroPos === 'BTN' };
+      positions['SB'] = { label: 'SB', x: 25, y: 50, isHero: heroPos === 'SB' };
+      positions['BB'] = { label: 'BB', x: 15, y: 35, isHero: heroPos === 'BB' };
+      positions['UTG'] = { label: 'UTG', x: 25, y: 15, isHero: heroPos === 'UTG' };
+      positions['UTG1'] = { label: 'UTG+1', x: 50, y: 15, isHero: heroPos === 'UTG1' };
+      positions['LJ'] = { label: 'LJ', x: 75, y: 15, isHero: heroPos === 'LJ' };
+      positions['HJ'] = { label: 'HJ', x: 85, y: 35, isHero: heroPos === 'HJ' };
+      positions['CO'] = { label: 'CO', x: 75, y: 50, isHero: heroPos === 'CO' };
+    }
+
+    return positions;
+  };
+
+  // ポーカーハンドの表示形式を整える
+  const formatHand = (hand: string | string[] | undefined) => {
+    if (!hand) return ['?', '?'];
+    
+    // 文字列の場合はカード表記に分解
+    if (typeof hand === 'string') {
+      // スートとランクの分離 (例: "AsKh" -> ["As", "Kh"])
+      if (hand.length === 4) {
+        return [hand.slice(0, 2), hand.slice(2, 4)];
+      }
+      return [hand, '?'];
+    }
+    
+    // 配列の場合はそのまま返す
+    return hand;
+  };
+
+  // MTTステージに基づいた背景色を取得
+  const getTournamentStageBackground = () => {
+    if (!currentSpot.tournamentStage) return '';
+    
+    switch(currentSpot.tournamentStage) {
+      case 'bubble':
+        return 'border-blue-500/50 bg-blue-900/20';
+      case 'final_table':
+        return 'border-purple-500/50 bg-purple-900/20';
+      default:
+        return '';
+    }
+  };
+
+  // ICMプレッシャーに基づいたスタイルを取得
+  const getICMPressureStyle = () => {
+    if (!currentSpot.icmPressure) return '';
+    
+    switch(currentSpot.icmPressure) {
+      case 'high':
+        return 'border-yellow-500';
+      case 'extreme':
+        return 'border-red-500';
+      default:
+        return '';
+    }
+  };
+
+  // アクションの日本語表記を取得
+  const getActionLabel = (action: string) => {
+    const baseAction = action.split(' ')[0];
+    const size = action.split(' ')[1];
+    
+    return baseAction + (size ? ` ${size}` : '');
+  };
+
+  // ポジション情報を計算（常にPCレイアウトを使用）
+  const tablePositions = calculatePCPositions();
+
+  // ハンドの表示形式を整える
+  const heroHandFormatted = formatHand(currentSpot.heroHand);
+
+  // 現在のストリートを取得（プリフロップに固定）
+  const currentStreet = 'preflop';
+
+  // ポットサイズの取得
+  const potSizeFormatted = getPotSize();
+  
+  // 選択したアクションと正解アクションの基本部分
+  const selectedActionBase = selectedAction ? selectedAction.split(' ')[0] : '';
+  const correctActionBase = currentSpot.correctAction ? currentSpot.correctAction.split(' ')[0] : '';
+
+  // シナリオ情報を取得
+  const scenarioInfo = currentSpot.description || '';
+  const matches = scenarioInfo.match(/CO\s+vs\s+UTG1/i);
+  const scenario = matches ? matches[0] : '';
+
+  // ヒーローのレイズ額を取得する関数
+  const getHeroRaiseAmount = (): number | null => {
+    if (!selectedAction || !selectedAction.startsWith('RAISE')) return null;
+    
+    // レイズ額を抽出
+    const raiseMatch = selectedAction.match(/RAISE (\d+(\.\d+)?)/);
+    if (raiseMatch && raiseMatch[1]) {
+      return parseFloat(raiseMatch[1]);
+    }
+    
+    return null;
+  };
+
+  // 推奨レイズ額を取得する関数
+  const getRecommendedRaiseAmount = (): number | null => {
+    // correctBetSizeがある場合はそれを使用
+    if (currentSpot.correctBetSize) {
+      return currentSpot.correctBetSize;
+    }
+    
+    // optimalActionがある場合はそこからレイズ額を抽出
+    if (currentSpot.optimalAction && currentSpot.optimalAction.startsWith('RAISE')) {
+      const raiseMatch = currentSpot.optimalAction.match(/RAISE (\d+(\.\d+)?)/);
+      if (raiseMatch && raiseMatch[1]) {
+        return parseFloat(raiseMatch[1]);
+      }
+    }
+    
+    // correctActionがある場合はそこからレイズ額を抽出
+    if (currentSpot.correctAction && currentSpot.correctAction.startsWith('RAISE')) {
+      const raiseMatch = currentSpot.correctAction.match(/RAISE (\d+(\.\d+)?)/);
+      if (raiseMatch && raiseMatch[1]) {
+        return parseFloat(raiseMatch[1]);
+      }
+    }
+    
+    return null;
+  };
+
+  // 有効なアクションを取得する関数（エフェクティブスタックに基づいてオールインを追加）
+  const getAvailableActions = () => {
+    // stackSizeを数値に変換
+    const stackNum = parseInt(stackSize);
+    
+    // 基本のアクション
+    let actions = [...availableActions];
+    
+    // エフェクティブスタックが15BB以下の場合、または特定のシナリオでオールインオプションを追加
+    const showAllIn = 
+      // 浅いスタック（15BB以下）の場合
+      stackNum <= 15 || 
+      // PioSolverのレンジにAll inが含まれる場合
+      (currentSpot.frequencies && currentSpot.frequencies['ALL IN'] > 0) ||
+      // トーナメントの状況によって（例：バブル際でICM圧力が高い）
+      (currentSpot.tournamentStage === 'bubble' && currentSpot.icmPressure === 'high') ||
+      // 特定のアクションタイプ（push/fold領域）
+      currentSpot.actionType === 'push_fold';
+    
+    // オールインが含まれておらず、表示条件を満たす場合に追加
+    if (showAllIn && !actions.includes('ALL IN')) {
+      actions.push('ALL IN');
+    }
+    
+    return actions;
+  };
+
+  return (
+    <div className="w-full h-full">
+      {/* ポーカーテーブル部分 - レスポンシブではなく固定レイアウト */}
+      <div className={`w-full h-full relative bg-[#0a0a0a] rounded-lg overflow-hidden ${getTournamentStageBackground()} ${currentSpot.tournamentStage ? 'border' : ''}`}>
+        
+        {/* 左上の余計な線をカバーする黒い矩形 */}
+        <div className="absolute top-0 left-0 w-[120px] h-[70px] bg-[#0a0a0a] z-30"></div>
+        
+        {/* ポジション間の接続線 */}
+        <svg 
+          className="absolute inset-0 w-full h-full z-20" 
+          style={{ pointerEvents: 'none' }}
+        >
+          {(() => {
+            // 接続の型を定義
+            type Connection = {
+              from: string;
+              to: string;
+              type: 'line' | 'curve';
+              controlX?: number;
+              controlY?: number;
+            };
+            
+            // 接続を完全に明示的に定義（それ以外は描画しない）
+            const explicitConnections: Connection[] = [
+              // 上部の水平接続
+              { from: 'UTG', to: 'UTG1', type: 'line' },
+              { from: 'UTG1', to: 'LJ', type: 'line' },
+              { from: 'LJ', to: 'HJ', type: 'line' },
+              { from: 'HJ', to: 'CO', type: 'line' },
+              
+              // 下部の水平接続
+              { from: 'BTN', to: 'SB', type: 'line' },
+              { from: 'SB', to: 'BB', type: 'line' },
+              
+              // 左右の接続も直線に変更
+              { from: 'BB', to: 'UTG', type: 'line' },
+              { from: 'CO', to: 'BTN', type: 'line' }
+            ];
+            
+            // 接続描画用の配列
+            const renderConnections: JSX.Element[] = [];
+            
+            // 各接続に対して
+            explicitConnections.forEach((connection, index) => {
+              const { from, to, type } = connection;
+              
+              // 両方のポジションが存在する場合のみ描画
+              if (tablePositions[from] && tablePositions[to]) {
+                const fromPos = tablePositions[from];
+                const toPos = tablePositions[to];
+                
+                // 座標を取得
+                const fromX = fromPos.x;
+                const fromY = fromPos.y;
+                const toX = toPos.x;
+                const toY = toPos.y;
+                
+                // 線のスタイル
+                const lineColor = "rgba(200, 200, 200, 0.7)";
+                const lineWidth = "1.2";
+
+                if (type === 'line') {
+                  // 直線を描画
+                  renderConnections.push(
+                    <line 
+                      key={`${from}-${to}-${index}`}
+                      x1={`${fromX}%`} 
+                      y1={`${fromY}%`} 
+                      x2={`${toX}%`} 
+                      y2={`${toY}%`} 
+                      stroke={lineColor} 
+                      strokeWidth={lineWidth} 
+                    />
+                  );
+                } else if (type === 'curve') {
+                  // 曲線を描画
+                  let controlX, controlY;
+                  
+                  if (connection.controlX !== undefined && connection.controlY !== undefined) {
+                    // 明示的に指定された制御点を使用
+                    controlX = connection.controlX;
+                    controlY = connection.controlY;
+                  } else {
+                    // デフォルト制御点を計算
+                    const midX = (fromX + toX) / 2;
+                    const midY = (fromY + toY) / 2;
+                    
+                    // テーブル中央方向へのベクトル
+                    const centerX = 50;
+                    const centerY = 35;
+                    const vecX = centerX - midX;
+                    const vecY = centerY - midY;
+                    
+                    // ベクトルの長さ
+                    const length = Math.sqrt(vecX * vecX + vecY * vecY);
+                    
+                    if (length < 0.1) {
+                      controlX = centerX;
+                      controlY = centerY;
+                    } else {
+                      // 正規化して曲線の強さを調整
+                      const normX = vecX / length;
+                      const normY = vecY / length;
+                      const curvature = 15;
+                      
+                      controlX = midX + normX * curvature;
+                      controlY = midY + normY * curvature;
+                    }
+                  }
+                  
+                  // 二次ベジェ曲線
+                  renderConnections.push(
+                    <path 
+                      key={`${from}-${to}-${index}`}
+                      d={`M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`} 
+                      fill="none" 
+                      stroke={lineColor} 
+                      strokeWidth={lineWidth} 
+                    />
+                  );
+                }
+              }
+            });
+            
+            return renderConnections;
+          })()}
+        </svg>
+        
+        {/* ポットサイズの表示を上部ポジションの少し下に配置 */}
+        <div className="absolute w-full top-[165px] flex flex-col items-center text-white z-40">
+          <div className="text-lg font-medium px-2.5 py-0.5 bg-black/50 rounded-lg">
+            {getPotSize()} BB
+          </div>
+
+          {/* ICMプレッシャー表示 - 右上に配置 */}
+          {currentSpot.icmPressure && (
+            <div className={`absolute top-0 right-4 px-3 py-1 rounded-full text-sm font-medium
+              ${currentSpot.icmPressure === 'low' ? 'bg-green-700/70' : 
+                currentSpot.icmPressure === 'medium' ? 'bg-yellow-700/70' : 
+                currentSpot.icmPressure === 'high' ? 'bg-orange-700/70' : 'bg-red-700/70'}`}>
+              ICM: {currentSpot.icmPressure === 'low' ? '低' : 
+                    currentSpot.icmPressure === 'medium' ? '中' : 
+                    currentSpot.icmPressure === 'high' ? '高' : '極高'}
+            </div>
+          )}
+        </div>
+        
+        {/* ディーラーボタン - 常にBTNポジションの近くで中央寄りに配置 */}
+        {(() => {
+          // ディーラーボタンは常にBTNポジションに配置する
+          // テーブル上の実際のBTNポジションを取得
+          const btnPosition = Object.entries(tablePositions).find(([pos]) => pos === 'BTN')?.[1];
+          
+          if (btnPosition) {
+            // BTNポジションから左上方向へ移動した位置
+            const leftPos = btnPosition.x - 5;
+            const topPos = btnPosition.y - 4.5;
+            
+            return (
+        <div className="absolute z-50" style={{ 
+                left: `${leftPos}%`, 
+                top: `${topPos}%` 
+        }}>
+                <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center shadow-lg border border-gray-300">
+                  <span className="text-black font-bold text-[9px]">D</span>
+          </div>
+        </div>
+            );
+          }
+          
+          return null;
+        })()}
+        
+        {/* ブラインドチップ表示 - SBとBBの位置の近くに表示 */}
+        {(() => {
+          // SBとBBのポジションを取得
+          const sbPosition = Object.entries(tablePositions).find(([pos]) => pos === 'SB')?.[1];
+          const bbPosition = Object.entries(tablePositions).find(([pos]) => pos === 'BB')?.[1];
+          // ヒーローのポジション情報を取得
+          const heroPosition = Object.entries(tablePositions).find(([pos, info]) => info.isHero)?.[1];
+          
+          const renderElements = [];
+          
+          // SBのチップを表示（テーブル中央寄りに）
+          if (sbPosition) {
+            // テーブル中央に向かって少し移動した位置
+            const centerX = 50;
+            const centerY = 35;
+            
+            // SBポジションからテーブル中央方向へのベクトル
+            const vecX = centerX - sbPosition.x;
+            const vecY = centerY - sbPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して一定距離移動
+            const moveDistance = 8; // 移動距離を12から8に変更
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // 新しい位置を計算
+            const chipX = sbPosition.x + normX * moveDistance;
+            const chipY = sbPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="sb-chip"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-blue-400 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-blue-300">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">0.5</span>
+                </div>
+              </div>
+            );
+          }
+          
+          // BBのチップを表示（テーブル中央寄りに）
+          if (bbPosition) {
+            // テーブル中央に向かって少し移動した位置
+            const centerX = 50;
+            const centerY = 35;
+            
+            // BBポジションからテーブル中央方向へのベクトル
+            const vecX = centerX - bbPosition.x;
+            const vecY = centerY - bbPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して一定距離移動
+            const moveDistance = 8; // 移動距離を12から8に変更
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // 新しい位置を計算
+            const chipX = bbPosition.x + normX * moveDistance;
+            const chipY = bbPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="bb-chip"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-blue-600 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-blue-500">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">1</span>
+                </div>
+              </div>
+            );
+          }
+          
+          // ヒーローのレイズチップを表示（テーブル中央寄りに）
+          const raiseAmount = getHeroRaiseAmount();
+          if (heroPosition && raiseAmount) {
+            // テーブル中央に向かって少し移動した位置
+            const centerX = 50;
+            const centerY = 35;
+            
+            // ヒーローポジションからテーブル中央方向へのベクトル
+            const vecX = centerX - heroPosition.x;
+            const vecY = centerY - heroPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して一定距離移動
+            const moveDistance = 10; // ヒーローのレイズチップは少し中央寄りに
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // 新しい位置を計算
+            const chipX = heroPosition.x + normX * moveDistance;
+            const chipY = heroPosition.y + normY * moveDistance;
+            
+            // 推奨レイズ額を取得
+            const recommendedRaise = getRecommendedRaiseAmount();
+            
+            renderElements.push(
+              <div
+                key="hero-raise-chip"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-green-600 w-4 h-4 rounded-full flex items-center justify-center shadow-md border-2 border-green-500">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">{raiseAmount}</span>
+                  
+                  {/* 推奨レイズ額が存在し、かつ選択したレイズ額と異なる場合は推奨額も表示 */}
+                  {recommendedRaise && recommendedRaise !== raiseAmount && (
+                    <span className="text-green-300 text-[11px] ml-1">
+                      (推奨: {recommendedRaise})
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          } 
+          // ヒーローがレイズしていない場合でも、推奨レイズ額があれば表示（薄く）
+          // ただし、アクション結果表示中は非表示にして重なりを防ぐ
+          else if (heroPosition && !raiseAmount && showResults && !showActionResult && 
+                  !selectedAction && currentSpot.heroPosition && !cpuActionResults[currentSpot.heroPosition]) {
+            const recommendedRaise = getRecommendedRaiseAmount();
+            if (recommendedRaise) {
+              // テーブル中央に向かって少し移動した位置
+              const centerX = 50;
+              const centerY = 35;
+              
+              // ヒーローポジションからテーブル中央方向へのベクトル
+              const vecX = centerX - heroPosition.x;
+              const vecY = centerY - heroPosition.y;
+              
+              // ベクトルの長さを計算
+              const length = Math.sqrt(vecX * vecX + vecY * vecY);
+              
+              // ベクトルを正規化して一定距離移動
+              const moveDistance = 10;
+              const normX = vecX / length;
+              const normY = vecY / length;
+              
+              // 新しい位置を計算
+              const chipX = heroPosition.x + normX * moveDistance;
+              const chipY = heroPosition.y + normY * moveDistance;
+              
+              renderElements.push(
+                <div
+                  key="recommended-raise-chip"
+                  className="absolute z-30"
+                  style={{ 
+                    left: `${chipX}%`, 
+                    top: `${chipY}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <div className="flex items-center space-x-1">
+                    <div className="bg-green-600/40 w-4 h-4 rounded-full flex items-center justify-center shadow-md border-2 border-green-500/40">
+                    </div>
+                    <span className="text-green-300 font-medium text-[13px]">
+                      推奨: {recommendedRaise}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+          }
+          
+          return renderElements;
+        })()}
+        
+        {/* ポジション表示 - ヒーロー位置を強調表示 */}
+        {Object.entries(tablePositions).map(([position, info]) => {
+          // オープンレイザーかどうかをチェック
+          const isOpenRaiser = currentSpot.openRaiserPosition === position;
+          
+          return (
+          <div 
+            key={position}
+              className={`absolute ${isActionActive(position) ? 'z-50 animate-pulse' : isWaitingForAction(position) ? 'z-40' : 'z-30'}`}
+            style={{
+              left: `${info.x}%`,
+              top: `${info.y}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            {/* アクション結果表示 - ヒーローポジションの場合のみポジションの上に表示 */}
+              {info.isHero && selectedAction && showResults && showActionResult && (
+              (() => {
+                const { element, evaluationLevel } = formatActionResult();
+                // 変形とアニメーションを追加するためのラッパー（背景色なし）
+                return (
+                  <div 
+                    className="absolute -top-10 left-1/2 z-50"
+                    style={{
+                      transform: actionResultTransform,
+                      opacity: actionResultOpacity,
+                      transition: 'transform 0.1s ease-out, opacity 0.1s ease-out'
+                    }}
+                  >
+                    {element}
+                  </div>
+                );
+              })()
+            )}
+            
+            {/* オープンレイザーの場合の特別な「OPENER」ラベル */}
+            {isOpenRaiser && (
+              <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-50">
+                <div className="bg-red-600 text-white text-sm font-black px-3 py-1 rounded-full shadow-xl border-2 border-red-400 animate-bounce">
+                  🚨 OPENER
+                </div>
+              </div>
+            )}
+            
+            {/* ポジション表示 - ヒーローポジションは強調表示 */}
+            <div className={`w-[4rem] h-[4rem] flex flex-col items-center justify-center rounded-full 
+              ${info.isHero 
+                ? 'bg-green-800 border-2 border-green-500 shadow-md shadow-green-500/50' 
+                : isOpenRaiser
+                  ? 'bg-red-700 border-4 border-red-400 shadow-xl shadow-red-500/70 text-white animate-pulse scale-110'
+                  : isActionComplete(position)
+                    ? 'bg-[#1a1a1a] border border-[#252525] shadow-md' 
+                    : isActionActive(position)
+                      ? 'bg-blue-800 border-2 border-blue-500 shadow-md shadow-blue-500/50 scale-110'
+                      : cpuActionResults[position]?.action === 'FOLD'
+                        ? 'bg-gray-800 border border-gray-700 shadow-md opacity-60'
+                        : 'bg-[#1a1a1a] border border-[#252525] shadow-md'
+              }`}>
+                <div className={`text-[14px] font-bold ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-yellow-200' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>{info.label}</div>
+                <div className={`text-[14px] font-bold mt-0.5 ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-yellow-200' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>
+                  {getPositionStack(position)}
+              </div>
+            </div>
+            
+            {/* ヒーローの場合は手札を表示 - ヒーローポジションからさらに下側に表示 */}
+            {info.isHero && (
+              <div className="absolute top-20 left-1/2 transform -translate-x-1/2 flex gap-0 space-x-0.5 z-40">
+                <PokerCardList cards={heroHandFormatted} size="md" />
+              </div>
+            )}
+              
+              {/* オープンレイザーのレイズ額表示 - より大きく目立つように */}
+              {isOpenRaiser && currentSpot?.openRaiseSize && (
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+                  <div className="bg-yellow-500 text-black text-lg font-black px-4 py-2 rounded-lg shadow-2xl border-3 border-yellow-300 animate-pulse">
+                    💰 {currentSpot.openRaiseSize}BB
+                  </div>
+                </div>
+              )}
+              
+              {/* アクション表示（ヒーロー以外の完了したアクション） */}
+              {cpuActionResults[position]?.result && !isOpenRaiser && (
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-40">
+                  <div className={`text-xs px-2 py-1 rounded whitespace-nowrap font-semibold shadow-lg border border-opacity-50
+                    ${cpuActionResults[position]?.action === 'FOLD' ? 'bg-blue-600 text-white border-blue-400' : 
+                      cpuActionResults[position]?.action === 'CALL' ? 'bg-green-600 text-white border-green-400' : 
+                      cpuActionResults[position]?.action?.startsWith('RAISE') ? 'bg-red-600 text-white border-red-400' : 
+                      'bg-gray-600 text-white border-gray-400'}`}>
+                    {cpuActionResults[position]?.result}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        
+        {/* ブラインドチップおよびオープンレイザーのチップ表示 */}
+        {(() => {
+          // SBとBBのポジションを取得
+          const sbPosition = Object.entries(tablePositions).find(([pos]) => pos === 'SB')?.[1];
+          const bbPosition = Object.entries(tablePositions).find(([pos]) => pos === 'BB')?.[1];
+          // ヒーローのポジション情報を取得
+          const heroPosition = Object.entries(tablePositions).find(([pos, info]) => info.isHero)?.[1];
+          // オープンレイザーのポジション情報を取得
+          const openRaiserPos = currentSpot.openRaiserPosition;
+          const openRaiserPosition = openRaiserPos ? Object.entries(tablePositions).find(([pos]) => pos === openRaiserPos)?.[1] : null;
+          
+          const renderElements = [];
+          
+          // SBのチップを表示（テーブル中央寄りに）
+          if (sbPosition) {
+            // テーブル中央に向かって少し移動した位置
+            const centerX = 50;
+            const centerY = 35;
+            
+            // SBポジションからテーブル中央方向へのベクトル
+            const vecX = centerX - sbPosition.x;
+            const vecY = centerY - sbPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して一定距離移動
+            const moveDistance = 8;
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // 新しい位置を計算
+            const chipX = sbPosition.x + normX * moveDistance;
+            const chipY = sbPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="sb-chip"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-blue-400 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-blue-300">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">0.5</span>
+                </div>
+              </div>
+            );
+          }
+          
+          // BBのチップを表示（テーブル中央寄りに）
+          if (bbPosition) {
+            // テーブル中央に向かって少し移動した位置
+            const centerX = 50;
+            const centerY = 35;
+            
+            // BBポジションからテーブル中央方向へのベクトル
+            const vecX = centerX - bbPosition.x;
+            const vecY = centerY - bbPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して一定距離移動
+            const moveDistance = 8; // 移動距離を12から8に変更
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // 新しい位置を計算
+            const chipX = bbPosition.x + normX * moveDistance;
+            const chipY = bbPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="bb-chip"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-blue-600 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-blue-500">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">1</span>
+                </div>
+              </div>
+            );
+          }
+                </div>
+              </div>
+            );
+          }
+          
+          // オープンレイザーのチップ表示（オープンレイザーのポジションから中央方向に）
+          if (openRaiserPosition && currentSpot?.openRaiseSize) {
+            // テーブル中央の座標
+            const centerX = 50;
+            const centerY = 35;
+            
+            // オープンレイザーのポジションから中央方向へのベクトルを計算
+            const vecX = centerX - openRaiserPosition.x;
+            const vecY = centerY - openRaiserPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して適切な距離（オープンレイザーから中央寄り）に移動
+            const moveDistance = 12; // オープンレイザーから中央方向への移動距離
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // チップの表示位置を計算
+            const chipX = openRaiserPosition.x + normX * moveDistance;
+            const chipY = openRaiserPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="open-raiser-chips-dynamic"
+                className="absolute z-40"
+                style={{ 
+                  left: `${chipX}%`,
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex flex-col items-center space-y-1 bg-black/20 backdrop-blur-sm rounded-lg p-3 border-2 border-yellow-400 shadow-2xl">
+                  {/* 3層のチップスタック */}
+                  <div className="flex flex-col items-center space-y-0.5">
+                    <div className="bg-red-600 w-8 h-3 rounded-full shadow-lg border-2 border-red-400"></div>
+                    <div className="bg-red-500 w-7 h-3 rounded-full shadow-lg border-2 border-red-300"></div>
+                    <div className="bg-red-400 w-6 h-3 rounded-full shadow-lg border-2 border-red-200"></div>
+                  </div>
+                  {/* レイズ量表示 */}
+                  <div className="text-yellow-300 font-black text-lg animate-pulse">
+                    {currentSpot.openRaiseSize}BB
+                  </div>
+                  {/* RAISEラベル */}
+                  <div className="text-red-300 font-bold text-sm bg-red-900/50 px-2 py-1 rounded">
+                    RAISE
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          
+          return renderElements;
+        })()}
+      </div>
+      
+      {/* ハンドレンジモーダル */}
+      {showHandRange && (
+        <HandRangeGrid 
+          rangeData={rangeData} 
+          title={`${currentSpot.heroPosition || 'BTN'}ポジションからのオープンレイズレンジ (100BB)`} 
+          onClose={() => setShowHandRange(false)} 
+        />
+      )}
+      
+      {/* アクションボタン表示部分 - 計算した利用可能なアクションを使用 */}
+      <div className="flex space-x-2 mt-3">
+        {getAvailableActions().map((action) => {
+          // アクションボタンのラベルとスタイルを決定
+          const { label, colorClass } = (() => {
+            if (action === 'FOLD') return { label: 'フォールド', colorClass: 'bg-blue-600 hover:bg-blue-700' };
+            if (action === 'CHECK') return { label: 'チェック', colorClass: 'bg-gray-600 hover:bg-gray-700' };
+            if (action === 'CALL') return { label: 'コール', colorClass: 'bg-green-600 hover:bg-green-700' };
+            if (action === 'RAISE') return { label: 'レイズ', colorClass: 'bg-red-600 hover:bg-red-700' };
+            if (action === 'ALL IN') return { label: 'オールイン', colorClass: 'bg-purple-600 hover:bg-purple-700' };
+            return { label: action, colorClass: 'bg-gray-600 hover:bg-gray-700' };
+          })();
+          
+          return (
+            <button
+              key={action}
+              className={`px-4 py-2 rounded text-white font-medium ${colorClass} transition-colors`}
+              onClick={() => onActionSelect && onActionSelect(action)}
+              disabled={!!selectedAction || cpuActionEnabled && !cpuActionComplete}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
