@@ -26,6 +26,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/trainer/not-found.js"
     ],
+    "/trainer/mtt/training/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/trainer/mtt/training/page.js"
+    ],
     "/trainer/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -35,11 +40,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/trainer/mtt/page.js"
-    ],
-    "/trainer/mtt/training/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/trainer/mtt/training/page.js"
     ]
   }
 }
