@@ -1,4 +1,4 @@
-// File: /Users/kensuke/Desktop/gto-vantage/src/app/api/gto/upload/route.ts
+// File: /Users/kensuke/Desktop/gtovantage/src/app/api/gto/upload/route.ts
 import * as entry from '../../../../../../src/app/api/gto/upload/route.js'
 import type { NextRequest } from 'next/server.js'
 

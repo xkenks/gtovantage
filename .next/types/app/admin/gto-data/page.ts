@@ -1,4 +1,4 @@
-// File: /Users/kensuke/Desktop/gto-vantage/src/app/admin/gto-data/page.tsx
+// File: /Users/kensuke/Desktop/gtovantage/src/app/admin/gto-data/page.tsx
 import * as entry from '../../../../../src/app/admin/gto-data/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

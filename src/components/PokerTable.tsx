@@ -72,6 +72,10 @@ export interface Spot {
   openRaiseSize?: number;     // オープンレイズのサイズ
   openerActionType?: 'MIN' | 'ALL_IN'; // オープンレイザーのアクションタイプ
   
+  // vs 3ベット用の追加情報
+  threeBetSize?: number;      // 3ベットのサイズ
+  threeBetterPosition?: string; // 3ベットしたプレイヤーのポジション
+  
   // アクションタイプ (push_fold など)
   actionType?: string;
 }
@@ -1295,7 +1299,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             const normY = vecY / length;
             
                 // ポジション別の最適な移動距離と微調整
-                let moveDistance = 25; // 基本移動距離
+                let moveDistance = 22; // 基本移動距離（適度な距離）
                 let offsetX = 0; // 水平微調整
                 let offsetY = 0; // 垂直微調整
                 
@@ -1445,6 +1449,32 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               </div>
             );
           } 
+          
+          // 3ベッターのチップ表示（モバイル版）
+          const threeBetterPosMobile = currentSpot.threeBetterPosition;
+          const threeBetterInfoMobile = threeBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === threeBetterPosMobile)?.[1] : null;
+          
+          if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile) {
+            const chipPos = getOptimalChipPosition(threeBetterInfoMobile, threeBetterPosMobile);
+        
+            renderElements.push(
+              <div
+                key="three-better-chip-mobile"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipPos.x}%`, 
+                  top: `${chipPos.y}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-orange-600 w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-md border border-orange-500">
+                  </div>
+                  <span className="text-white font-medium text-xs">{currentSpot.threeBetSize}</span>
+                </div>
+              </div>
+            );
+          }
               
               return renderElements;
             })()} 
@@ -1633,6 +1663,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         {Object.entries(tablePositions).map(([position, info]) => {
           // オープンレイザーかどうかをチェック
           const isOpenRaiser = currentSpot.openRaiserPosition === position;
+          // 3ベッターかどうかをチェック
+          const isThreeBetter = currentSpot.threeBetterPosition === position;
           
           return (
           <div 
@@ -1665,22 +1697,24 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             )}
             
             
-            {/* ポジション表示 - ヒーローポジションは強調表示 */}
+            {/* ポジション表示 - ヒーロー、オープンレイザー、3ベッターを強調表示 */}
             <div className={`w-[4rem] h-[4rem] flex flex-col items-center justify-center rounded-full 
               ${info.isHero 
                 ? 'bg-green-800 border-2 border-green-500 shadow-md shadow-green-500/50' 
                   : isOpenRaiser
                   ? 'bg-red-700 border-2 border-red-500 shadow-md'
-                    : isActionComplete(position)
-                      ? 'bg-[#1a1a1a] border border-[#252525] shadow-md' 
-                      : isActionActive(position)
-                        ? 'bg-blue-800 border-2 border-blue-500 shadow-md shadow-blue-500/50 scale-110'
-                        : cpuActionResults[position]?.action === 'FOLD'
-                          ? 'bg-gray-800 border border-gray-700 shadow-md opacity-60'
-                        : 'bg-[#1a1a1a] border border-[#252525] shadow-md'
+                    : isThreeBetter
+                    ? 'bg-orange-700 border-2 border-orange-500 shadow-md shadow-orange-500/50'
+                      : isActionComplete(position)
+                        ? 'bg-[#1a1a1a] border border-[#252525] shadow-md' 
+                        : isActionActive(position)
+                          ? 'bg-blue-800 border-2 border-blue-500 shadow-md shadow-blue-500/50 scale-110'
+                          : cpuActionResults[position]?.action === 'FOLD'
+                            ? 'bg-gray-800 border border-gray-700 shadow-md opacity-60'
+                            : 'bg-[#1a1a1a] border border-[#252525] shadow-md'
               }`}>
-                <div className={`text-[14px] font-bold ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-white' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>{info.label}</div>
-                <div className={`text-[14px] font-bold mt-0.5 ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-white' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>
+                <div className={`text-[14px] font-bold ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-white' : isThreeBetter ? 'text-white' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>{info.label}</div>
+                <div className={`text-[14px] font-bold mt-0.5 ${info.isHero ? 'text-white' : isOpenRaiser ? 'text-white' : isThreeBetter ? 'text-white' : isActionComplete(position) ? 'text-gray-600' : isActionActive(position) || isWaitingForAction(position) ? 'text-white' : cpuActionResults[position]?.action === 'FOLD' ? 'text-gray-500' : 'text-white'}`}>
                   {getPositionStack(position)}
               </div>
             </div>
@@ -1718,21 +1752,41 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           // オープンレイザーのポジション情報を取得
           const openRaiserPos = currentSpot.openRaiserPosition;
           const openRaiserPosition = openRaiserPos ? Object.entries(tablePositions).find(([pos]) => pos === openRaiserPos)?.[1] : null;
+          // 3ベッターのポジション情報を取得
+          const threeBetterPos = currentSpot.threeBetterPosition;
           
           const renderElements = [];
           
           // SBのチップを表示
-          // BBがヒーローでSBがオープンレイザーの場合は0.5BBブラインドチップを表示しない
+          // 以下の場合は0.5BBブラインドチップを表示しない：
+          // 1. BBがヒーローでSBがオープンレイザーの場合
+          // 2. SBが3ベッターの場合
           console.log('🎯 チップ表示条件チェック:', {
             heroPosition: currentSpot.heroPosition,
             openRaiserPos,
+            threeBetterPos,
             sbExists: !!sbPosition,
             sbIsHero: sbPosition?.isHero,
             stackSize: stackSize,
             openRaiseSize: currentSpot?.openRaiseSize,
             isBBHero: currentSpot.heroPosition === 'BB',
-            isSBOpener: openRaiserPos === 'SB'
+            isSBOpener: openRaiserPos === 'SB',
+            isSBThreeBetter: threeBetterPos === 'SB'
           });
+          
+          // 0.5BBチップを非表示にする条件
+          const shouldHideSBChip = (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') || 
+                                   (threeBetterPos === 'SB');
+          console.log('🔍 Should hide 0.5BB chip?', shouldHideSBChip, {
+            isBBHero: currentSpot.heroPosition === 'BB',
+            isSBOpener: openRaiserPos === 'SB',
+            isSBThreeBetter: threeBetterPos === 'SB',
+            openRaiseSize: currentSpot?.openRaiseSize
+          });
+          
+          if (shouldHideSBChip) {
+            console.log('🚫 SB chip hidden - reason:', threeBetterPos === 'SB' ? 'SB is 3-better' : 'BB hero + SB opener');
+          }
           
           // BBがヒーローかつSBがオープンレイザーの場合は0.5BBチップを絶対に表示しない
           const shouldHide = currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB';
@@ -1745,7 +1799,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           if (shouldHide) {
             console.log('🚫 BB hero + SB opener: 0.5BB chip hidden');
             // 0.5BBチップは表示しない
-          } else if (sbPosition && !sbPosition.isHero && !(currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB')) {
+          } else if (sbPosition && !sbPosition.isHero && !(currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') && currentSpot.threeBetterPosition !== 'SB') {
             // テーブル中央に向かって少し移動した位置
             const centerX = 50;
             const centerY = 35;
@@ -1786,7 +1840,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           }
           
           // BBのチップを表示（BBは常に1BBのブラインドを払っているため表示）
-          const showBBBlind = bbPosition;
+          // ただし、BBが3ベッターの場合は1BBブラインドチップを非表示
+          const showBBBlind = bbPosition && currentSpot.threeBetterPosition !== 'BB';
           if (showBBBlind) {
             // テーブル中央に向かって少し移動した位置
             const centerX = 50;
@@ -1904,6 +1959,49 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   <div className="bg-red-600 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-red-500">
                   </div>
                   <span className="text-white font-medium text-[13px]">{currentSpot.openRaiseSize}</span>
+                </div>
+              </div>
+            );
+          }
+          
+          // 3ベッターのチップ表示（3ベッターのポジションから中央方向に）
+          const threeBetterPosition = currentSpot.threeBetterPosition ? Object.entries(tablePositions).find(([pos]) => pos === currentSpot.threeBetterPosition)?.[1] : null;
+          
+          if (threeBetterPosition && currentSpot?.threeBetSize) {
+            // テーブル中央の座標
+            const centerX = 50;
+            const centerY = 35;
+            
+            // 3ベッターのポジションから中央方向へのベクトルを計算
+            const vecX = centerX - threeBetterPosition.x;
+            const vecY = centerY - threeBetterPosition.y;
+            
+            // ベクトルの長さを計算
+            const length = Math.sqrt(vecX * vecX + vecY * vecY);
+            
+            // ベクトルを正規化して適切な距離（3ベッターから中央寄り）に移動
+            const moveDistance = 10; // 3ベッターから中央方向への移動距離（適度な距離）
+            const normX = vecX / length;
+            const normY = vecY / length;
+            
+            // チップの表示位置を計算
+            const chipX = threeBetterPosition.x + normX * moveDistance;
+            const chipY = threeBetterPosition.y + normY * moveDistance;
+            
+            renderElements.push(
+              <div
+                key="three-better-chips-dynamic"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipX}%`, 
+                  top: `${chipY}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-orange-600 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-md border-2 border-orange-500">
+                  </div>
+                  <span className="text-white font-medium text-[13px]">{currentSpot.threeBetSize}</span>
                 </div>
               </div>
             );

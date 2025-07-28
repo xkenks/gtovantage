@@ -1,4 +1,4 @@
-// File: /Users/kensuke/Desktop/gto-vantage/src/app/api/mtt-ranges/route.ts
+// File: /Users/kensuke/Desktop/gtovantage/src/app/api/mtt-ranges/route.ts
 import * as entry from '../../../../../src/app/api/mtt-ranges/route.js'
 import type { NextRequest } from 'next/server.js'
 

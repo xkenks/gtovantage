@@ -293,7 +293,7 @@ export const calculatePoints = (spot: Spot, selectedAction: string): number => {
   }
   
   // EV損失に基づいてポイントを減算
-  points -= Math.round(evLoss * 5);
+  points -= Math.round((evLoss || 0) * 5);
   
   // 最低0ポイント
   return Math.max(0, points);

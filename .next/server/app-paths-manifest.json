@@ -1,4 +1,13 @@
 {
-  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
-  "/trainer/mtt/page": "app/trainer/mtt/page.js"
+  "/_not-found": "app/_not-found.js",
+  "/admin/gto-data/page": "app/admin/gto-data/page.js",
+  "/api/admin/auth/route": "app/api/admin/auth/route.js",
+  "/api/gto/upload/route": "app/api/gto/upload/route.js",
+  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js",
+  "/page": "app/page.js",
+  "/test/page": "app/test/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js",
+  "/trainer/page": "app/trainer/page.js",
+  "/trainer/stats/page": "app/trainer/stats/page.js",
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js"
 }

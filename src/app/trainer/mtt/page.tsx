@@ -184,55 +184,15 @@ const SimpleHandRangeSelector: React.FC<{
 export default function MTTTrainerPage() {
   const router = useRouter();
   
-  const [stackSize, setStackSize] = useState('100BB');
+  const [stackSize, setStackSize] = useState('75BB');
   const [position, setPosition] = useState('BTN');
   const [actionType, setActionType] = useState('openraise');
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
   const [showHandSelector, setShowHandSelector] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
+  const [hasLocalStorage, setHasLocalStorage] = useState(false);
   
-  // 設定をlocalStorageに保存する関数
-  const saveSettings = (newStackSize?: string, newPosition?: string, newActionType?: string, newSelectedHands?: string[]) => {
-    const settings = {
-      stackSize: newStackSize || stackSize,
-      position: newPosition || position,
-      actionType: newActionType || actionType,
-      selectedHands: newSelectedHands || selectedHands
-    };
-    
-    try {
-      localStorage.setItem('mtt-trainer-settings', JSON.stringify(settings));
-      console.log('🔄 MTTトレーナー設定を保存しました:', settings);
-    } catch (error) {
-      console.error('設定の保存に失敗しました:', error);
-    }
-  };
-  
-  // 設定をlocalStorageから復元する関数
-  const loadSettings = () => {
-    try {
-      const savedSettings = localStorage.getItem('mtt-trainer-settings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        console.log('📂 MTTトレーナー設定を復元しました:', settings);
-        
-        if (settings.stackSize) setStackSize(settings.stackSize);
-        if (settings.position) setPosition(settings.position);
-        if (settings.actionType) setActionType(settings.actionType);
-        if (settings.selectedHands && Array.isArray(settings.selectedHands)) {
-          setSelectedHands(settings.selectedHands);
-        }
-      }
-    } catch (error) {
-      console.error('設定の復元に失敗しました:', error);
-    }
-  };
-  
-  // コンポーネント初期化時に設定を復元
-  useEffect(() => {
-    loadSettings();
-  }, []);
-  
-  const stackSizes = ['100BB', '50BB', '30BB', '20BB', '15BB', '10BB'];
+  const stackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB', '10BB'];
   const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
@@ -242,10 +202,83 @@ export default function MTTTrainerPage() {
     { id: 'random', label: 'ランダム' },
   ];
 
+  // 設定をlocalStorageから読み込み
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('mtt-trainer-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        console.log('💾 保存された設定を読み込み:', settings);
+        
+        if (settings.stackSize && stackSizes.includes(settings.stackSize)) {
+          setStackSize(settings.stackSize);
+        }
+        if (settings.position && positions.includes(settings.position)) {
+          setPosition(settings.position);
+        }
+        if (settings.actionType && actionTypes.some(a => a.id === settings.actionType)) {
+          setActionType(settings.actionType);
+        }
+        if (settings.selectedHands && Array.isArray(settings.selectedHands)) {
+          setSelectedHands(settings.selectedHands);
+        }
+        
+        console.log('✅ 設定の読み込み完了');
+      } else {
+        console.log('💡 保存された設定がありません。デフォルト値を使用します。');
+      }
+    } catch (error) {
+      console.error('❌ 設定の読み込みに失敗:', error);
+    } finally {
+      // 初期読み込み完了をマーク
+      setIsInitialLoad(false);
+      // LocalStorageの状態を確認
+      setHasLocalStorage(!!localStorage.getItem('mtt-trainer-settings'));
+    }
+  }, []);
+
+  // 設定をlocalStorageに保存
+  const saveSettings = () => {
+    try {
+      const settings = {
+        stackSize,
+        position,
+        actionType,
+        selectedHands,
+        lastUpdated: new Date().toISOString()
+      };
+      localStorage.setItem('mtt-trainer-settings', JSON.stringify(settings));
+      console.log('💾 自動保存完了:', settings);
+      setSaveStatus('saved');
+      setHasLocalStorage(true);
+      
+      // 2秒後にステータスをクリア
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (error) {
+      console.error('❌ 自動保存に失敗:', error);
+      setSaveStatus(null);
+    }
+  };
+
+  // 設定変更時に自動保存（初回読み込み時は除外）
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  useEffect(() => {
+    if (!isInitialLoad) {
+      // 設定変更を検知したら即座に保存ステータスを表示
+      setSaveStatus('saving');
+      
+      const saveTimer = setTimeout(() => {
+        saveSettings();
+      }, 500); // 500msでより確実な保存
+      
+      return () => clearTimeout(saveTimer);
+    }
+  }, [stackSize, position, actionType, selectedHands]);
+
   const handleHandSelectionChange = (hands: string[]) => {
     setSelectedHands(hands);
     setShowHandSelector(false);
-    saveSettings(undefined, undefined, undefined, hands);
   };
 
   const openHandSelector = () => {
@@ -259,32 +292,56 @@ export default function MTTTrainerPage() {
     }
     router.push(url);
   };
+
+  // 設定をリセットする関数
+  const resetSettings = () => {
+    if (confirm('🔄 すべての設定をリセットしますか？\n\n現在の設定：\n・スタック: ' + stackSize + '\n・ポジション: ' + position + '\n・アクション: ' + actionTypes.find(a => a.id === actionType)?.label + '\n・選択ハンド: ' + selectedHands.length + '個')) {
+      setStackSize('75BB');
+      setPosition('BTN');
+      setActionType('openraise');
+      setSelectedHands([]);
+      
+      try {
+        localStorage.removeItem('mtt-trainer-settings');
+        console.log('🔄 設定をリセットしました（自動保存により設定クリア）');
+        setHasLocalStorage(false);
+      } catch (error) {
+        console.error('❌ 設定のリセットに失敗:', error);
+      }
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">MTT GTO トレーニング</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-center">MTT GTO トレーニング</h1>
+        </div>
         <p className="text-center text-gray-300 mb-8">
           トーナメントに特化した意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
         </p>
         
-        {/* 設定復元の表示 */}
-        {(stackSize !== '100BB' || position !== 'BTN' || actionType !== 'openraise' || selectedHands.length > 0) && (
-          <div className="bg-blue-900/30 border border-blue-600/50 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-blue-300 font-medium text-sm">前回の設定を復元しました</span>
-            </div>
-            <div className="text-xs text-gray-400">
-              設定は自動保存されます。変更すると即座に保存されます。
+        <div className="bg-gray-800 rounded-xl p-6 shadow-lg mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">シナリオ設定</h2>
+            <div className="flex items-center gap-2">
+              {(saveStatus === 'saving' || saveStatus === 'saved') && (
+                <div className={`text-xs px-3 py-1 rounded-lg transition-all duration-300 ${
+                  saveStatus === 'saving' ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-600/50' :
+                  'text-green-400 bg-green-900/30 border border-green-600/50'
+                }`}>
+                  {saveStatus === 'saving' ? '🔄 自動保存中...' : '✅ 自動保存完了'}
+                </div>
+              )}
+              <button
+                onClick={resetSettings}
+                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded-lg transition-colors"
+                title="設定をリセット"
+              >
+                🔄 リセット
+              </button>
             </div>
           </div>
-        )}
-        
-        <div className="bg-gray-800 rounded-xl p-6 shadow-lg mb-8">
-          <h2 className="text-xl font-semibold mb-4">シナリオ設定</h2>
           
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-2">エフェクティブスタック</h3>
@@ -293,10 +350,7 @@ export default function MTTTrainerPage() {
                 <button 
                   key={stack}
                   className={`px-3 py-2 rounded-lg ${stackSize === stack ? 'bg-yellow-600' : 'bg-gray-700'} transition-colors hover:bg-yellow-500`}
-                  onClick={() => {
-                    setStackSize(stack);
-                    saveSettings(stack);
-                  }}
+                  onClick={() => setStackSize(stack)}
                 >
                   {stack}
                 </button>
@@ -311,10 +365,7 @@ export default function MTTTrainerPage() {
                 <button 
                   key={pos}
                   className={`px-3 py-2 rounded-lg ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
-                  onClick={() => {
-                    setPosition(pos);
-                    saveSettings(undefined, pos);
-                  }}
+                  onClick={() => setPosition(pos)}
                 >
                   {pos}
                 </button>
@@ -329,10 +380,7 @@ export default function MTTTrainerPage() {
                 <button 
                   key={action.id}
                   className={`px-3 py-2 rounded-lg ${actionType === action.id ? 'bg-red-600' : 'bg-gray-700'} transition-colors text-left hover:bg-red-500`}
-                  onClick={() => {
-                    setActionType(action.id);
-                    saveSettings(undefined, undefined, action.id);
-                  }}
+                  onClick={() => setActionType(action.id)}
                 >
                   {action.label}
                 </button>
@@ -342,8 +390,6 @@ export default function MTTTrainerPage() {
           
           <div className="mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-5">
             <h3 className="text-lg font-medium mb-4">ハンド範囲選択</h3>
-            
-
             
             <button 
               onClick={openHandSelector}
@@ -380,12 +426,49 @@ export default function MTTTrainerPage() {
           </button>
         </div>
         
-        <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
+        <div className="bg-gray-800 rounded-xl p-6 shadow-lg mb-8">
           <h2 className="text-xl font-semibold mb-3">MTT GTO戦略とは？</h2>
           <p className="mb-4 text-gray-300">
             MTT（マルチテーブルトーナメント）でのGTO戦略はキャッシュゲームとは異なります。
             スタックサイズに応じて戦略を変える必要があります。
           </p>
+        </div>
+
+        {/* デバッグ用設定表示 */}
+        <div className="bg-gray-800/50 rounded-xl p-4 shadow-lg">
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              🔧 設定詳細 (デバッグ情報)
+            </summary>
+            <div className="mt-3 text-xs space-y-2 text-gray-300 bg-gray-900/50 rounded-lg p-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div><strong>スタックサイズ:</strong> {stackSize}</div>
+                <div><strong>ポジション:</strong> {position}</div>
+                <div><strong>アクションタイプ:</strong> {actionTypes.find(a => a.id === actionType)?.label} ({actionType})</div>
+                <div><strong>選択ハンド数:</strong> {selectedHands.length}個</div>
+              </div>
+              <div className="pt-2 border-t border-gray-700">
+                <div><strong>自動保存ステータス:</strong> {
+                  saveStatus === 'saving' ? '🔄 保存中' :
+                  saveStatus === 'saved' ? '✅ 完了' :
+                  '💾 有効'
+                }</div>
+                <div><strong>初期読み込み:</strong> {isInitialLoad ? '読み込み中' : '✅ 完了'}</div>
+                <div><strong>LocalStorage確認:</strong> 
+                  {hasLocalStorage ? '✅ 設定保存済み' : '❌ 未保存'}
+                </div>
+              </div>
+              {selectedHands.length > 0 && (
+                <div className="pt-2 border-t border-gray-700">
+                  <strong>選択ハンド:</strong>
+                  <div className="mt-1 max-h-20 overflow-y-auto">
+                    {selectedHands.slice(0, 20).join(', ')}
+                    {selectedHands.length > 20 && ` ...他${selectedHands.length - 20}個`}
+                  </div>
+                </div>
+              )}
+            </div>
+          </details>
         </div>
         
         {showHandSelector && (

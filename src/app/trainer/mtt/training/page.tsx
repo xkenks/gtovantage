@@ -225,20 +225,39 @@ const simulateMTTGTOData = (
       };
     }
     
-    // カスタムレンジが設定されている場合はそれを使用（スタックサイズを含めたキー）
+    // カスタムレンジが設定されている場合はそれを使用
     const rangeKey = `vsopen_${position}_vs_${openerPosition}_${stackSize}`;
+    // 15BBの場合は既存キーとの互換性も確認
+    const fallbackRangeKey = stackSize === '15BB' ? `vsopen_${position}_vs_${openerPosition}` : null;
+    
     console.log('🔍 vs オープン分析:', {
       rangeKey,
+      fallbackRangeKey,
+      stackSize,
       handType: normalizedHandType,
       hasCustomRanges: !!customRanges,
       hasThisRange: !!(customRanges && customRanges[rangeKey]),
-      hasThisHand: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]),
+      hasFallbackRange: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+      hasThisHand: !!(customRanges && (
+        (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
+        (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      )),
       availableRangeKeys: customRanges ? Object.keys(customRanges) : []
     });
     
+    // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
+    let customHandData = null;
+    let usedRangeKey = rangeKey;
+    
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
-      const customHandData = customRanges[rangeKey][normalizedHandType];
-      
+      customHandData = customRanges[rangeKey][normalizedHandType];
+    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('15BB互換性: 既存vsオープンレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+    }
+    
+    if (customHandData) {
       // カスタムレンジから頻度データを取得
       let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
       let customPrimaryAction = 'FOLD';
@@ -315,36 +334,7 @@ const simulateMTTGTOData = (
       
       const vsOpenAdvice = getVsOpenAdvice(position, openerPosition, gtoAction, stackDepthBB);
       
-      // スタックサイズに応じたオープンレイズサイズ
-      const currentOpenRaiseSize = openerPosition === 'BTN' && stackSize === '15BB' ? 1.0 : 2.0;
-      
-      return {
-        correctAction: gtoAction,
-        evData: evData,
-        frequencies: frequencies,
-        normalizedHandType: normalizedHandType,
-        effectiveStackExplanation: `${openerPosition}からのオープンに対する${position}ポジションでの最適戦略です。`,
-        stackSizeStrategy: vsOpenAdvice,
-        icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
-        recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? 2.2 : 0,
-        openerInfo: getOpenerInfo(openerPosition),
-        openRaiserPosition: openerPosition,
-        openRaiseSize: currentOpenRaiseSize,
-        isVsOpen: true
-      };
-    }
-  }
-    
-    // カスタムレンジがない場合はデフォルト戦略を使用
-    const vsOpenResult = getVsOpenStrategy(normalizedHandType, position, openerPosition, stackDepthBB);
-    if (vsOpenResult) {
-      gtoAction = vsOpenResult.primaryAction;
-      frequencies = vsOpenResult.frequencies;
-      evData = vsOpenResult.evData;
-      
-      const vsOpenAdvice = getVsOpenAdvice(position, openerPosition, gtoAction, stackDepthBB);
-      
-      // スタックサイズに応じたオープンレイズサイズ
+      // BTNからの15BBスタックの場合はリンプサイズを使用
       const currentOpenRaiseSize = openerPosition === 'BTN' && stackSize === '15BB' ? 1.0 : 2.0;
       
       return {
@@ -364,113 +354,576 @@ const simulateMTTGTOData = (
     }
   }
   
-  // 🎯 全スタックサイズ対応のカスタムレンジ戦略（20BB、25BB、30BBなど全対応）
-  const stackRangeKey = `${position}_${stackSize}`;
-  console.log('🔍 カスタムレンジ確認:', {
-    position,
-    stackSize,
-    stackDepthBB,
-    stackRangeKey,
-    handType: normalizedHandType,
-    hasCustomRanges: !!customRanges,
-    hasThisPosition: !!(customRanges && customRanges[stackRangeKey]),
-    hasThisHand: !!(customRanges && customRanges[stackRangeKey] && customRanges[stackRangeKey][normalizedHandType]),
-    availablePositions: customRanges ? Object.keys(customRanges) : []
-  });
-  
-  // カスタムレンジが設定されている場合はそれを使用（全スタックサイズ対応）
-  if (customRanges && customRanges[stackRangeKey] && customRanges[stackRangeKey][normalizedHandType]) {
-    const customHandData = customRanges[stackRangeKey][normalizedHandType];
-    
-    // カスタムレンジから頻度データを取得
-    let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
-    let customPrimaryAction = 'FOLD';
-    
-    if (customHandData.mixedFrequencies) {
-      // 混合戦略の場合
-      const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
-      customFrequencies = {
-        'FOLD': mixedFreq.FOLD || 0,
-        'CALL': mixedFreq.CALL || 0,
-        'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-        'ALL IN': mixedFreq.ALL_IN || 0
+  // vs 3ベットの場合の特別処理
+  if (actionType === 'vs3bet') {
+    // vs3betでは3ベッターのポジションが必要（オープンレイザーに対する3ベッターの位置）
+    let threeBetterPosition = openerPosition; // URLパラメータで3ベッターが指定されている場合
+    if (!threeBetterPosition) {
+      // 3ベッターが指定されていない場合はランダムに選択（オープンレイザーより後のポジション）
+      const getValidThreeBetters = (openRaiserPos: string): string[] => {
+        const openRaiserIndex = getPositionIndex(openRaiserPos);
+        if (openRaiserIndex >= POSITION_ORDER.length - 1) return []; // 最後のポジションの場合、後のポジションは存在しない
+        return POSITION_ORDER.slice(openRaiserIndex + 1); // オープンレイザーより後のポジションのみ
       };
       
-      // 最大頻度のアクションを主要アクションとする
-      const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
-        curr[1] > max[1] ? curr : max
-      );
-      customPrimaryAction = maxFreqEntry[0];
-    } else {
-      // 単一アクションの場合
-      const actionMapping: { [key: string]: string } = {
-        'ALL_IN': 'ALL IN',
-        'MIN': 'RAISE',
-        'CALL': 'CALL',
-        'FOLD': 'FOLD',
-        'RAISE': 'RAISE'
-      };
-      customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
-      const actionKey = customPrimaryAction as keyof typeof customFrequencies;
-      customFrequencies[actionKey] = customHandData.frequency;
-      
-      // 残りの頻度をFOLDに設定
-      if (customHandData.frequency < 100) {
-        customFrequencies['FOLD'] = 100 - customHandData.frequency;
+      const validThreeBetters = getValidThreeBetters(position);
+      if (validThreeBetters.length === 0) {
+        // 有効な3ベッターがいない場合はフォールド
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -3, 'RAISE': -3, 'ALL IN': -3 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          normalizedHandType: normalizedHandType,
+          effectiveStackExplanation: '❌ 無効なvs3ベット設定: 有効な3ベッターが存在しません',
+          stackSizeStrategy: 'vs3ベットには、オープンレイザーより後のポジションの3ベッターが必要です。',
+          icmConsideration: 'ポジション設定を確認してください。',
+          recommendedBetSize: 0
+        };
       }
+      
+      threeBetterPosition = validThreeBetters[Math.floor(Math.random() * validThreeBetters.length)];
     }
     
-    // スタックサイズに応じたEVデータを生成（20BB、25BBなど対応）
-    const getStackBasedEV = (action: string, stackBB: number) => {
-      const baseMultiplier = stackBB <= 15 ? 1.0 : stackBB <= 20 ? 1.1 : stackBB <= 25 ? 1.2 : 1.3;
-      return {
-        'FOLD': 0,
-        'CALL': action === 'CALL' ? (0.8 * baseMultiplier) : -1.0,
-        'RAISE': action === 'RAISE' ? (2.5 * baseMultiplier) : -1.2,
-        'ALL IN': action === 'ALL IN' ? (3.2 * baseMultiplier) : -2.0
-      };
-    };
+    // スタック固有のレンジキーを構築（オープンレイザー vs 3ベッターの形式）
+    const rangeKey = `vs3bet_${position}_vs_${threeBetterPosition}_${stackSize}`;
+    // 15BBの場合は既存キーとの互換性も確認
+    const fallbackRangeKey = stackSize === '15BB' ? `vs3bet_${position}_vs_${threeBetterPosition}` : null;
     
-    const customEvData = getStackBasedEV(customPrimaryAction, stackDepthBB);
-    
-    // スタックサイズに応じたベットサイズの計算
-    const getRecommendedBetSize = (action: string, stackBB: number) => {
-      if (action === 'ALL IN') return stackBB;
-      if (action === 'RAISE') {
-        if (stackBB <= 15) return 2.2;
-        if (stackBB <= 20) return 2.5;
-        if (stackBB <= 25) return 2.8;
-        return 3.0;
-      }
-      return 0;
-    };
-    
-    console.log('🎯 カスタムレンジ適用成功:', {
-      position,
+    console.log('🔍 vs 3ベット分析:', {
+      rangeKey,
+      fallbackRangeKey,
       stackSize,
-      stackRangeKey,
       handType: normalizedHandType,
-      customHandData,
-      primaryAction: customPrimaryAction,
-      frequencies: customFrequencies,
-      evData: customEvData
+      hasCustomRanges: !!customRanges,
+      hasThisRange: !!(customRanges && customRanges[rangeKey]),
+      hasFallbackRange: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+      hasThisHand: !!(customRanges && (
+        (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
+        (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      )),
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
     });
     
-    const positionAdvice = getPositionAdvice(position, customPrimaryAction, stackDepthBB);
+    // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
+    let customHandData = null;
+    let usedRangeKey = rangeKey;
+    
+    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
+      customHandData = customRanges[rangeKey][normalizedHandType];
+    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+    }
+    
+    if (customHandData) {
+      // カスタムレンジから頻度データを取得
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customPrimaryAction = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 1.2 : -1.5,
+        'RAISE': customPrimaryAction === 'RAISE' ? 2.8 : -2.0,
+        'ALL IN': customPrimaryAction === 'ALL IN' ? 4.5 : -3.0
+      };
+      
+      console.log('🎯 カスタムvs3ベットレンジ使用:', {
+        rangeKey: usedRangeKey,
+        handType: normalizedHandType,
+        customHandData,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
+        stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
+        strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        isCustomRange: true
+      };
+    }
+    
+    // カスタムレンジがない場合はデフォルト戦略（簡略化）
+    if (['AA', 'KK', 'QQ', 'AKs', 'AKo'].includes(normalizedHandType)) {
+      gtoAction = 'ALL IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 20, 'ALL IN': 80 };
+    } else if (['JJ', 'TT', 'AQs', 'AQo'].includes(normalizedHandType)) {
+      gtoAction = 'CALL';
+      frequencies = { 'FOLD': 30, 'CALL': 60, 'RAISE': 0, 'ALL IN': 10 };
+    } else {
+      gtoAction = 'FOLD';
+      frequencies = { 'FOLD': 85, 'CALL': 10, 'RAISE': 0, 'ALL IN': 5 };
+    }
+    
+    evData = {
+      'FOLD': 0,
+      'CALL': gtoAction === 'CALL' ? 1.2 : -1.5,
+      'RAISE': gtoAction === 'RAISE' ? 2.8 : -2.0,
+      'ALL IN': gtoAction === 'ALL IN' ? 4.5 : -3.0
+    };
     
     return {
-      correctAction: customPrimaryAction,
-      evData: customEvData,
-      frequencies: customFrequencies,
+      correctAction: gtoAction,
+      evData: evData,
+      frequencies: frequencies,
       normalizedHandType: normalizedHandType,
-      effectiveStackExplanation: `カスタムレンジ: ${position}ポジション(${stackSize})での設定済みオープン戦略です。`,
-      stackSizeStrategy: positionAdvice,
-      icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-      recommendedBetSize: getRecommendedBetSize(customPrimaryAction, stackDepthBB),
-      strategicAnalysis: `カスタム${stackSize}戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
-      exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
-      isCustomRange: true // カスタムレンジ使用を示すフラグ
+      effectiveStackExplanation: `${stackSize}スタックでのvs 3ベット戦略です。`,
+      stackSizeStrategy: `vs 3ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
+      icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
+      recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
+      strategicAnalysis: `vs3ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
+      exploitSuggestion: `vs 3ベットでは、相手の3ベット頻度と4ベットに対する反応を観察して調整しましょう。`
     };
+  }
+  
+  // vs 4ベットの場合の特別処理
+  if (actionType === 'vs4bet') {
+    // vs4betでは4ベッターのポジションが必要（通常はオリジナルのオープンレイザー）
+    let fourBetterPosition = openerPosition; // URLパラメータで4ベッターが指定されている場合
+    if (!fourBetterPosition) {
+      // 4ベッターが指定されていない場合はランダムに選択（3ベッターより前のポジション）
+      const getValidFourBetters = (threeBetterPos: string): string[] => {
+        const threeBetterIndex = getPositionIndex(threeBetterPos);
+        if (threeBetterIndex <= 0) return []; // UTGまたは無効なポジションの場合、前のポジションは存在しない
+        return POSITION_ORDER.slice(0, threeBetterIndex); // 3ベッターより前のポジションのみ
+      };
+      
+      const validFourBetters = getValidFourBetters(position);
+      if (validFourBetters.length === 0) {
+        // 有効な4ベッターがいない場合はフォールド
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          normalizedHandType: normalizedHandType,
+          effectiveStackExplanation: '❌ 無効なvs4ベット設定: 有効な4ベッターが存在しません',
+          stackSizeStrategy: 'vs4ベットには、3ベッターより前のポジション（通常オリジナルのオープンレイザー）の4ベッターが必要です。',
+          icmConsideration: 'ポジション設定を確認してください。',
+          recommendedBetSize: 0
+        };
+      }
+      
+      fourBetterPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+    }
+    
+    // スタック固有のレンジキーを構築（3ベッター vs 4ベッターの形式）
+    const rangeKey = `vs4bet_${position}_vs_${fourBetterPosition}_${stackSize}`;
+    // 15BBの場合は既存キーとの互換性も確認
+    const fallbackRangeKey = stackSize === '15BB' ? `vs4bet_${position}_vs_${fourBetterPosition}` : null;
+    
+    console.log('🔍 vs 4ベット分析:', {
+      rangeKey,
+      fallbackRangeKey,
+      stackSize,
+      handType: normalizedHandType,
+      hasCustomRanges: !!customRanges,
+      hasThisRange: !!(customRanges && customRanges[rangeKey]),
+      hasFallbackRange: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+      hasThisHand: !!(customRanges && (
+        (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
+        (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      )),
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+    });
+    
+    // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
+    let customHandData = null;
+    let usedRangeKey = rangeKey;
+    
+    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
+      customHandData = customRanges[rangeKey][normalizedHandType];
+    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('15BB互換性: 既存vs4ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+    }
+    
+    if (customHandData) {
+      // カスタムレンジから頻度データを取得
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customPrimaryAction = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 2.0 : -2.5,
+        'RAISE': customPrimaryAction === 'RAISE' ? 5.5 : -4.0,
+        'ALL IN': customPrimaryAction === 'ALL IN' ? 8.0 : -5.0
+      };
+      
+      console.log('🎯 カスタムvs4ベットレンジ使用:', {
+        rangeKey: usedRangeKey,
+        handType: normalizedHandType,
+        customHandData,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 4ベット戦略です。`,
+        stackSizeStrategy: `vs 4ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? stackDepthBB : 0,
+        strategicAnalysis: `カスタムvs4ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        isCustomRange: true
+      };
+    }
+    
+    // カスタムレンジがない場合はデフォルト戦略（簡略化）
+    if (['AA', 'KK'].includes(normalizedHandType)) {
+      gtoAction = 'ALL IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
+    } else if (['QQ', 'AKs', 'AKo'].includes(normalizedHandType)) {
+      gtoAction = 'CALL';
+      frequencies = { 'FOLD': 20, 'CALL': 70, 'RAISE': 0, 'ALL IN': 10 };
+    } else {
+      gtoAction = 'FOLD';
+      frequencies = { 'FOLD': 95, 'CALL': 5, 'RAISE': 0, 'ALL IN': 0 };
+    }
+    
+    evData = {
+      'FOLD': 0,
+      'CALL': gtoAction === 'CALL' ? 2.0 : -2.5,
+      'RAISE': gtoAction === 'RAISE' ? 5.5 : -4.0,
+      'ALL IN': gtoAction === 'ALL IN' ? 8.0 : -5.0
+    };
+    
+    return {
+      correctAction: gtoAction,
+      evData: evData,
+      frequencies: frequencies,
+      normalizedHandType: normalizedHandType,
+      effectiveStackExplanation: `${stackSize}スタックでのvs 4ベット戦略です。`,
+      stackSizeStrategy: `vs 4ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
+      icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
+      recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? stackDepthBB : 0,
+      strategicAnalysis: `vs4ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
+      exploitSuggestion: `vs 4ベットでは、プレミアムハンド以外はほぼフォールドが基本です。相手の4ベット頻度を観察しましょう。`
+    };
+  }
+  
+  // 通常の15BBスタック戦略 - カスタムレンジを優先して使用
+  if (stackDepthBB <= 15) {
+    // スタックサイズ固有のレンジキーを構築
+    const stackSpecificRangeKey = `${position}_${stackSize}`;
+    
+    console.log('🔍 スタック固有レンジ分析:', {
+      position,
+      stackSize,
+      stackSpecificRangeKey,
+      handType: normalizedHandType,
+      hasCustomRanges: !!customRanges,
+      hasStackSpecificRange: !!(customRanges && customRanges[stackSpecificRangeKey]),
+      hasGenericRange: !!(customRanges && customRanges[position]),
+      hasThisHand: !!(customRanges && (customRanges[stackSpecificRangeKey] || customRanges[position]) && 
+                      ((customRanges[stackSpecificRangeKey] && customRanges[stackSpecificRangeKey][normalizedHandType]) ||
+                       (customRanges[position] && customRanges[position][normalizedHandType]))),
+      availablePositions: customRanges ? Object.keys(customRanges) : []
+    });
+    
+    // 1. スタックサイズ固有のレンジを優先
+    if (customRanges && customRanges[stackSpecificRangeKey] && customRanges[stackSpecificRangeKey][normalizedHandType]) {
+      const customHandData = customRanges[stackSpecificRangeKey][normalizedHandType];
+      
+      // カスタムレンジから頻度データを取得
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customPrimaryAction = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        const actionMapping: { [key: string]: string } = {
+          'ALL_IN': 'ALL IN',
+          'MIN': 'RAISE',
+          'CALL': 'CALL',
+          'FOLD': 'FOLD',
+          'RAISE': 'RAISE'
+        };
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
+        'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
+        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+      };
+      
+      console.log('🎯 スタック固有カスタムレンジ使用:', {
+        rangeKey: stackSpecificRangeKey,
+        handType: normalizedHandType,
+        customHandData,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      const positionAdvice = getPositionAdvice(position, customPrimaryAction, stackDepthBB);
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
+        stackSizeStrategy: positionAdvice,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        strategicAnalysis: `カスタム${stackSize}戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
+        isCustomRange: true // カスタムレンジ使用を示すフラグ
+      };
+    }
+    
+    // 2. スタック固有のレンジがない場合は汎用ポジションレンジを使用
+    if (customRanges && customRanges[position] && customRanges[position][normalizedHandType]) {
+      const customHandData = customRanges[position][normalizedHandType];
+      
+      // カスタムレンジから頻度データを取得
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customPrimaryAction = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        const actionMapping: { [key: string]: string } = {
+          'ALL_IN': 'ALL IN',
+          'MIN': 'RAISE',
+          'CALL': 'CALL',
+          'FOLD': 'FOLD',
+          'RAISE': 'RAISE'
+        };
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
+        'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
+        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+      };
+      
+      console.log('🎯 カスタムレンジ使用 (オープン):', {
+        position,
+        handType: normalizedHandType,
+        customHandData,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      const positionAdvice = getPositionAdvice(position, customPrimaryAction, stackDepthBB);
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジションでの設定済み15BBオープン戦略です。`,
+        stackSizeStrategy: positionAdvice,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        strategicAnalysis: `カスタム15BB戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
+        isCustomRange: true // カスタムレンジ使用を示すフラグ
+      };
+    }
+  }
+  
+  // 15BBより深いスタックでもスタック固有のレンジがあれば使用
+  if (stackDepthBB > 15) {
+    const stackSpecificRangeKey = `${position}_${stackSize}`;
+    
+    console.log('🔍 深いスタック固有レンジ分析:', {
+      position,
+      stackSize,
+      stackSpecificRangeKey,
+      handType: normalizedHandType,
+      hasStackSpecificRange: !!(customRanges && customRanges[stackSpecificRangeKey]),
+      hasThisHand: !!(customRanges && customRanges[stackSpecificRangeKey] && customRanges[stackSpecificRangeKey][normalizedHandType])
+    });
+    
+    if (customRanges && customRanges[stackSpecificRangeKey] && customRanges[stackSpecificRangeKey][normalizedHandType]) {
+      const customHandData = customRanges[stackSpecificRangeKey][normalizedHandType];
+      
+      // カスタムレンジから頻度データを取得
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customPrimaryAction = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        const actionMapping: { [key: string]: string } = {
+          'ALL_IN': 'ALL IN',
+          'MIN': 'RAISE',
+          'CALL': 'CALL',
+          'FOLD': 'FOLD',
+          'RAISE': 'RAISE'
+        };
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
+        'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
+        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+      };
+      
+      console.log('🎯 深いスタック固有カスタムレンジ使用:', {
+        rangeKey: stackSpecificRangeKey,
+        handType: normalizedHandType,
+        customHandData,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      const positionAdvice = getPositionAdvice(position, customPrimaryAction, stackDepthBB);
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
+        stackSizeStrategy: positionAdvice,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        strategicAnalysis: `カスタム${stackSize}戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
+        isCustomRange: true // カスタムレンジ使用を示すフラグ
+      };
+    }
   }
   
   // カスタムレンジがない場合は適切なMTTレンジをデフォルトとして使用
@@ -501,7 +954,7 @@ const simulateMTTGTOData = (
         curr[1] > max[1] ? curr : max
       );
       gtoAction = maxFreqEntry[0];
-    } else {
+          } else {
       // 単一アクションの場合
       const actionMapping: { [key: string]: string } = {
         'ALL_IN': 'ALL IN',
@@ -521,15 +974,15 @@ const simulateMTTGTOData = (
     }
     
     // デフォルトレンジ用のEVデータを生成
-    evData = {
-      'FOLD': 0,
+          evData = {
+            'FOLD': 0,
       'CALL': gtoAction === 'CALL' ? 0.8 : -1.0,
       'RAISE': gtoAction === 'RAISE' ? 2.5 : -1.2,
       'ALL IN': gtoAction === 'ALL IN' ? 3.2 : -2.0
-    };
-  } else {
+          };
+        } else {
     // レンジ外のハンドの場合はフォールド
-    gtoAction = 'FOLD';
+          gtoAction = 'FOLD';
     frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
     evData = { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL IN': -2.5 };
   }
@@ -546,6 +999,7 @@ const simulateMTTGTOData = (
     strategicAnalysis: `${stackSize}戦略: ${normalizeHandType(hand)}は${gtoAction}が推奨されます。`,
     exploitSuggestion: getExploitSuggestion(gtoAction, position, normalizeHandType(hand))
   };
+};
 
 // ポジション別のアドバイスを生成する関数
 const getPositionAdvice = (position: string, action: string, stackDepthBB: number): string => {
@@ -562,16 +1016,16 @@ const getPositionAdvice = (position: string, action: string, stackDepthBB: numbe
 
   const positionDesc = positionDescriptions[position as keyof typeof positionDescriptions] || position;
   
-  if (action === 'ALL IN') {
-    return `${positionDesc}からの${stackDepthBB}BBオールインは、フォールドエクイティを最大化する戦略です。${position === 'UTG' || position === 'UTG1' ? 'アーリーポジションからのオールインは特にタイトなレンジが必要です。' : position === 'BTN' ? 'ボタンからのオールインは最も広いレンジで可能です。' : 'ポジションに応じた適切なレンジでプレイしましょう。'}`;
+  if (action === 'ALL_IN') {
+    return `${positionDesc}からの15BBオールインは、フォールドエクイティを最大化する戦略です。${position === 'UTG' || position === 'UTG1' ? 'アーリーポジションからのオールインは特にタイトなレンジが必要です。' : position === 'BTN' ? 'ボタンからのオールインは最も広いレンジで可能です。' : 'ポジションに応じた適切なレンジでプレイしましょう。'}`;
   } else if (action === 'MIN') {
     return `${positionDesc}からのミニレイズは、スタックを温存しながら主導権を握る戦略です。${stackDepthBB}BBでは、コミット率が高くなるため慎重に選択しましょう。`;
   } else if (action === 'CALL') {
-    return `${positionDesc}からのコールは、ポストフロップでの判断を必要とします。${stackDepthBB}BBでは${stackDepthBB <= 15 ? '複雑な判断を避けるため、シンプルなプレイが推奨されます。' : 'ポストフロップでの適切な判断が重要になります。'}`;
+    return `${positionDesc}からのコールは、ポストフロップでの判断を必要とします。15BBでは複雑な判断を避けるため、シンプルなプレイが推奨されます。`;
   } else if (action === '3BB') {
     return `${positionDesc}からの3BBレイズは、ミニレイズよりも強い意思表示です。フォールドエクイティと価値の両方を狙います。`;
-  } else {
-    return `${positionDesc}からはフォールドが最適です。${stackDepthBB}BBという貴重なスタックを温存し、より有利な状況を待ちましょう。`;
+          } else {
+    return `${positionDesc}からはフォールドが最適です。15BBという貴重なスタックを温存し、より有利な状況を待ちましょう。`;
   }
 };
 
@@ -581,7 +1035,7 @@ const getICMAdvice = (stackDepthBB: number, action: string, position: string): s
     return `${stackDepthBB}BBという極めて浅いスタックでは、ICMプレッシャーが最大となります。生存価値を最優先に考え、${action === 'ALL_IN' ? '確実に優位性のあるハンドでのみオールインしましょう。' : 'リスクを極力避けてプレイしましょう。'}`;
   } else if (stackDepthBB <= 15) {
     return `15BBスタックでは中程度のICMプレッシャーがあります。${action === 'FOLD' ? 'タイトなプレイで生存を優先しつつ、' : '適度なアグレッションを保ちながら、'}ペイアウトジャンプを意識したプレイが重要です。`;
-  } else {
+        } else {
     return 'スタックに余裕があるため、標準的なICM考慮でプレイできます。ただし、常にトーナメント状況を意識しましょう。';
   }
 };
@@ -589,16 +1043,16 @@ const getICMAdvice = (stackDepthBB: number, action: string, position: string): s
 // エクスプロイト提案を生成する関数
 const getExploitSuggestion = (action: string, position: string, handType: string): string => {
   if (action === 'FOLD') {
-    return `${handType}は${position}ポジションでは一般的にフォールドですが、対戦相手がタイトな場合は時折ブラフとして利用できる可能性があります。`;
+    return `${handType}は${position}ポジションでは一般的にフォールドですが、対戦相手がタイトな場合は時折ブラフとして利用できる可能性があります。`
   }
   if (action === 'RAISE') {
-    return `${handType}での${position}からのレイズは、対戦相手の3ベット頻度に応じて調整しましょう。`;
+    return `${handType}での${position}からのレイズは、対戦相手の3ベット頻度に応じて調整しましょう。`
   }
   if (action === 'ALL IN') {
-    return `${handType}でのオールインは15BBスタックでは標準的ですが、ICM状況を考慮して調整が必要な場合があります。`;
+    return `${handType}でのオールインは15BBスタックでは標準的ですが、ICM状況を考慮して調整が必要な場合があります。`
   }
-  return `${handType}は${position}ポジションで柔軟性のある戦略を要求します。`;
-};
+  return `${handType}は${position}ポジションで柔軟性のある戦略を要求します。`
+}
 
 // オープンレイザーの情報を取得する関数
 const getOpenerInfo = (openerPosition: string): string => {
@@ -611,7 +1065,7 @@ const getOpenerInfo = (openerPosition: string): string => {
   };
   
   return openerData[openerPosition] || 'このポジションからのオープンレンジを分析中...';
-};
+}
 
 // vsオープン戦略を取得する関数
 const getVsOpenStrategy = (handType: string, heroPosition: string, openerPosition: string, stackBB: number) => {
@@ -635,8 +1089,8 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
           frequencies: { 'FOLD': 30, 'CALL': 20, 'RAISE': 0, 'ALL IN': 50 },
           primaryAction: 'ALL IN',
           evData: { 'FOLD': 0, 'CALL': 0.8, 'RAISE': 1.2, 'ALL IN': 2.5 }
-        };
-      } else {
+            };
+          } else {
         return {
           frequencies: { 'FOLD': 10, 'CALL': 30, 'RAISE': 0, 'ALL IN': 60 },
           primaryAction: 'ALL IN',
@@ -661,7 +1115,7 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
     primaryAction: 'FOLD',
     evData: { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL IN': -2.5 }
   };
-};
+}
 
 // vsオープンのアドバイスを取得する関数
 const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: string, stackBB: number): string => {
@@ -676,7 +1130,7 @@ const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: s
   }
   
   return `${positionInfo}の戦略は、相手のレンジとポジション優位を考慮して決定されています。`;
-};
+}
 
 export default function MTTTrainingPage() {
   const router = useRouter();
@@ -684,7 +1138,7 @@ export default function MTTTrainingPage() {
   const { isAdmin, token, user, logout, loading } = useAdmin();
   
   // URLからシナリオパラメータを取得（簡略化）
-  const stackSize = searchParams.get('stack') || '100BB';
+  const stackSize = searchParams.get('stack') || '75BB';
   const position = searchParams.get('position') || 'BTN';
   const actionType = searchParams.get('action') || 'openraise';
   
@@ -813,7 +1267,7 @@ export default function MTTTrainingPage() {
     
     setHand(newHand);
     
-    // vs openの場合、オープンレイザーを動的に決定
+    // vs open, vs3bet, vs4betの場合、相手のポジションを動的に決定
     let openerPosition: string | undefined;
     if (actionType === 'vsopen') {
       // URLパラメータでオープンレイザーが指定されている場合はそれを使用
@@ -825,6 +1279,46 @@ export default function MTTTrainingPage() {
         const validOpeners = getValidOpenerPositions(position);
         if (validOpeners.length > 0) {
           openerPosition = validOpeners[Math.floor(Math.random() * validOpeners.length)];
+        }
+      }
+    } else if (actionType === 'vs3bet') {
+      // vs3betの場合、3ベッターをランダムに選択（オープンレイザーより後のポジション）
+      const urlThreeBetter = searchParams.get('threebetter');
+      if (urlThreeBetter) {
+        const threeBetterIndex = getPositionIndex(urlThreeBetter);
+        const positionIndex = getPositionIndex(position);
+        if (threeBetterIndex > positionIndex) {
+          openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
+        }
+      }
+      
+      if (!openerPosition) {
+        const positionIndex = getPositionIndex(position);
+        if (positionIndex < POSITION_ORDER.length - 1) {
+          const validThreeBetters = POSITION_ORDER.slice(positionIndex + 1);
+          if (validThreeBetters.length > 0) {
+            openerPosition = validThreeBetters[Math.floor(Math.random() * validThreeBetters.length)];
+          }
+        }
+      }
+    } else if (actionType === 'vs4bet') {
+      // vs4betの場合、4ベッターをランダムに選択（3ベッターより前のポジション）
+      const urlFourBetter = searchParams.get('fourbetter');
+      if (urlFourBetter) {
+        const fourBetterIndex = getPositionIndex(urlFourBetter);
+        const positionIndex = getPositionIndex(position);
+        if (fourBetterIndex < positionIndex) {
+          openerPosition = urlFourBetter; // vs4betでは4ベッターの情報をopenerPositionパラメータで渡す
+        }
+      }
+      
+      if (!openerPosition) {
+        const positionIndex = getPositionIndex(position);
+        if (positionIndex > 0) {
+          const validFourBetters = POSITION_ORDER.slice(0, positionIndex);
+          if (validFourBetters.length > 0) {
+            openerPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+          }
         }
       }
     }
@@ -843,41 +1337,75 @@ export default function MTTTrainingPage() {
     // レイズ推奨サイズを取得
     const recommendedBetSize = data.recommendedBetSize;
     
-    // ポットサイズの計算 - vs openの場合はオープンレイズの大きさを考慮
+    // ポットサイズの計算 - 30BBスタック固有のサイジング
     let potSize = 1.5;     // デフォルト
     let openRaiseSize = 2.0; // デフォルトのオープンサイズ
+    let threeBetSize = 6.3; // デフォルトの3ベットサイズ
     
-    // BTNの15BBスタックの場合はリンプ戦略を使用
-    if (actionType === 'vsopen' && openerPosition === 'BTN' && stackSize === '15BB') {
-      openRaiseSize = 1.0; // リンプ
-      potSize = openRaiseSize + 1.0; // リンプ + BB（SBのブラインド分は除外）
-    } else if (actionType === 'vsopen' && openerPosition === 'SB' && stackSize === '15BB') {
-      openRaiseSize = 1.0; // SBリンプ
-      potSize = openRaiseSize + 1.0; // SBリンプ + BB
-    } else if (actionType === 'vsopen') {
-      // 通常のオープンレイズの場合は2.0BBを使用
-      potSize = openRaiseSize + 1.5;
-    } else if (actionType === 'openraise') {
-      potSize = 1.5; // SB + BB
-    } else if (actionType === 'vs3bet') {
-      potSize = 13;
-    } else if (actionType === 'vs4bet') {
-      potSize = 30;
-    } else if (actionType === 'vs5bet') {
-      potSize = 70;
+    // 30BBスタック固有のサイジング
+    if (stackSize === '30BB') {
+      if (actionType === 'openraise') {
+        openRaiseSize = 2.1;
+        potSize = 1.5; // SB + BB
+      } else if (actionType === 'vsopen') {
+        openRaiseSize = 2.1;
+        potSize = openRaiseSize + 1.5; // オープンレイズ + ブラインド
+      } else if (actionType === 'vs3bet') {
+        openRaiseSize = 2.1;
+        // 3ベッターのポジションに応じて3ベットサイズを決定
+        if (openerPosition === 'SB') {
+          threeBetSize = 7.5;
+        } else if (openerPosition === 'BB') {
+          threeBetSize = 8.2;
+        } else {
+          threeBetSize = 6.3; // UTG+1・LJ・HJ・CO・BTN
+        }
+        potSize = openRaiseSize + threeBetSize + 0.5; // オープン + 3ベット + SB残り
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+      } else if (actionType === 'vs4bet') {
+        potSize = 25;
+      }
+    } else {
+      // 他のスタックサイズでの従来の処理
+      if (actionType === 'vsopen' && openerPosition === 'BTN' && stackSize === '15BB') {
+        openRaiseSize = 1.0; // リンプ
+        potSize = openRaiseSize + 1.0; // リンプ + BB（SBのブラインド分は除外）
+      } else if (actionType === 'vsopen' && openerPosition === 'SB' && stackSize === '15BB') {
+        openRaiseSize = 1.0; // SBリンプ
+        potSize = openRaiseSize + 1.0; // SBリンプ + BB
+      } else if (actionType === 'vsopen') {
+        // 通常のオープンレイズの場合は2.0BBを使用
+        potSize = openRaiseSize + 1.5;
+      } else if (actionType === 'openraise') {
+        potSize = 1.5; // SB + BB
+      } else if (actionType === 'vs3bet') {
+        potSize = 13;
+      } else if (actionType === 'vs4bet') {
+        potSize = 30;
+      } else if (actionType === 'vs5bet') {
+        potSize = 70;
+      }
     }
     
     // スポットデータを作成（簡略化）
     const newSpot: Spot = {
       id: Math.random().toString(),
       description: `エフェクティブスタック:${stackSize} - ${
-        actionType === 'openraise' ? 'オープンレイズ' : 
+        actionType === 'openraise' ? (
+          stackSize === '30BB' ? 'オープンレイズ(2.1BB)' : 'オープンレイズ'
+        ) : 
         actionType === 'vsopen' ? (
           openerPosition === 'BTN' && stackSize === '15BB' 
             ? `vs ${openerPosition || 'UTG'}のリンプ(1BB)` 
-            : `vs ${openerPosition || 'UTG'}のオープン(2.5BB)`
+            : stackSize === '30BB'
+              ? `vs ${openerPosition || 'UTG'}のオープン(2.1BB)`
+              : `vs ${openerPosition || 'UTG'}のオープン(2.5BB)`
         ) : 
-        actionType === 'vs3bet' ? 'vs 3ベット' : 
+        actionType === 'vs3bet' ? (
+          stackSize === '30BB' && openerPosition
+            ? `vs ${openerPosition}の3ベット(${threeBetSize}BB)`
+            : 'vs 3ベット'
+        ) : 
         actionType === 'vs4bet' ? 'vs 4ベット' : 
         actionType === 'vs5bet' ? 'vs 5ベット' : 
         'ランダム'
@@ -892,8 +1420,11 @@ export default function MTTTrainingPage() {
       // スタック関連の情報を追加
       stackDepth: stackSize,
       // vs オープン用の追加情報
-      openRaiserPosition: openerPosition,
+      openRaiserPosition: actionType === 'vs3bet' ? position : openerPosition, // vs3betの場合はヒーローがオープンレイザー
       openRaiseSize: openRaiseSize, // 計算されたオープンサイズを使用
+      // vs3bet用の追加情報
+      threeBetSize: stackSize === '30BB' && actionType === 'vs3bet' ? threeBetSize : undefined,
+      threeBetterPosition: actionType === 'vs3bet' ? openerPosition : undefined,
       // 各ポジションのスタック情報を作成（全てのポジションに同じスタックを設定）
       positions: {
         'UTG': { active: true, stack: parseInt(stackSize), isHero: position === 'UTG' },
@@ -923,111 +1454,98 @@ export default function MTTTrainingPage() {
   // 初期化（依存関係も簡略化）
   useEffect(() => {
     generateNewScenario();
-  }, [position, stackSize, actionType, customHandsString]);
+  }, [position, stackSize, actionType, customHandsString, customRanges]);
   
-  // システム全体からレンジデータを自動読み込み（カスタマー向けの常時同期）
+  // カスタムレンジをlocalStorageから読み込み
+  useEffect(() => {
+    const savedRanges = localStorage.getItem('mtt-custom-ranges');
+    if (savedRanges) {
+      try {
+        const parsedRanges = JSON.parse(savedRanges);
+        console.log('📂 localStorageからカスタムレンジを読み込み:', parsedRanges);
+        setCustomRanges(parsedRanges);
+      } catch (error) {
+        console.error('カスタムレンジの読み込みに失敗しました:', error);
+      }
+      } else {
+      console.log('📂 localStorageにカスタムレンジが見つかりません');
+    }
+  }, []);
+  
+  // システム全体からレンジデータを自動読み込み（エンタープライズ機能）
   useEffect(() => {
     const loadSystemRanges = async () => {
       try {
+        // まずAPIからの読み込みを試行
         const response = await fetch('/api/mtt-ranges');
         if (response.ok) {
           const systemData = await response.json();
           
-          // システムデータが存在する場合は常に優先して使用（カスタマー向けの設定を確実に反映）
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            console.log('🔄 システムからカスタムレンジを自動読み込み中...', {
-              systemRangesCount: Object.keys(systemData.ranges).length,
-              systemRanges: Object.keys(systemData.ranges)
-            });
-            
-            // システムデータを優先してcustomRangesに設定
-            setCustomRanges(systemData.ranges);
-            
-            // localStorageも更新して一貫性を保つ
-            localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
-            console.log('✅ システムからカスタムレンジを自動読み込み完了!', {
-              loadedPositions: Object.keys(systemData.ranges).length,
-              totalHands: Object.values(systemData.ranges).reduce((total: number, range: any) => total + Object.keys(range).length, 0)
-            });
-          } else {
-            console.log('📝 システムにカスタムレンジが見つかりません。ローカルデータを使用します。');
-            
-            // システムデータがない場合のみローカルストレージからの読み込みを試行
             const localRanges = localStorage.getItem('mtt-custom-ranges');
-            if (localRanges) {
-              try {
-                const localData = JSON.parse(localRanges);
-                
-                // 古い形式のキーを新形式に変換
-                const convertedRanges: Record<string, Record<string, HandInfo>> = {};
-                let hasConverted = false;
-                
-                for (const [key, value] of Object.entries(localData)) {
-                  let newKey = key;
-                  
-                  // vsopen_で始まり、末尾にスタックサイズがない場合
-                  if (key.startsWith('vsopen_') && !key.match(/_\d+BB$/)) {
-                    newKey = `${key}_15BB`;
-                    hasConverted = true;
-                    console.log(`🔄 変換: ${key} -> ${newKey}`);
-                  }
-                  // 通常のポジションキーでスタックサイズがない場合
-                  else if (!key.startsWith('vsopen_') && !key.match(/_\d+BB$/)) {
-                    newKey = `${key}_15BB`;
-                    hasConverted = true;
-                    console.log(`🔄 変換: ${key} -> ${newKey}`);
-                  }
-                  
-                  convertedRanges[newKey] = value as Record<string, HandInfo>;
-                }
-                
-                setCustomRanges(convertedRanges);
-                
-                // 変換が行われた場合はlocalStorageを更新
-                if (hasConverted) {
-                  localStorage.setItem('mtt-custom-ranges', JSON.stringify(convertedRanges));
-                  console.log('✅ 古い形式のキーを新形式に変換してlocalStorageを更新しました');
-                }
-                
-                console.log('📂 ローカルストレージからカスタムレンジを読み込み:', Object.keys(convertedRanges).length, 'ポジション');
-              } catch (error) {
-                console.error('ローカルデータの解析に失敗:', error);
+            let shouldUpdate = false;
+            
+            if (!localRanges) {
+              shouldUpdate = true;
+            } else {
+              const localData = JSON.parse(localRanges);
+              if (Object.keys(systemData.ranges).length > Object.keys(localData).length) {
+                shouldUpdate = true;
               }
             }
+            
+            if (shouldUpdate) {
+              setCustomRanges(systemData.ranges);
+              localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+              console.log('✅ システムAPIからレンジデータを自動同期しました');
+              return; // API読み込み成功時は終了
+            }
           }
-        } else {
-          console.log('🔍 システムレンジAPI応答エラー:', response.status, response.statusText);
+        }
+        
+        // APIからの読み込みが失敗した場合、データファイルから直接読み込み
+        console.log('APIからの読み込みが失敗したため、データファイルから読み込みます...');
+        const fileResponse = await fetch('/data/mtt-ranges.json');
+        if (fileResponse.ok) {
+          const fileData = await fileResponse.json();
           
-          // APIエラーの場合はローカルストレージからの読み込みを試行
-          const localRanges = localStorage.getItem('mtt-custom-ranges');
-          if (localRanges) {
-            try {
+          if (fileData.ranges && Object.keys(fileData.ranges).length > 0) {
+            const localRanges = localStorage.getItem('mtt-custom-ranges');
+            let shouldUpdate = false;
+            
+            if (!localRanges) {
+              shouldUpdate = true;
+            } else {
               const localData = JSON.parse(localRanges);
-              setCustomRanges(localData);
-              console.log('📂 フォールバック: ローカルストレージからカスタムレンジを読み込み');
-            } catch (error) {
-              console.error('ローカルデータの解析に失敗:', error);
+              if (Object.keys(fileData.ranges).length > Object.keys(localData).length) {
+                shouldUpdate = true;
+              }
+            }
+            
+            if (shouldUpdate) {
+              setCustomRanges(fileData.ranges);
+              localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
+              console.log(`✅ データファイルからレンジデータを自動同期しました（${Object.keys(fileData.ranges).length}ポジション）`);
             }
           }
         }
       } catch (error) {
-        console.log('⚠️ システムレンジ読み込みエラー（ローカルデータを使用）:', (error as Error).message);
+        console.log('自動レンジ読み込みエラー:', (error as Error).message);
         
-        // ネットワークエラーなどの場合はローカルストレージからの読み込みを試行
+        // フォールバック: 緊急時の最小限のレンジ
         const localRanges = localStorage.getItem('mtt-custom-ranges');
-        if (localRanges) {
-          try {
-            const localData = JSON.parse(localRanges);
-            setCustomRanges(localData);
-            console.log('📂 フォールバック: ローカルストレージからカスタムレンジを読み込み');
-          } catch (error) {
-            console.error('ローカルデータの解析に失敗:', error);
-          }
+        if (!localRanges) {
+          console.log('緊急フォールバック: 基本レンジを設定します');
+          // 必要最小限のレンジを設定
+          const fallbackRanges: Record<string, Record<string, HandInfo>> = {
+            'UTG': { 'AA': { action: 'MIN' as const, frequency: 100 } },
+            'BTN': { 'AA': { action: 'MIN' as const, frequency: 100 } }
+          };
+          setCustomRanges(fallbackRanges);
         }
       }
     };
 
-    // コンポーネントマウント時に即座に実行
     loadSystemRanges();
   }, []);
   
@@ -1052,11 +1570,44 @@ export default function MTTTrainingPage() {
   };
   
   // レンジエディターのハンドラー関数
-  const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
+  const handleSaveRange = (position: string, rangeData: Record<string, HandInfo>) => {
     const newCustomRanges = {
       ...customRanges,
       [position]: rangeData
     };
+    
+    // 15BBスタック固有のレンジキーの場合、既存の互換性も保つ
+    if (position.endsWith('_15BB')) {
+      const basePosition = position.replace('_15BB', '');
+      newCustomRanges[basePosition] = rangeData; // 既存のレンジキーも更新
+      console.log('15BB互換性: 既存レンジキーも更新', { basePosition, position });
+    }
+    // vsオープンレンジで15BBの場合の互換性も保つ
+    else if (position.includes('vsopen_') && position.endsWith('_15BB')) {
+      const baseVsOpenKey = position.replace('_15BB', '');
+      newCustomRanges[baseVsOpenKey] = rangeData; // 既存のvsオープンレンジキーも更新
+      console.log('15BB互換性: 既存vsオープンレンジキーも更新', { baseVsOpenKey, position });
+    }
+    // vs3ベットレンジで15BBの場合の互換性も保つ (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
+    else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
+      const baseVs3BetKey = position.replace('_15BB', '');
+      newCustomRanges[baseVs3BetKey] = rangeData; // 既存のvs3ベットレンジキーも更新
+      console.log('15BB互換性: 既存vs3ベットレンジキーも更新', { baseVs3BetKey, position });
+    }
+    // vs4ベットレンジで15BBの場合の互換性も保つ (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
+    else if (position.startsWith('vs4bet_') && position.endsWith('_15BB')) {
+      const baseVs4BetKey = position.replace('_15BB', '');
+      newCustomRanges[baseVs4BetKey] = rangeData; // 既存のvs4ベットレンジキーも更新
+      console.log('15BB互換性: 既存vs4ベットレンジキーも更新', { baseVs4BetKey, position });
+    }
+    // 他のスタックサイズでポジション名のみが指定された場合は、現在のスタックサイズのレンジキーを使用
+    else if (!position.includes('_') && !position.startsWith('vsopen_') && stackSize !== '15BB') {
+      const stackSpecificKey = `${position}_${stackSize}`;
+      newCustomRanges[stackSpecificKey] = rangeData;
+      delete newCustomRanges[position]; // ポジション名のみのキーは削除
+      console.log('スタック固有レンジ保存', { position, stackSpecificKey });
+    }
+    
     setCustomRanges(newCustomRanges);
     
     // localStorageに保存
@@ -1065,36 +1616,6 @@ export default function MTTTrainingPage() {
       console.log(`${position}ポジションのカスタムレンジを保存しました`);
     } catch (error) {
       console.error('カスタムレンジの保存に失敗しました:', error);
-    }
-    
-    // 管理者認証済みならAPIにも保存
-    if (isAdmin && token) {
-      try {
-        const response = await fetch('/api/mtt-ranges', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            ranges: newCustomRanges,
-            metadata: {
-              creator: 'MTT Admin System',
-              timestamp: new Date().toISOString()
-            }
-          }),
-        });
-        if (response.ok) {
-          const result = await response.json();
-          alert(`✅ システム全体に保存完了！\n${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンドを保存しました。`);
-        } else {
-          const error = await response.json();
-          throw new Error(error.error || '保存に失敗しました');
-        }
-      } catch (error) {
-        console.error('システム保存エラー:', error);
-        alert(`❌ システムへの保存に失敗しました: ${(error as Error).message}`);
-      }
     }
   };
 
@@ -1262,14 +1783,47 @@ export default function MTTTrainingPage() {
   };
   
   const handleOpenRangeEditor = (position: string) => {
-    // スタックサイズを含めたキーを生成
-    const rangeKey = position.startsWith('vsopen_') ? position : `${position}_${stackSize}`;
-    console.log('レンジエディターボタン押下:', position, '→ キー:', rangeKey);
-    setSelectedEditPosition(rangeKey);
+    console.log('レンジエディターボタン押下:', position);
+    
+    // 15BBの場合、既存のレンジキー（ポジション名のみ）がある場合はそれを使用
+    let targetPosition = position;
+    if (position.endsWith('_15BB')) {
+      const basePosition = position.replace('_15BB', '');
+      if (customRanges[basePosition] && !customRanges[position]) {
+        targetPosition = basePosition;
+        console.log('15BB互換性: 既存レンジキーを使用', { basePosition, targetPosition });
+      }
+    }
+    // vsオープンレンジでの15BB互換性も確認
+    else if (position.startsWith('vsopen_') && position.endsWith('_15BB')) {
+      const baseVsOpenKey = position.replace('_15BB', '');
+      if (customRanges[baseVsOpenKey] && !customRanges[position]) {
+        targetPosition = baseVsOpenKey;
+        console.log('15BB互換性: 既存vsオープンレンジキーを使用', { baseVsOpenKey, targetPosition });
+      }
+    }
+    // vs3ベットレンジでの15BB互換性も確認 (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
+    else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
+      const baseVs3BetKey = position.replace('_15BB', '');
+      if (customRanges[baseVs3BetKey] && !customRanges[position]) {
+        targetPosition = baseVs3BetKey;
+        console.log('15BB互換性: 既存vs3ベットレンジキーを使用', { baseVs3BetKey, targetPosition });
+      }
+    }
+    // vs4ベットレンジでの15BB互換性も確認 (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
+    else if (position.startsWith('vs4bet_') && position.endsWith('_15BB')) {
+      const baseVs4BetKey = position.replace('_15BB', '');
+      if (customRanges[baseVs4BetKey] && !customRanges[position]) {
+        targetPosition = baseVs4BetKey;
+        console.log('15BB互換性: 既存vs4ベットレンジキーを使用', { baseVs4BetKey, targetPosition });
+      }
+    }
+    
+    setSelectedEditPosition(targetPosition);
     setShowRangeEditor(true);
     setTimeout(() => {
       // 状態が反映された後の値を確認
-      console.log('showRangeEditor:', showRangeEditor, 'selectedEditPosition:', selectedEditPosition);
+      console.log('showRangeEditor:', showRangeEditor, 'selectedEditPosition:', targetPosition);
     }, 100);
   };
   
@@ -1359,8 +1913,9 @@ export default function MTTTrainingPage() {
       case '15BB': return '浅いエフェクティブスタック (15BB)';
       case '20BB': return '浅めエフェクティブスタック (20BB)';
       case '30BB': return '中程度エフェクティブスタック (30BB)';
+      case '40BB': return '中程度エフェクティブスタック (40BB)';
       case '50BB': return '深めエフェクティブスタック (50BB)';
-      case '100BB': return '深いエフェクティブスタック (100BB)';
+      case '75BB': return '深いエフェクティブスタック (75BB)';
       default: return `${stackSize}`;
     }
   };
@@ -1391,12 +1946,6 @@ export default function MTTTrainingPage() {
           <div className="mb-4 hidden md:flex justify-between items-center">
             <h1 className="text-2xl font-bold">MTT GTOトレーニング</h1>
             <div className="flex items-center gap-4">
-              <button
-                onClick={handleOpenHandSelector}
-                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors"
-              >
-                📱 ハンド選択 ({selectedTrainingHands.length})
-              </button>
               <Link 
                 href={`/trainer/mtt?${new URLSearchParams({
                   stack: stackSize,
@@ -1427,17 +1976,6 @@ export default function MTTTrainingPage() {
                 ← 戻る
               </Link>
             </div>
-            <button
-              onClick={handleOpenHandSelector}
-              className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded transition-colors mb-2"
-            >
-              📱 トレーニングハンドを選択 ({selectedTrainingHands.length}個選択中)
-            </button>
-            {selectedTrainingHands.length > 0 && (
-              <div className="text-xs text-gray-400 mb-2">
-                💡 選択されたハンドからランダムに出題されます
-              </div>
-            )}
           </div>
           
 
@@ -1448,29 +1986,33 @@ export default function MTTTrainingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-white mb-1">レンジをカスタマイズ <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
-                  <p className="text-sm text-gray-300">各ポジションのオープンレイズレンジを設定できます</p>
+                  <p className="text-sm text-gray-300">各ポジションの{stackSize}オープンレイズレンジを設定できます</p>
                   <p className="text-xs text-blue-300 mt-1">💡 ハンド形式: K9s, ATo, QQ など（9Ks → K9s に自動変換されます）</p>
-                  {Object.keys(customRanges).length > 0 && (
+                  {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || !key.includes('_')).length > 0 && (
                     <div className="text-xs text-green-400 mt-1">
-                      カスタムレンジ設定済み: {Object.keys(customRanges).join(', ')}
+                      {stackSize}カスタムレンジ設定済み: {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB')).length}レンジ
                     </div>
                   )}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(pos => {
+                    // スタックサイズ固有のレンジキーを使用
                     const rangeKey = `${pos}_${stackSize}`;
+                    const hasCustomRange = customRanges[rangeKey] || (stackSize === '15BB' && customRanges[pos]);
+                    
                     return (
                       <button
                         key={pos}
-                        onClick={() => handleOpenRangeEditor(pos)}
+                        onClick={() => handleOpenRangeEditor(rangeKey)}
                         className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                          customRanges[rangeKey] 
+                          hasCustomRange
                             ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400' 
                             : 'bg-purple-600 hover:bg-purple-700 text-white border-2 border-transparent'
                         }`}
+                        title={`${pos}ポジション ${stackSize}スタックのレンジ設定`}
                       >
                         {pos}
-                        {customRanges[rangeKey] && ' ✓'}
+                        {hasCustomRange && ' ✓'}
                       </button>
                     );
                   })}
@@ -1575,6 +2117,35 @@ export default function MTTTrainingPage() {
                           システム読み込み
                         </button>
                         
+                        {/* 強制データファイル読み込みボタン */}
+                        <button
+                          onClick={() => {
+                            fetch('/data/mtt-ranges.json')
+                              .then(response => response.json())
+                              .then(data => {
+                                if (data.ranges) {
+                                  setCustomRanges(data.ranges);
+                                  localStorage.setItem('mtt-custom-ranges', JSON.stringify(data.ranges));
+                                  alert(`✅ データファイルから読み込み完了！\n${Object.keys(data.ranges).length}ポジション分のレンジを読み込みました。`);
+                                  // ページをリロードして反映
+                                  window.location.reload();
+                                } else {
+                                  alert('❌ データファイルの形式が正しくありません');
+                                }
+                              })
+                              .catch(error => {
+                                console.error('データファイル読み込みエラー:', error);
+                                alert(`❌ データファイルの読み込みに失敗しました: ${error.message}`);
+                              });
+                          }}
+                          className="px-3 py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 transition-all duration-200 flex items-center gap-1"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          データファイル読み込み
+                        </button>
+                        
                         {/* システム削除ボタン */}
                         <button
                           onClick={handleClearSystemRanges}
@@ -1596,18 +2167,23 @@ export default function MTTTrainingPage() {
 
 
           {/* vs オープン専用レンジエディター */}
-          {isAdmin && actionType === 'vsopen' && (
+          {actionType === 'vsopen' && (
             <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-lg p-4 mb-4 border border-green-700/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">vs オープンレンジをカスタマイズ <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
-                  <p className="text-sm text-gray-300">ヒーローポジションとオープンレイザーの組み合わせでレンジを設定できます</p>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs オープンレンジをカスタマイズ ({stackSize})</h3>
+                  <p className="text-sm text-gray-300">現在の{stackSize}スタックでのヒーローポジションとオープンレイザーの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-green-300 mt-1">💡 オープンに対してFOLD/CALL/RAISE/ALL INの頻度を設定します</p>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                    <div className="text-xs text-green-400 mt-1">
+                      {stackSize}カスタムvsオープンレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="mt-4">
-                <h4 className="text-sm font-semibold text-white mb-3">ヒーローポジション別のvsオープンレンジ設定：</h4>
+                <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでのヒーローポジション別vsオープンレンジ設定：</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].map(heroPos => {
                     const validOpeners = getValidOpenerPositions(heroPos);
@@ -1622,7 +2198,9 @@ export default function MTTTrainingPage() {
                         <div className="flex flex-wrap gap-1">
                           {validOpeners.map(opener => {
                             const rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
-                            const hasCustomRange = customRanges[rangeKey];
+                            // 15BBの場合は既存レンジキーも確認
+                            const fallbackRangeKey = stackSize === '15BB' ? `vsopen_${heroPos}_vs_${opener}` : null;
+                            const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
                             
                             // BTNのオープンレンジがレイズなしの場合（15BBなど）の特別表示
                             const isLimpOnlyOpener = opener === 'BTN' && stackSize === '15BB';
@@ -1639,7 +2217,7 @@ export default function MTTTrainingPage() {
                                     ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
                                     : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
                                 }`}
-                                title={`${heroPos} vs ${opener}のレンジ設定`}
+                                title={`${heroPos} vs ${opener}の{stackSize}スタックレンジ設定`}
                               >
                                 {displayText}
                                 {hasCustomRange && ' ✓'}
@@ -1654,8 +2232,9 @@ export default function MTTTrainingPage() {
                 
                 {/* vs オープンレンジの説明 */}
                 <div className="mt-4 p-3 bg-blue-900/20 border border-blue-600/30 rounded text-xs">
-                  <div className="text-blue-400 font-semibold mb-1">💡 vs オープンレンジの特徴</div>
+                  <div className="text-blue-400 font-semibold mb-1">💡 vs オープンレンジの特徴 ({stackSize}スタック固有)</div>
                   <div className="text-gray-300">
+                    • <strong>スタック依存:</strong> {stackSize}スタック専用のレンジ設定<br/>
                     • <strong>ポジション依存:</strong> ヒーローより前のポジションからのオープンのみ対応<br/>
                     • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、RAISE（レイズ）、ALL IN（オールイン）<br/>
                     • <strong>混合戦略:</strong> 右クリックで詳細な頻度設定（例：CALL 60%, FOLD 40%）
@@ -1665,6 +2244,155 @@ export default function MTTTrainingPage() {
             </div>
           )}
 
+          {actionType === 'vs3bet' && (
+            <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize})</h3>
+                  <p className="text-sm text-gray-300">現在の{stackSize}スタックでのオープンレイザーと3ベッターの組み合わせでレンジを設定できます</p>
+                  <p className="text-xs text-orange-300 mt-1">💡 3ベットに対してFOLD/CALL/RAISE(4bet)/ALL INの頻度を設定します</p>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                    <div className="text-xs text-orange-400 mt-1">
+                      {stackSize}カスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでのオープンレイザー別vs3ベットレンジ設定：</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
+                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
+                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
+                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
+                      return POSITION_ORDER.slice(openRaiserIndex + 1);
+                    };
+                    
+                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
+                    if (validThreeBetters.length === 0) return null;
+                    
+                    return (
+                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+                        <div className="text-sm font-semibold text-orange-400 mb-2">{openRaiserPos} (オープンレイザー)</div>
+                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {validThreeBetters.map(threeBetter => {
+                            const rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_${stackSize}`;
+                            // 15BBの場合は既存レンジキーも確認
+                            const fallbackRangeKey = stackSize === '15BB' ? `vs3bet_${openRaiserPos}_vs_${threeBetter}` : null;
+                            const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
+                            
+                            return (
+                              <button
+                                key={threeBetter}
+                                onClick={() => handleOpenRangeEditor(rangeKey)}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                  hasCustomRange
+                                    ? 'bg-orange-600 hover:bg-orange-700 text-white border-2 border-orange-400'
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                }`}
+                                title={`${openRaiserPos} vs ${threeBetter}の${stackSize}スタックvs3ベットレンジ設定`}
+                              >
+                                {threeBetter}
+                                {hasCustomRange && ' ✓'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* vs 3ベットレンジの説明 */}
+                <div className="mt-4 p-3 bg-orange-900/20 border border-orange-600/30 rounded text-xs">
+                  <div className="text-orange-400 font-semibold mb-1">💡 vs 3ベットレンジの特徴 ({stackSize}スタック固有)</div>
+                  <div className="text-gray-300">
+                    • <strong>スタック依存:</strong> {stackSize}スタック専用のレンジ設定<br/>
+                    • <strong>ポジション依存:</strong> オープンレイザーが後のポジションからの3ベットに対する反応戦略<br/>
+                    • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、RAISE（4ベット）、ALL IN（オールイン）<br/>
+                    • <strong>混合戦略:</strong> 右クリックで詳細な頻度設定（例：CALL 70%, FOLD 30%）
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {actionType === 'vs4bet' && (
+            <div className="bg-gradient-to-r from-red-900/30 to-pink-900/30 rounded-lg p-4 mb-4 border border-red-700/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs 4ベットレンジをカスタマイズ ({stackSize})</h3>
+                  <p className="text-sm text-gray-300">現在の{stackSize}スタックでの3ベッターと4ベッターの組み合わせでレンジを設定できます</p>
+                  <p className="text-xs text-red-300 mt-1">💡 4ベットに対してFOLD/CALL/ALL IN(5bet)の頻度を設定します</p>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                    <div className="text-xs text-red-400 mt-1">
+                      {stackSize}カスタムvs4ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでの3ベッター別vs4ベットレンジ設定：</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].map(threeBetterPos => {
+                    const getValidFourBetters = (threeBetterPosition: string): string[] => {
+                      const threeBetterIndex = getPositionIndex(threeBetterPosition);
+                      if (threeBetterIndex <= 0) return [];
+                      return POSITION_ORDER.slice(0, threeBetterIndex);
+                    };
+                    
+                    const validFourBetters = getValidFourBetters(threeBetterPos);
+                    if (validFourBetters.length === 0) return null;
+                    
+                    return (
+                      <div key={threeBetterPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+                        <div className="text-sm font-semibold text-red-400 mb-2">{threeBetterPos} (3ベッター)</div>
+                        <div className="text-xs text-gray-300 mb-2">4ベッターからの攻撃に対する対応:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {validFourBetters.map(fourBetter => {
+                            const rangeKey = `vs4bet_${threeBetterPos}_vs_${fourBetter}_${stackSize}`;
+                            // 15BBの場合は既存レンジキーも確認
+                            const fallbackRangeKey = stackSize === '15BB' ? `vs4bet_${threeBetterPos}_vs_${fourBetter}` : null;
+                            const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
+                            
+                            return (
+                              <button
+                                key={fourBetter}
+                                onClick={() => handleOpenRangeEditor(rangeKey)}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                  hasCustomRange
+                                    ? 'bg-red-600 hover:bg-red-700 text-white border-2 border-red-400'
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                }`}
+                                title={`${threeBetterPos} vs ${fourBetter}の${stackSize}スタックvs4ベットレンジ設定`}
+                              >
+                                {fourBetter}
+                                {hasCustomRange && ' ✓'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* vs 4ベットレンジの説明 */}
+                <div className="mt-4 p-3 bg-red-900/20 border border-red-600/30 rounded text-xs">
+                  <div className="text-red-400 font-semibold mb-1">💡 vs 4ベットレンジの特徴 ({stackSize}スタック固有)</div>
+                  <div className="text-gray-300">
+                    • <strong>スタック依存:</strong> {stackSize}スタック専用のレンジ設定<br/>
+                    • <strong>ポジション依存:</strong> 3ベッターが前のポジション（通常オリジナルのオープンレイザー）からの4ベットに対する反応戦略<br/>
+                    • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、ALL IN（5ベット/オールイン）<br/>
+                    • <strong>混合戦略:</strong> 右クリックで詳細な頻度設定（例：FOLD 80%, ALL IN 20%）
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           
           {/* メインコンテンツ - 2カラムレイアウト（大きな画面のみ） */}
@@ -1741,7 +2469,7 @@ export default function MTTTrainingPage() {
                         RAISE
                       </button>
                       {/* ALL INボタン - エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
-                      {parseInt(stackSize) <= 20 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL IN'] > 0) ? (
+                      {parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL IN'] > 0) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('ALL IN')}
@@ -1926,6 +2654,47 @@ export default function MTTTrainingPage() {
                         </div>
                       )}
                       
+                      {/* 30BBスタック固有のベットサイズ情報 */}
+                      {stackSize === '30BB' && gtoData && !gtoData.isInvalidCombination && (
+                        <div className="bg-blue-900/20 p-3 rounded border border-blue-600/30 mb-4">
+                          <h5 className="text-blue-300 font-semibold text-xs mb-2">🎯 30BBベットサイズ</h5>
+                          <div className="text-xs text-gray-300 space-y-1">
+                            {actionType === 'openraise' && (
+                              <div className="flex justify-between">
+                                <span>オープンレイズ:</span>
+                                <span className="font-semibold text-blue-400">2.1BB</span>
+                              </div>
+                            )}
+                            {actionType === 'vsopen' && (
+                              <div className="flex justify-between">
+                                <span>vs オープン(2.1BB):</span>
+                                <span className="font-semibold text-green-400">ポット {spot?.potSize}BB</span>
+                              </div>
+                            )}
+                            {actionType === 'vs3bet' && gtoData.openRaiserPosition && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>オープンレイズ:</span>
+                                  <span className="font-semibold text-gray-400">2.1BB</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>3ベット({gtoData.openRaiserPosition}):</span>
+                                  <span className="font-semibold text-orange-400">
+                                    {gtoData.openRaiserPosition === 'SB' ? '7.5BB' :
+                                     gtoData.openRaiserPosition === 'BB' ? '8.2BB' :
+                                     '6.3BB'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>現在のポット:</span>
+                                  <span className="font-semibold text-blue-400">{spot?.potSize}BB</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
                           {/* エクスプロイト提案 */}
                           {gtoData.exploitSuggestion && !gtoData.isInvalidCombination && (
                             <div className="bg-yellow-900/20 p-3 rounded border border-yellow-700/50">
@@ -1951,13 +2720,83 @@ export default function MTTTrainingPage() {
         (() => { console.log('MTTRangeEditor描画', { showRangeEditor, selectedEditPosition, stackSize, initialRange: customRanges[selectedEditPosition] }); return null; })()
       )}
       {showRangeEditor && (
-        <MTTRangeEditor
-          position={selectedEditPosition}
-          stackSize={parseInt(stackSize.replace('BB', ''))}
-          onSaveRange={handleSaveRange}
-          onClose={() => setShowRangeEditor(false)}
-          initialRange={customRanges[selectedEditPosition]}
-        />
+        (() => {
+          // レンジキーからポジションとスタックサイズを抽出
+          let displayPosition = selectedEditPosition;
+          let editorStackSize = parseInt(stackSize.replace('BB', ''));
+          let initialRange = customRanges[selectedEditPosition];
+          
+          // スタックサイズ込みレンジキー（例：UTG_15BB）の場合
+          if (selectedEditPosition.includes('_') && selectedEditPosition.includes('BB')) {
+            const parts = selectedEditPosition.split('_');
+            if (parts.length === 2) {
+              displayPosition = parts[0];
+              editorStackSize = parseInt(parts[1].replace('BB', ''));
+              
+              // 15BBの場合、既存のレンジキー（ポジション名のみ）も確認
+              if (parts[1] === '15BB' && !initialRange && customRanges[parts[0]]) {
+                initialRange = customRanges[parts[0]];
+                console.log('15BB互換性: 既存レンジを使用', { position: parts[0], range: initialRange });
+              }
+            }
+          }
+          // vsオープンレンジキー（例：vsopen_BTN_vs_CO）の場合
+          else if (selectedEditPosition.startsWith('vsopen_')) {
+            const parts = selectedEditPosition.split('_');
+            if (parts.length >= 4) {
+              displayPosition = selectedEditPosition; // vsオープンの場合はレンジキー全体を使用
+              editorStackSize = parseInt(stackSize.replace('BB', '')); // 現在のスタックサイズを使用
+              
+              // 15BBの場合、既存のvsオープンレンジキー（スタックサイズなし）も確認
+              if (stackSize === '15BB' && !initialRange) {
+                const baseParts = parts.slice(0, 4); // vsopen_BTN_vs_COの部分のみ
+                const baseVsOpenKey = baseParts.join('_');
+                if (customRanges[baseVsOpenKey]) {
+                  initialRange = customRanges[baseVsOpenKey];
+                  console.log('15BB互換性: 既存vsオープンレンジを使用', { baseVsOpenKey, range: initialRange });
+                }
+              }
+            }
+          }
+          // vs3ベットレンジキー（例：vs3bet_BTN_75BB）の場合
+          else if (selectedEditPosition.startsWith('vs3bet_')) {
+            displayPosition = selectedEditPosition; // vs3ベットの場合はレンジキー全体を使用
+            editorStackSize = parseInt(stackSize.replace('BB', '')); // 現在のスタックサイズを使用
+            
+            // 15BBの場合、既存のvs3ベットレンジキー（スタックサイズなし）も確認
+            if (stackSize === '15BB' && !initialRange) {
+              const baseVs3BetKey = selectedEditPosition.replace('_15BB', '');
+              if (customRanges[baseVs3BetKey]) {
+                initialRange = customRanges[baseVs3BetKey];
+                console.log('15BB互換性: 既存vs3ベットレンジを使用', { baseVs3BetKey, range: initialRange });
+              }
+            }
+          }
+          // vs4ベットレンジキー（例：vs4bet_BTN_75BB）の場合
+          else if (selectedEditPosition.startsWith('vs4bet_')) {
+            displayPosition = selectedEditPosition; // vs4ベットの場合はレンジキー全体を使用
+            editorStackSize = parseInt(stackSize.replace('BB', '')); // 現在のスタックサイズを使用
+            
+            // 15BBの場合、既存のvs4ベットレンジキー（スタックサイズなし）も確認
+            if (stackSize === '15BB' && !initialRange) {
+              const baseVs4BetKey = selectedEditPosition.replace('_15BB', '');
+              if (customRanges[baseVs4BetKey]) {
+                initialRange = customRanges[baseVs4BetKey];
+                console.log('15BB互換性: 既存vs4ベットレンジを使用', { baseVs4BetKey, range: initialRange });
+              }
+            }
+          }
+          
+          return (
+            <MTTRangeEditor
+              position={displayPosition}
+              stackSize={editorStackSize}
+              onSaveRange={handleSaveRange}
+              onClose={() => setShowRangeEditor(false)}
+              initialRange={initialRange}
+            />
+          );
+        })()
       )}
 
       {/* ハンドセレクター */}
@@ -1967,6 +2806,76 @@ export default function MTTTrainingPage() {
           onSelectHands={handleSelectTrainingHands}
           initialSelectedHands={selectedTrainingHands}
         />
+      )}
+
+      {/* レンジの読み込み状況デバッグ表示 */}
+      {isAdmin && (
+        <div className="bg-yellow-900/20 rounded-lg p-4 mb-4 border border-yellow-700/50">
+          <h3 className="text-lg font-semibold text-yellow-300 mb-2">🔍 レンジ読み込み状況デバッグ ({stackSize})</h3>
+          <div className="text-xs space-y-1">
+            <div>カスタムレンジ総数: {Object.keys(customRanges).length}</div>
+            <div>vsオープンレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
+            <div>vs3ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
+            <div>vs4ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
+            <div>{stackSize}スタック固有レンジ数: {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB' && !key.startsWith('vsopen_') && !key.startsWith('vs3bet_') && !key.startsWith('vs4bet_'))).length}</div>
+            {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+              <div className="mt-2">
+                <div className="text-yellow-300 mb-1">設定済み{stackSize}vsオープンレンジ:</div>
+                <div className="max-h-32 overflow-y-auto">
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).slice(0, 10).map(key => (
+                    <div key={key} className="text-xs text-gray-300">• {key}</div>
+                  ))}
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 10 && (
+                    <div className="text-xs text-gray-400">...他{Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length - 10}レンジ</div>
+                  )}
+                </div>
+                              </div>
+              )}
+            {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+              <div className="mt-2">
+                <div className="text-yellow-300 mb-1">設定済み{stackSize}vs3ベットレンジ:</div>
+                <div className="max-h-20 overflow-y-auto">
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).map(key => (
+                    <div key={key} className="text-xs text-gray-300">• {key}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+              <div className="mt-2">
+                <div className="text-yellow-300 mb-1">設定済み{stackSize}vs4ベットレンジ:</div>
+                <div className="max-h-20 overflow-y-auto">
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).map(key => (
+                    <div key={key} className="text-xs text-gray-300">• {key}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB' && !key.startsWith('vsopen_') && !key.startsWith('vs3bet_') && !key.startsWith('vs4bet_'))).length > 0 && (
+                              <div className="mt-2">
+                  <div className="text-yellow-300 mb-1">設定済み{stackSize}レンジ:</div>
+                  <div className="max-h-20 overflow-y-auto">
+                    {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB' && !key.startsWith('vsopen_') && !key.startsWith('vs3bet_') && !key.startsWith('vs4bet_'))).map(key => (
+                    <div key={key} className="text-xs text-gray-300">• {key}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {actionType === 'vsopen' && (
+              <div className="mt-2 p-2 bg-blue-900/20 rounded">
+                <div className="text-blue-300">現在のvsオープン設定:</div>
+                <div>ポジション: {position}</div>
+                <div>スタック: {stackSize}</div>
+                {spot?.openRaiserPosition && (
+                  <div>オープンレイザー: {spot.openRaiserPosition}</div>
+                )}
+                {spot?.openRaiserPosition && (
+                  <div>レンジキー: vsopen_{position}_vs_{spot.openRaiserPosition}_{stackSize}</div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
