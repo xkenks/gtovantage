@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface User {
   id: string;
@@ -107,6 +107,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 練習回数をリセットする関数
+  const resetPracticeCountIfNewDay = useCallback(() => {
+    if (!user) return;
+    
+    const today = new Date().toDateString();
+    const lastPracticeDate = user.lastPracticeDate ? new Date(user.lastPracticeDate).toDateString() : null;
+    
+    if (lastPracticeDate !== today) {
+      const updatedUser = { ...user, practiceCount: 0, lastPracticeDate: new Date().toISOString() };
+      setUser(updatedUser);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+      
+      // ユーザーリストも更新
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.email === user.email);
+      if (userIndex !== -1) {
+        users[userIndex] = updatedUser;
+        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+      }
+    }
+  }, [user]);
+
   // 初期化時にマスターアカウントを確認・作成
   useEffect(() => {
     initializeMasterAccounts();
@@ -132,6 +154,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setIsLoading(false);
   }, []);
+
+  // ユーザーが設定された後に練習回数をリセット
+  useEffect(() => {
+    if (user) {
+      resetPracticeCountIfNewDay();
+    }
+  }, [user, resetPracticeCountIfNewDay]);
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
@@ -327,7 +356,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 練習回数管理
   const getMaxPracticeCount = (subscriptionStatus: string): number => {
     switch (subscriptionStatus) {
       case 'free': return 5;
@@ -335,27 +363,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       case 'premium':
       case 'master': return Infinity;
       default: return 5;
-    }
-  };
-
-  const resetPracticeCountIfNewDay = () => {
-    if (!user) return;
-    
-    const today = new Date().toDateString();
-    const lastPracticeDate = user.lastPracticeDate ? new Date(user.lastPracticeDate).toDateString() : null;
-    
-    if (lastPracticeDate !== today) {
-      const updatedUser = { ...user, practiceCount: 0, lastPracticeDate: new Date().toISOString() };
-      setUser(updatedUser);
-      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-      
-      // ユーザーリストも更新
-      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.email === user.email);
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-      }
     }
   };
 
@@ -386,7 +393,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                                Boolean(user?.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date());
 
   // 練習制限チェック
-  resetPracticeCountIfNewDay();
   const maxPracticeCount = getMaxPracticeCount(user?.subscriptionStatus || 'free');
   const practiceCount = user?.practiceCount || 0;
   const canPractice = user?.subscriptionStatus === 'premium' || 
