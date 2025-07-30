@@ -170,6 +170,20 @@ export default function LoginPage() {
                 </Link>
               </p>
             </div>
+
+            {/* 開発モード用のマスターアカウント情報 */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 p-4 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
+                <h3 className="text-yellow-300 font-semibold text-sm mb-2">開発用マスターアカウント</h3>
+                <div className="text-yellow-300 text-xs space-y-1">
+                  <div>メール: master@gtovantage.com</div>
+                  <div>パスワード: master123456</div>
+                </div>
+                <p className="text-yellow-300 text-xs mt-2">
+                  このアカウントは開発環境でのみ利用可能です
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

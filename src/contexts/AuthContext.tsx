@@ -52,17 +52,65 @@ const MASTER_USER_EMAILS = [
   'master@gtovantage.com'
 ];
 
+// マスターアカウントの初期パスワード（本番環境では変更が必要）
+const MASTER_PASSWORD = 'master123456';
+
+// 簡単なハッシュ関数（本番環境ではbcrypt等を使用）
+const simpleHash = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+};
+
 // メール確認トークンを生成する関数
 const generateVerificationToken = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+
+// マスターアカウントを初期化する関数
+const initializeMasterAccounts = () => {
+  const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+  let updated = false;
+
+  MASTER_USER_EMAILS.forEach(email => {
+    const existingUser = users.find((u: any) => u.email === email);
+    if (!existingUser) {
+      const masterUser = {
+        id: `master-${Date.now()}-${Math.random()}`,
+        email,
+        name: email === 'master@gtovantage.com' ? 'Master User' : 'Admin User',
+        password: simpleHash(MASTER_PASSWORD),
+        createdAt: new Date().toISOString(),
+        emailVerified: true,
+        isMasterUser: true,
+        subscriptionStatus: 'master' as const,
+        subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString(),
+        practiceCount: 0,
+        lastPracticeDate: new Date().toISOString()
+      };
+      users.push(masterUser);
+      updated = true;
+      console.log(`マスターアカウントを作成しました: ${email}`);
+    }
+  });
+
+  if (updated) {
+    localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 初期化時にローカルストレージからユーザー情報を読み込み
+  // 初期化時にマスターアカウントを確認・作成
   useEffect(() => {
+    initializeMasterAccounts();
+    
     const savedUser = localStorage.getItem('gto-vantage-user');
     if (savedUser) {
       try {
@@ -99,61 +147,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isMasterUser = MASTER_USER_EMAILS.includes(email);
       const verificationToken = generateVerificationToken();
 
-      // 新しいユーザーを作成
-      const newUser: User = {
-        id: Date.now().toString(),
+      const newUser = {
+        id: `user-${Date.now()}-${Math.random()}`,
         email,
         name,
+        password: simpleHash(password), // パスワードをハッシュ化
         createdAt: new Date().toISOString(),
-        emailVerified: false,
-        verificationToken,
+        emailVerified: isMasterUser, // マスターユーザーは自動的にメール確認済み
+        verificationToken: isMasterUser ? undefined : verificationToken,
         isMasterUser,
-        subscriptionStatus: isMasterUser ? 'master' : 'free',
-        subscriptionExpiresAt: isMasterUser ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() : undefined // マスターユーザーは10年間有効
+        subscriptionStatus: isMasterUser ? 'master' as const : 'free' as const,
+        subscriptionExpiresAt: isMasterUser 
+          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString()
+          : undefined,
+        practiceCount: 0,
+        lastPracticeDate: new Date().toISOString()
       };
 
-      // ユーザーリストに追加
-      const updatedUsers = [...existingUsers, { ...newUser, password }];
-      localStorage.setItem('gto-vantage-users', JSON.stringify(updatedUsers));
+      existingUsers.push(newUser);
+      localStorage.setItem('gto-vantage-users', JSON.stringify(existingUsers));
 
-      // 現在のユーザーとして設定（メール確認前でもログイン可能）
-      setUser(newUser);
-      localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
+      // マスターユーザーでない場合はメール確認を送信
+      if (!isMasterUser) {
+        try {
+          const response = await fetch('/api/auth/send-verification-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email,
+              token: verificationToken,
+              name
+            }),
+          });
 
-      // メール確認メールを送信
-      try {
-        const response = await fetch('/api/auth/send-verification-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            token: verificationToken,
-            name
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to send verification email');
-        } else {
-          console.log('Verification email sent successfully to:', email);
+          if (!response.ok) {
+            console.error('Failed to send verification email');
+          } else {
+            console.log('Verification email sent successfully to:', email);
+          }
+        } catch (error) {
+          console.error('Error sending verification email:', error);
         }
-      } catch (error) {
-        console.error('Error sending verification email:', error);
       }
+
+      const { password: _, ...userWithoutPassword } = newUser;
+      setUser(userWithoutPassword);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(userWithoutPassword));
 
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
-      return false;
+      throw error;
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      const user = users.find((u: any) => u.email === email && u.password === password);
+      const hashedPassword = simpleHash(password);
+      const user = users.find((u: any) => u.email === email && u.password === hashedPassword);
       
       if (!user) {
         throw new Error('メールアドレスまたはパスワードが正しくありません');
