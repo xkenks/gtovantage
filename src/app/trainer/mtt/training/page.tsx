@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PokerTable, Spot } from '@/components/PokerTable';
 import Link from 'next/link';
-import { getMTTRange, MTTRangeEditor, HandInfo, HandRangeSelector } from '@/components/HandRange';
+import { getMTTRange, MTTRangeEditor, HandInfo, HandRangeSelector, HAND_TEMPLATES } from '@/components/HandRange';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AdminLogin } from '@/components/AdminLogin';
+import { AuthGuard } from '@/components/AuthGuard';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ポーカーユーティリティ関数を直接定義
 
@@ -1132,10 +1134,13 @@ const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: s
   return `${positionInfo}の戦略は、相手のレンジとポジション優位を考慮して決定されています。`;
 }
 
+
+
 export default function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
+  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
@@ -1339,7 +1344,7 @@ export default function MTTTrainingPage() {
     
     // ポットサイズの計算 - 30BBスタック固有のサイジング
     let potSize = 1.5;     // デフォルト
-    let openRaiseSize = 2.0; // デフォルトのオープンサイズ
+    let openRaiseSize = actionType === 'vs4bet' ? 30 : 2.0; // 4ベットの場合は30BB、それ以外は2.0BB
     let threeBetSize = 6.3; // デフォルトの3ベットサイズ
     
     // 30BBスタック固有のサイジング
@@ -1381,7 +1386,16 @@ export default function MTTTrainingPage() {
       } else if (actionType === 'vs3bet') {
         potSize = 13;
       } else if (actionType === 'vs4bet') {
-        potSize = 30;
+        if (stackSize === '30BB') {
+          openRaiseSize = 30; // 30BBの4ベットはオールイン
+          threeBetSize = 6.3; // ヒーロー（3ベッター）のチップサイズ
+          potSize = 30; // 4ベッターのオールイン
+        } else {
+          // 他のスタックサイズでも4ベットの場合は適切なサイズを設定
+          openRaiseSize = 30; // 4ベットは常にオールイン
+          threeBetSize = 6.3; // 3ベッターのサイズ
+          potSize = 30;
+        }
       } else if (actionType === 'vs5bet') {
         potSize = 70;
       }
@@ -1419,22 +1433,26 @@ export default function MTTTrainingPage() {
       correctBetSize: recommendedBetSize,
       // スタック関連の情報を追加
       stackDepth: stackSize,
+      // アクションタイプを追加（重要！）
+      actionType: actionType,
       // vs オープン用の追加情報
-      openRaiserPosition: actionType === 'vs3bet' ? position : openerPosition, // vs3betの場合はヒーローがオープンレイザー
+      openRaiserPosition: actionType === 'vs3bet' ? position : 
+                         actionType === 'vs4bet' ? openerPosition : openerPosition, // vs4betでは4ベッターがopenRaiserPosition
       openRaiseSize: openRaiseSize, // 計算されたオープンサイズを使用
       // vs3bet用の追加情報
-      threeBetSize: stackSize === '30BB' && actionType === 'vs3bet' ? threeBetSize : undefined,
-      threeBetterPosition: actionType === 'vs3bet' ? openerPosition : undefined,
+      threeBetSize: stackSize === '30BB' && (actionType === 'vs3bet' || actionType === 'vs4bet') ? threeBetSize : undefined,
+      threeBetterPosition: actionType === 'vs3bet' ? openerPosition : 
+                          actionType === 'vs4bet' ? position : undefined, // vs4betではヒーローが3ベッター
       // 各ポジションのスタック情報を作成（全てのポジションに同じスタックを設定）
       positions: {
-        'UTG': { active: true, stack: parseInt(stackSize), isHero: position === 'UTG' },
-        'UTG1': { active: true, stack: parseInt(stackSize), isHero: position === 'UTG1' },
-        'LJ': { active: true, stack: parseInt(stackSize), isHero: position === 'LJ' },
-        'HJ': { active: true, stack: parseInt(stackSize), isHero: position === 'HJ' },
-        'CO': { active: true, stack: parseInt(stackSize), isHero: position === 'CO' },
-        'BTN': { active: true, stack: parseInt(stackSize), isHero: position === 'BTN' },
-        'SB': { active: true, stack: parseInt(stackSize) - 0.5, isHero: position === 'SB' },
-        'BB': { active: true, stack: parseInt(stackSize) - 1, isHero: position === 'BB' }
+        'UTG': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'UTG' ? 0 : parseInt(stackSize), isHero: position === 'UTG' },
+        'UTG1': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'UTG1' ? 0 : parseInt(stackSize), isHero: position === 'UTG1' },
+        'LJ': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'LJ' ? 0 : parseInt(stackSize), isHero: position === 'LJ' },
+        'HJ': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'HJ' ? 0 : parseInt(stackSize), isHero: position === 'HJ' },
+        'CO': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'CO' ? 0 : parseInt(stackSize), isHero: position === 'CO' },
+        'BTN': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'BTN' ? 0 : parseInt(stackSize), isHero: position === 'BTN' },
+        'SB': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'SB' ? 0 : parseInt(stackSize) - 0.5, isHero: position === 'SB' },
+        'BB': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'BB' ? 0 : parseInt(stackSize) - 1, isHero: position === 'BB' }
       }
     };
     setSpot(newSpot);
@@ -1483,13 +1501,18 @@ export default function MTTTrainingPage() {
           
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
             const localRanges = localStorage.getItem('mtt-custom-ranges');
+            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
             let shouldUpdate = false;
             
             if (!localRanges) {
               shouldUpdate = true;
             } else {
-              const localData = JSON.parse(localRanges);
-              if (Object.keys(systemData.ranges).length > Object.keys(localData).length) {
+              // タイムスタンプベースで更新チェック
+              if (!localTimestamp || (systemData.lastUpdated && systemData.lastUpdated > localTimestamp)) {
+                shouldUpdate = true;
+              }
+              // 数量ベースのフォールバック
+              else if (Object.keys(systemData.ranges).length > Object.keys(JSON.parse(localRanges)).length) {
                 shouldUpdate = true;
               }
             }
@@ -1497,8 +1520,11 @@ export default function MTTTrainingPage() {
             if (shouldUpdate) {
               setCustomRanges(systemData.ranges);
               localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
-              console.log('✅ システムAPIからレンジデータを自動同期しました');
+              localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
+              console.log('✅ システムAPIからレンジデータを自動同期しました（管理者設定レンジ）');
               return; // API読み込み成功時は終了
+            } else {
+              console.log('📋 システムレンジは最新です');
             }
           }
         }
@@ -1511,13 +1537,18 @@ export default function MTTTrainingPage() {
           
           if (fileData.ranges && Object.keys(fileData.ranges).length > 0) {
             const localRanges = localStorage.getItem('mtt-custom-ranges');
+            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
             let shouldUpdate = false;
             
             if (!localRanges) {
               shouldUpdate = true;
             } else {
-              const localData = JSON.parse(localRanges);
-              if (Object.keys(fileData.ranges).length > Object.keys(localData).length) {
+              // タイムスタンプベースで更新チェック
+              if (!localTimestamp || (fileData.lastUpdated && fileData.lastUpdated > localTimestamp)) {
+                shouldUpdate = true;
+              }
+              // 数量ベースのフォールバック
+              else if (Object.keys(fileData.ranges).length > Object.keys(JSON.parse(localRanges)).length) {
                 shouldUpdate = true;
               }
             }
@@ -1525,7 +1556,10 @@ export default function MTTTrainingPage() {
             if (shouldUpdate) {
               setCustomRanges(fileData.ranges);
               localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
+              localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
               console.log(`✅ データファイルからレンジデータを自動同期しました（${Object.keys(fileData.ranges).length}ポジション）`);
+            } else {
+              console.log('📋 ファイルレンジは最新です');
             }
           }
         }
@@ -1546,7 +1580,16 @@ export default function MTTTrainingPage() {
       }
     };
 
+    // 初回読み込み
     loadSystemRanges();
+    
+    // 定期的にレンジの更新をチェック（30秒間隔）
+    const intervalId = setInterval(() => {
+      loadSystemRanges();
+    }, 30000);
+
+    // クリーンアップ
+    return () => clearInterval(intervalId);
   }, []);
   
   // カスタムレンジのデバッグ用ヘルパー関数
@@ -1570,7 +1613,7 @@ export default function MTTTrainingPage() {
   };
   
   // レンジエディターのハンドラー関数
-  const handleSaveRange = (position: string, rangeData: Record<string, HandInfo>) => {
+  const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
     const newCustomRanges = {
       ...customRanges,
       [position]: rangeData
@@ -1613,9 +1656,40 @@ export default function MTTTrainingPage() {
     // localStorageに保存
     try {
       localStorage.setItem('mtt-custom-ranges', JSON.stringify(newCustomRanges));
+      localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
       console.log(`${position}ポジションのカスタムレンジを保存しました`);
     } catch (error) {
       console.error('カスタムレンジの保存に失敗しました:', error);
+    }
+    
+    // 管理者認証済みならAPIにも自動保存（全プレイヤーに即座に反映）
+    if (isAdmin && token) {
+      try {
+        const response = await fetch('/api/mtt-ranges', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            ranges: newCustomRanges,
+            metadata: {
+              creator: 'MTT Admin System',
+              timestamp: new Date().toISOString()
+            }
+          }),
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`✅ システム全体に自動保存完了: ${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンド`);
+        } else {
+          const error = await response.json();
+          console.error('システム保存エラー:', error.error || '保存に失敗しました');
+        }
+      } catch (error) {
+        console.error('システム保存エラー:', error);
+      }
     }
   };
 
@@ -1842,6 +1916,15 @@ export default function MTTTrainingPage() {
     setSelectedTrainingHands(hands);
     console.log('選択されたトレーニングハンド:', hands);
   };
+
+  // テンプレート選択ハンドラー
+  const handleTemplateSelect = (templateName: string) => {
+    const templateHands = HAND_TEMPLATES[templateName as keyof typeof HAND_TEMPLATES];
+    if (templateHands) {
+      setSelectedTrainingHands(templateHands);
+      console.log(`テンプレート「${templateName}」を選択:`, templateHands.length, 'ハンド');
+    }
+  };
   
   // アクション選択ハンドラー
   const handleActionSelect = (action: string) => {
@@ -1879,6 +1962,9 @@ export default function MTTTrainingPage() {
   
   // 次のスポットへ進むハンドラー
   const handleNextSpot = () => {
+    // 練習回数をカウント
+    incrementPracticeCount();
+    
     // 結果をリセット
     setSelectedAction(null);
     setIsCorrect(false);
@@ -1925,9 +2011,10 @@ export default function MTTTrainingPage() {
   }
   
   return (
-    <div className="relative">
-      {/* 管理者ログインボタン（未ログイン時のみ表示） */}
-      {!isAdmin && (
+    <AuthGuard>
+      <div className="relative">
+      {/* 管理者ログインボタン（未ログイン時のみ表示、PC版のみ） */}
+      {!isAdmin && !isMobile && (
         <button
           className="absolute top-4 right-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg font-bold"
           onClick={() => setShowAdminLogin(true)}
@@ -1935,9 +2022,56 @@ export default function MTTTrainingPage() {
           管理者ログイン
         </button>
       )}
+      
+      {/* 管理者ログアウトボタン（ログイン時のみ表示、PC版のみ） */}
+      {isAdmin && user && !isMobile && (
+        <div className="absolute top-4 right-4 z-50 bg-green-800 rounded-lg shadow-lg p-3 border border-green-600">
+          <div className="flex items-center gap-3">
+            <div className="text-green-300 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="text-green-400">🔒</span>
+                <span className="font-semibold">{user.username}</span>
+              </div>
+              <div className="text-xs text-green-200">管理者でログイン中</div>
+            </div>
+            <button
+              onClick={() => {
+                logout();
+                alert('ログアウトしました');
+              }}
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors duration-200"
+            >
+              ログアウト
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* 管理者ログインモーダル */}
       {showAdminLogin && (
         <AdminLogin onClose={() => setShowAdminLogin(false)} />
+      )}
+
+      {/* 練習制限警告 */}
+      {!canPractice && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border border-red-500">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚠️</span>
+            <div>
+              <div className="font-semibold">今日の練習上限に達しました</div>
+              <div className="text-sm">プランアップグレードで無制限練習が可能です</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 練習回数表示 */}
+      {maxPracticeCount !== Infinity && (
+        <div className="fixed top-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
+          <div className="text-sm">
+            <span className="font-semibold">練習回数:</span> {practiceCount}/{maxPracticeCount}
+          </div>
+        </div>
       )}
 
       {/* ここから下は既存のページ内容 */}
@@ -1961,20 +2095,9 @@ export default function MTTTrainingPage() {
           </div>
           
           {/* モバイル版ヘッダー */}
-          <div className="mb-4 md:hidden">
-            <div className="flex justify-between items-center mb-2">
-              <h1 className="text-xl font-bold">MTT GTOトレーニング</h1>
-              <Link 
-                href={`/trainer/mtt?${new URLSearchParams({
-                  stack: stackSize,
-                  position: position,
-                  action: actionType,
-                  ...(customHands.length > 0 ? { hands: encodeURIComponent(customHands.join(',')) } : {})
-                }).toString()}`} 
-                className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-xs"
-              >
-                ← 戻る
-              </Link>
+          <div className="mb-1 md:hidden">
+            <div className="flex justify-start py-0">
+              <h1 className="text-lg font-bold text-blue-400 leading-none">GTO Vantage</h1>
             </div>
           </div>
           
@@ -2167,11 +2290,11 @@ export default function MTTTrainingPage() {
 
 
           {/* vs オープン専用レンジエディター */}
-          {actionType === 'vsopen' && (
+          {isAdmin && actionType === 'vsopen' && (
             <div className="bg-gradient-to-r from-green-900/30 to-blue-900/30 rounded-lg p-4 mb-4 border border-green-700/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">vs オープンレンジをカスタマイズ ({stackSize})</h3>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs オープンレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでのヒーローポジションとオープンレイザーの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-green-300 mt-1">💡 オープンに対してFOLD/CALL/RAISE/ALL INの頻度を設定します</p>
                   {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
@@ -2244,11 +2367,11 @@ export default function MTTTrainingPage() {
             </div>
           )}
 
-          {actionType === 'vs3bet' && (
+          {isAdmin && actionType === 'vs3bet' && (
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize})</h3>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでのオープンレイザーと3ベッターの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-orange-300 mt-1">💡 3ベットに対してFOLD/CALL/RAISE(4bet)/ALL INの頻度を設定します</p>
                   {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
@@ -2319,11 +2442,11 @@ export default function MTTTrainingPage() {
             </div>
           )}
 
-          {actionType === 'vs4bet' && (
+          {isAdmin && actionType === 'vs4bet' && (
             <div className="bg-gradient-to-r from-red-900/30 to-pink-900/30 rounded-lg p-4 mb-4 border border-red-700/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">vs 4ベットレンジをカスタマイズ ({stackSize})</h3>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs 4ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでの3ベッターと4ベッターの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-red-300 mt-1">💡 4ベットに対してFOLD/CALL/ALL IN(5bet)の頻度を設定します</p>
                   {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
@@ -2805,6 +2928,7 @@ export default function MTTTrainingPage() {
           onClose={handleCloseHandSelector}
           onSelectHands={handleSelectTrainingHands}
           initialSelectedHands={selectedTrainingHands}
+          onTemplateSelect={handleTemplateSelect}
         />
       )}
 
@@ -2878,5 +3002,6 @@ export default function MTTTrainingPage() {
         </div>
       )}
     </div>
+    </AuthGuard>
   );
 } 

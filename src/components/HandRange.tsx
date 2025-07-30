@@ -1142,20 +1142,7 @@ const HandRangeGrid: React.FC<{
           )}
         </div>
 
-        {/* 確定ボタン */}
-        {onSelectHands && (
-          <div className="mb-4">
-            <button
-              onClick={() => {
-                onSelectHands(selectedHands);
-                onClose();
-              }}
-              className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all duration-200 shadow-lg"
-            >
-              選択完了 ({selectedHands.length}ハンド) ✓
-            </button>
-          </div>
-        )}
+
         
         {/* 凡例 */}
         {showLegend && (
@@ -1191,13 +1178,25 @@ export const HandRangeButton: React.FC<{
   );
 };
 
+// トレーニング用ハンドテンプレート定義
+export const HAND_TEMPLATES = {
+  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
+  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
+  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
+  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
+  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
+  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s'],
+  '際どい判断': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44']
+};
+
 // ハンドレンジセレクターコンポーネント
 export const HandRangeSelector: React.FC<{
   onSelectHands: (selectedHands: string[]) => void;
   initialSelectedHands?: string[];
   title?: string;
   onClose: () => void;
-}> = ({ onSelectHands, initialSelectedHands = [], title = "プレイするハンドを選択", onClose }) => {
+  onTemplateSelect?: (templateName: string) => void;
+}> = ({ onSelectHands, initialSelectedHands = [], title = "プレイするハンドを選択", onClose, onTemplateSelect }) => {
   // トレーニング用：全ハンドを選択可能にする（頻度データは不要）
   const allHands = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
   const trainingRangeData: Record<string, HandInfo> = {};
@@ -1220,15 +1219,133 @@ export const HandRangeSelector: React.FC<{
     }
   }
   
+  const [selectedHands, setSelectedHands] = useState<string[]>(initialSelectedHands);
+
+  // selectedHandsの変更を監視して親に通知
+  useEffect(() => {
+    if (onSelectHands) {
+      onSelectHands(selectedHands);
+    }
+  }, [selectedHands, onSelectHands]);
+
+  // ハンドグリッドを生成する関数
+  const generateHandGrid = () => {
+    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    const grid = [];
+
+    // ヘッダー行
+    const headerRow = [<div key="empty" className="w-8 h-8"></div>];
+    ranks.forEach(rank => {
+      headerRow.push(
+        <div key={`header-${rank}`} className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white">
+          {rank}
+        </div>
+      );
+    });
+    grid.push(<div key="header" className="contents">{headerRow}</div>);
+
+    // ハンド行
+    ranks.forEach((rank1, i) => {
+      const row = [
+        <div key={`row-header-${rank1}`} className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white">
+          {rank1}
+        </div>
+      ];
+
+      ranks.forEach((rank2, j) => {
+        let hand = '';
+        if (i === j) {
+          hand = rank1 + rank2; // ペア
+        } else if (i < j) {
+          hand = rank1 + rank2 + 's'; // スーテッド
+        } else {
+          hand = rank2 + rank1 + 'o'; // オフスーツ
+        }
+
+        const isSelected = selectedHands.includes(hand);
+        
+        row.push(
+          <button
+            key={hand}
+            onClick={() => {
+              if (isSelected) {
+                setSelectedHands(prev => prev.filter(h => h !== hand));
+              } else {
+                setSelectedHands(prev => [...prev, hand]);
+              }
+            }}
+            className={`w-8 h-8 text-xs font-bold rounded transition-all duration-200 ${
+              isSelected 
+                ? 'bg-purple-600 text-white border-2 border-purple-400' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+            }`}
+          >
+            {hand}
+          </button>
+        );
+      });
+
+      grid.push(<div key={`row-${rank1}`} className="contents">{row}</div>);
+    });
+
+    return grid;
+  };
+
   return (
-    <HandRangeGrid
-      rangeData={trainingRangeData}
-      title={title}
-      onClose={onClose}
-      onSelectHands={onSelectHands}
-      initialSelectedHands={initialSelectedHands}
-      showLegend={false}
-    />
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] shadow-2xl border border-gray-700 flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
+        </div>
+        
+        {/* テンプレート選択セクション */}
+        <div className="mb-6 bg-red-800 rounded-lg p-4 border border-red-600">
+          <h3 className="text-lg font-semibold text-white mb-3">📋 ハンドテンプレート (デバッグ表示)</h3>
+          <div className="text-white mb-2">HAND_TEMPLATES keys: {Object.keys(HAND_TEMPLATES).length}</div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {Object.entries(HAND_TEMPLATES).map(([templateName, hands]) => (
+              <button
+                key={templateName}
+                onClick={() => {
+                  if (onTemplateSelect) {
+                    onTemplateSelect(templateName);
+                  }
+                  setSelectedHands(hands);
+                }}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 text-left"
+                title={`${templateName} (${hands.length}ハンド)`}
+              >
+                <div className="font-medium">{templateName}</div>
+                <div className="text-xs text-blue-200">{hands.length}ハンド</div>
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* ハンドレンジグリッド */}
+        <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
+            <div className="grid grid-cols-13 gap-1">
+              {generateHandGrid()}
+            </div>
+          </div>
+        </div>
+
+        {/* 選択完了ボタン */}
+        <div className="mt-auto">
+          <button
+            onClick={() => {
+              onSelectHands(selectedHands);
+              onClose();
+            }}
+            className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all duration-200 shadow-lg"
+          >
+            選択完了 ({selectedHands.length}ハンド) ✓
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

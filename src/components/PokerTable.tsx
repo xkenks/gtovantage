@@ -561,13 +561,28 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // アクションが終わったポジションかどうかを判断する関数
   const isActionComplete = (position: string): boolean => {
-    // オープンレイザーは常にアクティブ状態を保つ（vsオープンの場合）
+    // ヒーローのポジション
+    const heroPos = currentSpot.heroPosition || '';
+    
+    // vs3ベットの場合
+    if (currentSpot.actionType === 'vs3bet') {
+      // ヒーローと3ベッター以外はフォールド
+      const threeBetterPos = currentSpot.threeBetterPosition;
+      return position !== heroPos && position !== threeBetterPos;
+    }
+    
+    // vs4ベットの場合
+    if (currentSpot.actionType === 'vs4bet') {
+      // ヒーローと4ベッター以外はフォールド
+      const fourBetterPos = currentSpot.openRaiserPosition; // vs4ベットでは4ベッターがオープンレイザー
+      return position !== heroPos && position !== fourBetterPos;
+    }
+    
+    // vsオープンの場合（既存のロジック）
+    // オープンレイザーは常にアクティブ状態を保つ
     if (position === currentSpot.openRaiserPosition) {
       return false;
     }
-    
-    // ヒーローのポジション
-    const heroPos = currentSpot.heroPosition || '';
     
     // アクション順序を定義（UTGから始まる）
     const actionOrder = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
@@ -590,9 +605,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     // ブラインドポジションはスタックが減る
     if (position === 'SB') {
-      return `${baseStack - 0.5}`;
+      const stack = baseStack - 0.5;
+      return stack === 0 ? '0' : `${stack}`;
     } else if (position === 'BB') {
-      return `${baseStack - 1}`;
+      const stack = baseStack - 1;
+      return stack === 0 ? '0' : `${stack}`;
     }
     
     // ヒーローがレイズした場合
@@ -601,13 +618,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       const raiseMatch = selectedAction.match(/RAISE (\d+(\.\d+)?)/);
       if (raiseMatch && raiseMatch[1]) {
         const raiseAmount = parseFloat(raiseMatch[1]);
-        return `${(baseStack - raiseAmount).toFixed(1)}`;
+        const stack = baseStack - raiseAmount;
+        return stack === 0 ? '0' : `${stack.toFixed(1)}`;
       }
     }
     
     // オープンレイザーの場合、レイズ額分のスタックを減らす
     if (position === currentSpot.openRaiserPosition && currentSpot.openRaiseSize) {
-      return `${(baseStack - currentSpot.openRaiseSize).toFixed(1)}`;
+      const stack = baseStack - currentSpot.openRaiseSize;
+      return stack === 0 ? '0' : `${stack.toFixed(1)}`;
     }
     
     // その他のポジションは指定されたスタックサイズをそのまま使用
@@ -1382,7 +1401,11 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               };
               
               // SBのブラインドチップ（0.5BB）を表示
-              if (sbPos) {
+              // 3ベッターがSBの場合、またはBBがヒーローでSBがオープンレイザーの場合は非表示
+              const shouldHideSBChipMobile = (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') || 
+                                            (currentSpot.threeBetterPosition === 'SB');
+              
+              if (sbPos && !shouldHideSBChipMobile) {
                 const chipPos = getOptimalChipPosition(sbPos, 'SB');
             
             renderElements.push(
@@ -1405,7 +1428,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           }
           
               // BBのブラインドチップ（1BB）を表示
-              if (bbPos) {
+              // 3ベッターがBBの場合は非表示
+              const showBBBlindMobile = bbPos && currentSpot.threeBetterPosition !== 'BB';
+              
+              if (showBBBlindMobile) {
                 const chipPos = getOptimalChipPosition(bbPos, 'BB');
             
             renderElements.push(
@@ -1471,6 +1497,67 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   <div className="bg-orange-600 w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-md border border-orange-500">
                   </div>
                   <span className="text-white font-medium text-xs">{currentSpot.threeBetSize}</span>
+                </div>
+              </div>
+            );
+          }
+          
+          // 4ベットの場合のヒーロー（3ベッター）のチップ表示
+          if (currentSpot.actionType === 'vs4bet' && currentSpot?.threeBetSize && currentSpot.heroPosition) {
+            const heroPosMobile = Object.entries(mobilePositions).find(([pos]) => pos === currentSpot.heroPosition)?.[1];
+            if (heroPosMobile) {
+              const chipPos = getOptimalChipPosition(heroPosMobile, currentSpot.heroPosition);
+          
+              renderElements.push(
+                <div
+                  key="hero-three-bet-chip-mobile"
+                  className="absolute z-30"
+                  style={{ 
+                    left: `${chipPos.x}%`, 
+                    top: `${chipPos.y}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <div className="flex items-center space-x-1">
+                    <div className="bg-orange-600 w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-md border border-orange-500">
+                    </div>
+                    <span className="text-white font-medium text-xs">{currentSpot.threeBetSize}</span>
+                  </div>
+                </div>
+              );
+            }
+          }
+          
+          // 4ベッターのチップ表示（モバイル版）
+          const fourBetterPosMobile = currentSpot.openRaiserPosition; // vs4ベットでは4ベッターがオープンレイザー
+          const fourBetterInfoMobile = fourBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === fourBetterPosMobile)?.[1] : null;
+          
+          // デバッグ用のログ
+          console.log('4ベットデバッグ:', {
+            actionType: currentSpot.actionType,
+            openRaiserPosition: currentSpot.openRaiserPosition,
+            openRaiseSize: currentSpot.openRaiseSize,
+            fourBetterPosMobile,
+            fourBetterInfoMobile
+          });
+          
+          if (fourBetterInfoMobile && currentSpot?.openRaiseSize && fourBetterPosMobile && currentSpot.actionType === 'vs4bet') {
+            const chipPos = getOptimalChipPosition(fourBetterInfoMobile, fourBetterPosMobile);
+        
+            renderElements.push(
+              <div
+                key="four-better-chip-mobile"
+                className="absolute z-30"
+                style={{ 
+                  left: `${chipPos.x}%`, 
+                  top: `${chipPos.y}%`,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              >
+                <div className="flex items-center space-x-1">
+                  <div className="bg-purple-600 w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-md border border-purple-500">
+                  </div>
+                  <span className="text-white font-medium text-xs">{currentSpot.openRaiseSize}</span>
                 </div>
               </div>
             );

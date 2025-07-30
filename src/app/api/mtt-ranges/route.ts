@@ -54,16 +54,8 @@ function verifyAdminToken(request: NextRequest): boolean {
   }
 }
 
-// システム全体のMTTレンジデータを取得（管理者のみ）
+// システム全体のMTTレンジデータを取得（全プレイヤーアクセス可能）
 export async function GET(request: NextRequest) {
-  // 管理者認証チェック
-  if (!verifyAdminToken(request)) {
-    return NextResponse.json(
-      { error: '管理者権限が必要です' },
-      { status: 403 }
-    );
-  }
-
   try {
     if (!fs.existsSync(RANGES_FILE)) {
       // ファイルが存在しない場合は空のデータを返す

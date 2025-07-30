@@ -50,34 +50,7 @@ export default function TrainerHomePage() {
         </div>
         
         {/* メインカード */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-          {/* プリフロップトレーニング */}
-          <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 rounded-2xl overflow-hidden shadow-xl transform transition-all hover:scale-[1.02] border border-blue-700/30">
-            <div className="h-56 bg-[url('/images/preflop-training.jpg')] bg-cover bg-center relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900 to-transparent flex items-end">
-                <div className="p-6">
-                  <h2 className="text-3xl font-bold text-white mb-2">プリフロップ トレーニング</h2>
-                  <p className="text-blue-100 text-sm">キャッシュゲーム向けGTOトレーニング</p>
-                </div>
-              </div>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-200 mb-5 leading-relaxed">
-                テーブルサイズ、ポジション、スタックサイズを選択して、プリフロップの意思決定を練習しましょう。
-                GTOソリューションとあなたの選択を比較し、正確なプレイを身につけましょう。
-              </p>
-              <Link 
-                href="/trainer/preflop" 
-                className="inline-flex items-center justify-center w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-white font-bold shadow-lg"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                </svg>
-                トレーニングを開始
-              </Link>
-            </div>
-          </div>
-          
+        <div className="max-w-2xl mx-auto mb-10">
           {/* MTTトレーニング */}
           <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-2xl overflow-hidden shadow-xl transform transition-all hover:scale-[1.02] border border-purple-700/30">
             <div className="h-56 bg-gradient-to-br from-purple-700 to-indigo-800 bg-center relative">
@@ -92,6 +65,7 @@ export default function TrainerHomePage() {
               <p className="text-gray-200 mb-5 leading-relaxed">
                 トーナメント特有のICM考慮を含む意思決定を練習します。
                 バブル、ファイナルテーブル、異なるスタックサイズでの最適なプレイを学びましょう。
+                プリフロップからポストフロップまで、包括的なGTO戦略を実践的に学習できます。
               </p>
               <Link 
                 href="/trainer/mtt" 
@@ -129,18 +103,7 @@ export default function TrainerHomePage() {
             </div>
           </div>
           
-          {/* 管理者向けリンク */}
-          <div className="mt-8 pt-4 border-t border-gray-700 flex justify-end">
-            <Link 
-              href="/admin/gto-data" 
-              className="text-sm text-blue-400 hover:text-blue-300 flex items-center bg-gray-800/50 px-4 py-2 rounded-lg transition-all hover:bg-gray-700/50"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
-              </svg>
-              GTOデータ管理（管理者向け）
-            </Link>
-          </div>
+
         </div>
       </div>
     </div>
