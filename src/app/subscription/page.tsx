@@ -113,14 +113,14 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* Light Plan */}
-                <div className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border border-blue-600/50 rounded-lg p-4 md:p-6 relative">
+                <div className={`${hasActiveSubscription ? 'bg-gray-700/50 border-gray-600/30' : 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-600/50'} border rounded-lg p-4 md:p-6 relative`}>
                   {user?.subscriptionStatus === 'light' && (
                     <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                       アクティブ
                     </div>
                   )}
-                  <h3 className="text-lg font-semibold text-white mb-2">ライト</h3>
-                  <p className="text-3xl font-bold text-blue-400 mb-4">¥980<span className="text-sm">/月</span></p>
+                  <h3 className={`text-lg font-semibold ${hasActiveSubscription ? 'text-gray-400' : 'text-white'} mb-2`}>ライト</h3>
+                  <p className={`text-3xl font-bold ${hasActiveSubscription ? 'text-gray-500' : 'text-blue-400'} mb-4`}>¥980<span className="text-sm">/月</span></p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
@@ -135,13 +135,19 @@ export default function SubscriptionPage() {
                       MTTシナリオ（拡張）
                     </li>
                   </ul>
-                  <button
-                    onClick={handleUpgrade}
-                    disabled={isUpgrading || user?.subscriptionStatus === 'light'}
-                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                  >
-                    {isUpgrading ? '処理中...' : user?.subscriptionStatus === 'light' ? '現在のプラン' : 'アップグレード'}
-                  </button>
+                  {hasActiveSubscription ? (
+                    <div className="text-center">
+                      <span className="text-xs text-gray-500">ダウングレード</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleUpgrade}
+                      disabled={isUpgrading || user?.subscriptionStatus === 'light'}
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                    >
+                      {isUpgrading ? '処理中...' : user?.subscriptionStatus === 'light' ? '現在のプラン' : 'アップグレード'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Premium Plan */}
