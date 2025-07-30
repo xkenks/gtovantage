@@ -358,11 +358,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const getMaxPracticeCount = (subscriptionStatus: string): number => {
     switch (subscriptionStatus) {
-      case 'free': return 5;
-      case 'light': return 50;
+      case 'free': return 20;
+      case 'light': return 200;
       case 'premium':
       case 'master': return Infinity;
-      default: return 5;
+      default: return 20;
     }
   };
 
