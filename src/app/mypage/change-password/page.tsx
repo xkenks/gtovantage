@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaArrowLeft, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -103,9 +103,18 @@ export default function ChangePasswordPage() {
     }
   };
 
+  useEffect(() => {
+    if (!user && typeof window !== 'undefined') {
+      router.push('/login');
+    }
+  }, [user, router]);
+
   if (!user) {
-    router.push('/login');
-    return null;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white">読み込み中...</div>
+      </div>
+    );
   }
 
   return (
