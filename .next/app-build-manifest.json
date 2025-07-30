@@ -26,11 +26,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/trainer/not-found.js"
     ],
-    "/trainer/mtt/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/trainer/mtt/page.js"
-    ],
     "/mypage/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
