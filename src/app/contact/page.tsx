@@ -81,6 +81,15 @@ export default function ContactPage() {
               <p className="text-sm text-gray-400 ml-8">
                 下記のフォームからお問い合わせいただけます。通常2-3営業日以内にご返信いたします。
               </p>
+              <div className="flex items-center gap-3 text-gray-300">
+                <FaEnvelope className="text-blue-400 flex-shrink-0" />
+                <span>メールアドレス</span>
+              </div>
+              <p className="text-sm text-gray-400 ml-8">
+                <a href="mailto:gtovantage@gmail.com" className="text-blue-400 hover:text-blue-300">
+                  gtovantage@gmail.com
+                </a>
+              </p>
             </div>
           </div>
 
