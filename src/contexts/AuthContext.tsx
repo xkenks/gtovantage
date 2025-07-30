@@ -120,8 +120,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
       localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
 
-      // メール確認メールを送信（実際のアプリではサーバーサイドで実装）
-      console.log('Verification email sent to:', email, 'Token:', verificationToken);
+      // メール確認メールを送信
+      try {
+        const response = await fetch('/api/auth/send-verification-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            token: verificationToken,
+            name
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to send verification email');
+        } else {
+          console.log('Verification email sent successfully to:', email);
+        }
+      } catch (error) {
+        console.error('Error sending verification email:', error);
+      }
 
       return true;
     } catch (error) {
@@ -222,8 +242,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
       }
 
-      console.log('Verification email resent to:', email, 'New token:', newToken);
-      return true;
+      // メール確認メールを再送信
+      try {
+        const response = await fetch('/api/auth/send-verification-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            token: newToken,
+            name: users[userIndex].name
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to resend verification email');
+          return false;
+        } else {
+          console.log('Verification email resent successfully to:', email);
+          return true;
+        }
+      } catch (error) {
+        console.error('Error resending verification email:', error);
+        return false;
+      }
     } catch (error) {
       console.error('Resend verification email failed:', error);
       return false;

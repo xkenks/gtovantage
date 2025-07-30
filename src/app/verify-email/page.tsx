@@ -155,6 +155,18 @@ export default function VerifyEmailPage() {
                   {user?.email} に確認メールを送信しました。
                   メール内のリンクをクリックしてアカウントを有効化してください。
                 </p>
+                
+                {/* 開発モード用の情報 */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-4 mb-4">
+                    <p className="text-yellow-300 text-sm mb-2">
+                      <strong>開発モード:</strong> メール送信はコンソールにログ出力されます
+                    </p>
+                    <p className="text-yellow-300 text-xs">
+                      ブラウザの開発者ツール（F12）のコンソールタブで確認URLを確認してください
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-3">
                   <button
                     onClick={handleResendEmail}
