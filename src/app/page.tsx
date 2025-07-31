@@ -106,12 +106,12 @@ export default function Home() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
               <div className="text-center">
-                <div className="text-2xl md:text-4xl font-bold text-blue-400 mb-1 md:mb-2">100+</div>
+                <div className="text-2xl md:text-4xl font-bold text-blue-400 mb-1 md:mb-2">500+</div>
                 <div className="text-xs md:text-base text-gray-300">GTOシナリオ</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-4xl font-bold text-purple-400 mb-1 md:mb-2">24/7</div>
-                <div className="text-xs md:text-base text-gray-300">いつでも学習</div>
+                <div className="text-2xl md:text-4xl font-bold text-purple-400 mb-1 md:mb-2">AI</div>
+                <div className="text-xs md:text-base text-gray-300">最適化エンジン</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl md:text-4xl font-bold text-pink-400 mb-1 md:mb-2">∞</div>
