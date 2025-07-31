@@ -363,16 +363,6 @@ export default function MTTTrainerPage() {
       // 利用できないポジションが選択されている場合、最初の利用可能なポジションに変更
       setPosition(availablePositions[0]);
     }
-    
-    // ランダムが選択された場合、ポジションとアクションをランダムに設定
-    if (actionType === 'random') {
-      const randomPosition = availablePositions[Math.floor(Math.random() * availablePositions.length)];
-      const randomActionTypes = ['openraise', 'vsopen', 'vs3bet', 'vs4bet'];
-      const randomAction = randomActionTypes[Math.floor(Math.random() * randomActionTypes.length)];
-      
-      setPosition(randomPosition);
-      // アクションタイプはランダムのままにして、トレーニング時にランダムに選択されるようにする
-    }
   }, [actionType]);
 
   // 設定変更時に自動保存
@@ -508,8 +498,8 @@ export default function MTTTrainerPage() {
                             : isAvailable ? 'bg-gray-700 hover:bg-green-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                         }`}
                         onClick={() => isAvailable && setPosition(pos)}
-                        disabled={!isAvailable}
-                        title={!isAvailable ? `${actionType === 'vsopen' || actionType === 'vs4bet' ? 'UTGは最初のアクションなので、このシナリオでは選択できません' : 'このアクションタイプでは選択できません'}` : ''}
+                        disabled={!isAvailable || actionType === 'random'}
+                        title={actionType === 'random' ? 'ランダムモードではポジションは自動選択されます' : !isAvailable ? `${actionType === 'vsopen' || actionType === 'vs4bet' ? 'UTGは最初のアクションなので、このシナリオでは選択できません' : 'このアクションタイプでは選択できません'}` : ''}
                       >
                         {pos}
                       </button>
@@ -523,7 +513,7 @@ export default function MTTTrainerPage() {
                 )}
                 {actionType === 'random' && (
                   <div className="mt-2 text-xs text-purple-400 bg-purple-900/30 border border-purple-600/50 rounded-lg p-2">
-                    🎲 ランダムモード: ポジションとアクションタイプがランダムに選択されます。エフェクティブスタックは選択した値のままです。
+                    🎲 ランダムモード: トレーニング中に毎回ポジションとアクションタイプがランダムに選択されます。エフェクティブスタックは選択した値のままです。
                   </div>
                 )}
               </div>
