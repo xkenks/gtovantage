@@ -283,6 +283,32 @@ export default function MTTTrainerPage() {
     return stack === '30BB'; // 無料プランは30BBのみ
   };
 
+  // アクションタイプに応じて利用可能なポジションを取得
+  const getAvailablePositions = (actionType: string) => {
+    switch (actionType) {
+      case 'openraise':
+        // オープンレイズは全ポジションで可能
+        return positions;
+      case 'vsopen':
+        // vs オープンはUTG以外で可能（UTGは最初のアクションなので）
+        return positions.filter(pos => pos !== 'UTG');
+      case 'vs3bet':
+        // vs 3betは全ポジションで可能
+        return positions;
+      case 'vs4bet':
+        // vs 4betはUTG以外で可能（UTGは最初のアクションなので）
+        return positions.filter(pos => pos !== 'UTG');
+      case 'vs5bet':
+        // vs 5betは全ポジションで可能
+        return positions;
+      case 'random':
+        // ランダムは全ポジションで可能
+        return positions;
+      default:
+        return positions;
+    }
+  };
+
   // 利用可能なスタックサイズを取得
   const stackSizes = allStackSizes.filter(canUseStackSize);
 
@@ -333,6 +359,15 @@ export default function MTTTrainerPage() {
       setIsInitialLoad(false);
     }
   };
+
+  // アクションタイプが変更された時に、利用できないポジションが選択されている場合は自動的に変更
+  useEffect(() => {
+    const availablePositions = getAvailablePositions(actionType);
+    if (!availablePositions.includes(position)) {
+      // 利用できないポジションが選択されている場合、最初の利用可能なポジションに変更
+      setPosition(availablePositions[0]);
+    }
+  }, [actionType]);
 
   // 設定変更時に自動保存
   useEffect(() => {
@@ -455,16 +490,32 @@ export default function MTTTrainerPage() {
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-medium mb-2">あなたのポジション</h3>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {positions.map(pos => (
-                    <button 
-                      key={pos}
-                      className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
-                      onClick={() => setPosition(pos)}
-                    >
-                      {pos}
-                    </button>
-                  ))}
+                  {positions.map(pos => {
+                    const availablePositions = getAvailablePositions(actionType);
+                    const isAvailable = availablePositions.includes(pos);
+                    return (
+                      <button 
+                        key={pos}
+                        className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation transition-colors ${
+                          position === pos 
+                            ? isAvailable ? 'bg-green-600' : 'bg-red-600' 
+                            : isAvailable ? 'bg-gray-700 hover:bg-green-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        }`}
+                        onClick={() => isAvailable && setPosition(pos)}
+                        disabled={!isAvailable}
+                        title={!isAvailable ? `${actionType === 'vsopen' || actionType === 'vs4bet' ? 'UTGは最初のアクションなので、このシナリオでは選択できません' : 'このアクションタイプでは選択できません'}` : ''}
+                      >
+                        {pos}
+                        {!isAvailable && <span className="ml-1 text-xs">🚫</span>}
+                      </button>
+                    );
+                  })}
                 </div>
+                {(actionType === 'vsopen' || actionType === 'vs4bet') && (
+                  <div className="mt-2 text-xs text-blue-400 bg-blue-900/30 border border-blue-600/50 rounded-lg p-2">
+                    💡 UTGは最初のアクションなので、vs オープンとvs 4ベットでは選択できません。
+                  </div>
+                )}
               </div>
               
               <div className="mb-4 sm:mb-6">
