@@ -387,16 +387,8 @@ export default function MTTTrainerPage() {
 
   const handleStartTraining = () => {
     setIsLoading(true);
-    
-    // ランダムモードの場合、ランダムなアクションタイプを選択
-    let actualActionType = actionType;
-    if (actionType === 'random') {
-      const availableActions = ['openraise', 'vsopen', 'vs3bet', 'vs4bet'];
-      actualActionType = availableActions[Math.floor(Math.random() * availableActions.length)];
-    }
-    
     // トレーニングページに遷移
-    router.push(`/trainer/mtt/training?stack=${stackSize}&position=${position}&action=${actualActionType}&hands=${selectedHands.join(',')}`);
+    router.push(`/trainer/mtt/training?stack=${stackSize}&position=${position}&action=${actionType}&hands=${selectedHands.join(',')}`);
   };
 
   // 設定をリセットする関数
