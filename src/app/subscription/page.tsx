@@ -96,7 +96,7 @@ export default function SubscriptionPage() {
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      1日20ハンドまで練習
+                      1日5ハンドまで練習
                     </li>
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      1日200ハンドまで練習
+                      1日50ハンドまで練習
                     </li>
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />

@@ -7,7 +7,7 @@ import { ResultsView } from '@/components/ResultsView';
 import { PokerTable } from '@/components/PokerTable';
 import { generateRandomSpot } from '@/lib/spotGenerator';
 import { evaluateAction } from '@/lib/gtoEngine';
-import { FaPlay, FaCog, FaRedo, FaArrowLeft } from 'react-icons/fa';
+import { FaPlay, FaCog, FaRedo } from 'react-icons/fa';
 import Link from 'next/link';
 
 // コンポーネント間で共有するSpotの型定義
@@ -42,98 +42,67 @@ export interface Spot {
 
 export default function TrainerHomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-      {/* ヘッダー */}
-      <div className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link 
-              href="/"
-              className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              <FaArrowLeft className="text-sm" />
-              <span className="hidden sm:inline">ホームに戻る</span>
-            </Link>
-            <div className="w-8"></div> {/* スペーサー */}
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-3">ポーカーGTO トレーナー</h1>
+          <p className="text-gray-300 max-w-2xl mx-auto">最適な意思決定を学び、あなたのポーカースキルを向上させるための実践的なトレーニングプラットフォーム</p>
         </div>
-      </div>
-
-      <div className="p-4 sm:p-6 md:p-8">
-        <div className="max-w-5xl mx-auto">
-          {/* メインタイトル */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 leading-tight">
-              ポーカーGTO トレーナー
-            </h1>
-            <p className="text-gray-300 text-sm sm:text-base max-w-2xl mx-auto px-4 leading-relaxed">
-              最適な意思決定を学び、あなたのポーカースキルを向上させるための実践的なトレーニングプラットフォーム
-            </p>
-          </div>
-          
-          {/* メインカード */}
-          <div className="max-w-2xl mx-auto mb-8 sm:mb-10">
-            {/* MTTトレーニング */}
-            <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl transform transition-all hover:scale-[1.01] border border-purple-700/30">
-              <div className="h-40 sm:h-56 bg-gradient-to-br from-purple-700 to-indigo-800 bg-center relative">
-                <div className="absolute inset-0 bg-gradient-to-t from-purple-900 to-transparent flex items-end">
-                  <div className="p-4 sm:p-6">
-                                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
-                    MTT プリフロップトレーニング
-                  </h2>
-                  <p className="text-purple-100 text-xs sm:text-sm">
-                    トーナメントプレイヤー向けプリフロップトレーニング
-                  </p>
-                  </div>
+        
+        {/* メインカード */}
+        <div className="max-w-2xl mx-auto mb-10">
+          {/* MTTトレーニング */}
+          <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 rounded-2xl overflow-hidden shadow-xl transform transition-all hover:scale-[1.02] border border-purple-700/30">
+            <div className="h-56 bg-gradient-to-br from-purple-700 to-indigo-800 bg-center relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-900 to-transparent flex items-end">
+                <div className="p-6">
+                  <h2 className="text-3xl font-bold text-white mb-2">MTT トレーニング</h2>
+                  <p className="text-purple-100 text-sm">トーナメントプレイヤー向け特別トレーニング</p>
                 </div>
               </div>
-              <div className="p-4 sm:p-6">
-                <p className="text-gray-200 mb-4 sm:mb-5 leading-relaxed text-sm sm:text-base">
-                  トーナメントでのプリフロップ意思決定を練習します。
-                  異なるスタックサイズでの最適なプレイを学びましょう。
-                  チップEVベースのGTO戦略を実践的に学習できます。
-                </p>
-                <Link 
-                  href="/trainer/mtt" 
-                  className="inline-flex items-center justify-center w-full py-3 sm:py-4 px-6 bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-lg transition-all text-white font-bold shadow-lg text-sm sm:text-base min-h-[44px] touch-manipulation"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                  </svg>
-                  トレーニングを開始
-                </Link>
-              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-200 mb-5 leading-relaxed">
+                トーナメント特有のICM考慮を含む意思決定を練習します。
+                バブル、ファイナルテーブル、異なるスタックサイズでの最適なプレイを学びましょう。
+                プリフロップからポストフロップまで、包括的なGTO戦略を実践的に学習できます。
+              </p>
+              <Link 
+                href="/trainer/mtt" 
+                className="inline-flex items-center justify-center w-full py-3 px-6 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-white font-bold shadow-lg"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                </svg>
+                トレーニングを開始
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* GTO学習リソース */}
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 shadow-xl border border-gray-700">
+          <div className="flex flex-col md:flex-row gap-8">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold mb-4 text-white">GTOポーカーとは？</h2>
+              <p className="text-gray-300 mb-4 leading-relaxed">
+                ゲーム理論最適戦略（GTO）は、相手のプレイに関係なく、長期的に最も高いEV（期待値）をもたらす戦略です。
+                GTOを学ぶことで、エクスプロイト（搾取）されにくい堅実なプレイスタイルを身につけることができます。
+              </p>
+            </div>
+            
+            <div className="flex-1">
+              <h3 className="text-xl font-medium mb-3 text-white">このトレーナーの特徴</h3>
+              <ul className="list-disc pl-5 text-gray-300 space-y-2">
+                <li>実際のGTOソルバーの結果に基づいたトレーニング</li>
+                <li>プリフロップとポストフロップの両方をカバー</li>
+                <li>EV（期待値）とアクション頻度の詳細な分析</li>
+                <li>様々なテーブルサイズとスタックサイズをサポート</li>
+                <li>モバイルフレンドリーなデザイン</li>
+              </ul>
             </div>
           </div>
           
-          {/* GTO学習リソース */}
-          <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 sm:p-6 md:p-8 shadow-xl border border-gray-700">
-            <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-              <div className="flex-1">
-                <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">
-                  GTOポーカーとは？
-                </h2>
-                <p className="text-gray-300 mb-4 leading-relaxed text-sm sm:text-base">
-                  ゲーム理論最適戦略（GTO）は、相手のプレイに関係なく、長期的に最も高いEV（期待値）をもたらす戦略です。
-                  GTOを学ぶことで、エクスプロイト（搾取）されにくい堅実なプレイスタイルを身につけることができます。
-                </p>
-              </div>
-              
-              <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-medium mb-3 text-white">
-                  このトレーナーの特徴
-                </h3>
-                <ul className="list-disc pl-4 sm:pl-5 text-gray-300 space-y-2 text-sm sm:text-base">
-                  <li>実際のGTOソルバーの結果に基づいたトレーニング</li>
-                  <li>プリフロップの意思決定に特化</li>
-                  <li>チップEV（期待値）の詳細な分析</li>
-                  <li>様々なスタックサイズをサポート</li>
-                  <li>モバイルフレンドリーなデザイン</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
 
         </div>
       </div>

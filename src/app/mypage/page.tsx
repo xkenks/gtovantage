@@ -5,10 +5,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function MyPage() {
-  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount, changeSubscriptionStatus } = useAuth();
+  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount } = useAuth();
   const [showIconSelector, setShowIconSelector] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState(user?.name?.charAt(0).toUpperCase() || 'U');
-  const [showPlanSelector, setShowPlanSelector] = useState(false);
 
   if (!user) {
     return (
@@ -113,17 +112,6 @@ export default function MyPage() {
                     {isEmailVerified ? '認証済み' : '未認証'}
                   </span>
                 </div>
-                <div className="pt-4">
-                  <Link 
-                    href="/mypage/change-password" 
-                    className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
-                  >
-                    パスワード変更
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
               </div>
             </div>
 
@@ -152,7 +140,7 @@ export default function MyPage() {
                     </span>
                   </div>
                 )}
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4">
                   <Link 
                     href="/subscription" 
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -162,17 +150,6 @@ export default function MyPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
-                  {isMasterUser && (
-                    <button
-                      onClick={() => setShowPlanSelector(true)}
-                      className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
-                    >
-                      プラン変更（マスター）
-                      <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -263,87 +240,6 @@ export default function MyPage() {
             </div>
           </div>
         </div>
-
-        {/* マスター用プラン選択モーダル */}
-        {showPlanSelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-xl font-semibold text-white mb-4">プランを変更（マスター機能）</h3>
-              <p className="text-gray-300 mb-6">マスターアカウントとして、任意のプランに変更できます。</p>
-              
-              <div className="space-y-3 mb-6">
-                <button
-                  onClick={() => {
-                    changeSubscriptionStatus('free');
-                    setShowPlanSelector(false);
-                  }}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    user.subscriptionStatus === 'free'
-                      ? 'bg-gray-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-semibold">無料プラン</div>
-                  <div className="text-sm">1日20ハンドまで練習可能</div>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    changeSubscriptionStatus('light');
-                    setShowPlanSelector(false);
-                  }}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    user.subscriptionStatus === 'light'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-semibold">ライトプラン</div>
-                  <div className="text-sm">1日200ハンドまで練習可能</div>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    changeSubscriptionStatus('premium');
-                    setShowPlanSelector(false);
-                  }}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    user.subscriptionStatus === 'premium'
-                      ? 'bg-yellow-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-semibold">プレミアムプラン</div>
-                  <div className="text-sm">無制限練習可能</div>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    changeSubscriptionStatus('master');
-                    setShowPlanSelector(false);
-                  }}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    user.subscriptionStatus === 'master'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  <div className="font-semibold">マスタープラン</div>
-                  <div className="text-sm">全機能アクセス可能</div>
-                </button>
-              </div>
-              
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowPlanSelector(false)}
-                  className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-                >
-                  キャンセル
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

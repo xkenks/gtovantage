@@ -6,7 +6,6 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { HAND_TEMPLATES } from '@/components/HandRange';
 import { useAuth } from '@/contexts/AuthContext';
-import { FaArrowLeft, FaPlay } from 'react-icons/fa';
 
 interface HandData {
   hand: string;
@@ -78,49 +77,77 @@ const SimpleHandRangeSelector: React.FC<{
 
   const handleMouseDown = (hand: string, row: number, col: number, e: React.MouseEvent) => {
     e.preventDefault();
+    console.log('MouseDown:', hand);
     setIsDragging(true);
     setDragStartHand(hand);
     setDragStartRow(row);
     setDragStartCol(col);
     setDragDistance(0);
     
+    // ドラッグ開始時の選択状態を記録
     const isCurrentlySelected = selectedHands.includes(hand);
     setDragStartSelected(isCurrentlySelected);
+    console.log('Drag start - hand:', hand, 'selected:', isCurrentlySelected);
   };
 
   const handleMouseEnter = (hand: string, row: number, col: number) => {
     if (isDragging) {
+      // ドラッグ距離を更新
       const distance = Math.abs(row - dragStartRow) + Math.abs(col - dragStartCol);
       setDragDistance(distance);
       
       const isCurrentlySelected = selectedHands.includes(hand);
       
-      if (isCurrentlySelected !== dragStartSelected) {
-        if (dragStartSelected) {
-          setSelectedHands(prev => prev.filter(h => h !== hand));
-        } else {
-          setSelectedHands(prev => [...prev, hand]);
-        }
+      // ドラッグ開始時の選択状態に合わせて、現在のハンドの選択状態を変更
+      if (dragStartSelected && !isCurrentlySelected) {
+        // ドラッグ開始時が選択済み → 選択追加
+        console.log('Drag: Adding hand:', hand, 'distance:', distance);
+        setSelectedHands(prev => [...prev, hand]);
+      } else if (!dragStartSelected && isCurrentlySelected) {
+        // ドラッグ開始時が未選択 → 選択解除
+        console.log('Drag: Removing hand:', hand, 'distance:', distance);
+        setSelectedHands(prev => prev.filter(h => h !== hand));
       }
+      // 既に正しい状態の場合は何もしない
     }
   };
 
   const handleMouseUp = () => {
+    console.log('MouseUp - ending drag, wasDragging:', isDragging, 'distance:', dragDistance);
     setIsDragging(false);
     setDragStartHand('');
     setDragStartRow(-1);
     setDragStartCol(-1);
+    setDragStartSelected(false);
     setDragDistance(0);
   };
 
   const handleHandClick = (hand: string) => {
-    setSelectedHands(prev => {
-      if (prev.includes(hand)) {
-        return prev.filter(h => h !== hand);
-      } else {
-        return [...prev, hand];
-      }
+    console.log('handleHandClick called with:', hand, 'isDragging:', isDragging, 'distance:', dragDistance);
+    
+    // ドラッグ中でない場合、または小さなドラッグ（距離1以下）の場合はクリック処理を実行
+    if (isDragging && dragDistance > 1) {
+      console.log('Click ignored - significant dragging in progress');
+      return;
+    }
+    
+    const isCurrentlySelected = selectedHands.includes(hand);
+    
+    console.log('Current state:', { 
+      hand, 
+      isCurrentlySelected,
+      selectedHandsCount: selectedHands.length
     });
+    
+    if (isCurrentlySelected) {
+      // 選択解除
+      console.log('Removing hand:', hand);
+      setSelectedHands(prev => prev.filter(h => h !== hand));
+    } else {
+      // 選択追加
+      console.log('Adding hand:', hand);
+      setSelectedHands(prev => [...prev, hand]);
+    }
   };
 
   const handleConfirm = () => {
@@ -129,9 +156,9 @@ const SimpleHandRangeSelector: React.FC<{
   };
 
   const handleTemplateSelect = (templateName: string) => {
-    const template = HAND_TEMPLATES[templateName as keyof typeof HAND_TEMPLATES];
-    if (template) {
-      setSelectedHands(template);
+    const templateHands = HAND_TEMPLATES[templateName as keyof typeof HAND_TEMPLATES];
+    if (templateHands) {
+      setSelectedHands(templateHands);
     }
   };
 
@@ -141,97 +168,182 @@ const SimpleHandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white text-xl"
-            >
-              ×
-            </button>
-          </div>
-          
-          {/* テンプレート選択 */}
-          <div className="mb-4">
-            <h3 className="text-sm sm:text-base font-medium text-gray-300 mb-2">クイック選択</h3>
-            <div className="flex flex-wrap gap-2">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <style jsx>{`
+        .slider {
+          -webkit-appearance: none;
+          appearance: none;
+          outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #8b5cf6;
+          cursor: pointer;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease-in-out;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        
+        .slider::-webkit-slider-thumb:active {
+          transform: scale(1.05);
+          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #8b5cf6;
+          cursor: pointer;
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+          transition: all 0.2s ease-in-out;
+        }
+        
+        .slider::-moz-range-thumb:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        
+        .slider::-moz-range-thumb:active {
+          transform: scale(1.05);
+          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+        }
+        
+        .slider::-webkit-slider-track {
+          height: 8px;
+          border-radius: 4px;
+          background: transparent;
+        }
+        
+        .slider::-moz-range-track {
+          height: 8px;
+          border-radius: 4px;
+          background: transparent;
+        }
+      `}</style>
+      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 max-h-[98vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+        <div className="flex justify-between items-center mb-1 md:mb-4">
+          <h2 className="text-sm md:text-xl font-bold text-white">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-0.5 md:p-2 rounded-lg transition-all duration-200">✕</button>
+        </div>
+        
+        <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-3 border border-gray-600">
+          <div className="flex items-center justify-between mb-1 md:mb-2">
+            <p className="text-xs md:text-sm font-semibold text-white">
+              選択: <span className="text-purple-400">{selectedHands.length}</span>個
+            </p>
+            <div className="flex gap-0.5 md:gap-2">
               <button
-                onClick={() => handleLevelChange(1)}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded transition-colors"
+                onClick={() => {
+                  // 全選択時はレベル6のハンドを設定
+                  const level6Hands = getLevelHands(6);
+                  setSelectedHands(level6Hands);
+                }}
+                className="px-1 md:px-3 py-0.5 md:py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm rounded-md transition-all duration-200"
               >
-                レベル1
+                全選択
               </button>
               <button
-                onClick={() => handleLevelChange(2)}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded transition-colors"
+                onClick={() => {
+                  // 全解除時は空の配列を設定
+                  setSelectedHands([]);
+                }}
+                className="px-1 md:px-3 py-0.5 md:py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs md:text-sm rounded-md transition-all duration-200"
               >
-                レベル2
-              </button>
-              <button
-                onClick={() => handleLevelChange(3)}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded transition-colors"
-              >
-                レベル3
-              </button>
-              <button
-                onClick={() => handleTemplateSelect('UTG')}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm rounded transition-colors"
-              >
-                UTG
-              </button>
-              <button
-                onClick={() => handleTemplateSelect('BTN')}
-                className="px-2 sm:px-3 py-1 sm:py-2 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm rounded transition-colors"
-              >
-                BTN
+                全解除
               </button>
             </div>
           </div>
         </div>
         
-        <div className="overflow-auto max-h-[60vh] p-4 sm:p-6">
-          <div className="grid grid-cols-13 gap-1 max-w-fit mx-auto">
-            {allHands.map(({ hand, row, col }) => (
+        <div 
+          className="mb-2 md:mb-4 select-none"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px' }}
+          onMouseLeave={() => handleMouseUp()}
+        >
+          {allHands.map(({ hand, row, col }) => (
+            <div
+              key={`${row}-${col}`}
+              className={`${selectedHands.includes(hand) ? 'bg-purple-600 border-purple-500' : 'bg-gray-800 hover:bg-gray-700 border-gray-600'} text-white text-xs font-normal py-0.5 md:py-2 px-0 md:px-1 text-center cursor-pointer rounded transition-all duration-200 border border-gray-600 hover:shadow-md min-h-[1rem] md:min-h-[2.5rem] flex items-center justify-center`}
+              style={{ fontSize: '0.65rem' }}
+              onMouseDown={(e) => handleMouseDown(hand, row, col, e)}
+              onMouseEnter={() => handleMouseEnter(hand, row, col)}
+              onMouseUp={() => handleMouseUp()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleHandClick(hand);
+              }}
+              title={hand}
+            >
+              {hand}
+            </div>
+          ))}
+        </div>
+
+        {/* レベルスライダー */}
+        <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-2 border border-gray-600">
+          <input
+            type="range"
+            min="0"
+            max="6"
+            step="1"
+            defaultValue="0"
+            onChange={(e) => handleLevelChange(Number(e.target.value))}
+            className="w-full h-1 md:h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider transition-all duration-300 ease-in-out"
+            style={{
+              background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 0%, #374151 0%, #374151 100%)`,
+              transition: 'background 0.3s ease-in-out'
+            }}
+          />
+        </div>
+
+        <div className="mb-1 md:mb-4">
+          <button
+            onClick={handleConfirm}
+            className="w-full px-2 md:px-4 py-1 md:py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
+          >
+            選択完了 ({selectedHands.length}ハンド)
+          </button>
+        </div>
+        
+        {/* テンプレート選択セクション */}
+        <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-3 border border-gray-600">
+          <h3 className="text-xs md:text-sm font-semibold text-white mb-1 md:mb-2">📋 ハンドテンプレート</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
+            {Object.entries(HAND_TEMPLATES).map(([templateName, hands]) => (
               <button
-                key={hand}
-                className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm font-bold rounded transition-all ${
-                  selectedHands.includes(hand)
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                } ${row === col ? 'border-2 border-yellow-400' : ''}`}
-                onMouseDown={(e) => handleMouseDown(hand, row, col, e)}
-                onMouseEnter={() => handleMouseEnter(hand, row, col)}
-                onMouseUp={handleMouseUp}
-                onClick={() => handleHandClick(hand)}
+                key={templateName}
+                onClick={() => handleTemplateSelect(templateName)}
+                className="px-1 md:px-3 py-1 md:py-2 text-white text-xs md:text-sm rounded-md transition-all duration-200 text-left bg-blue-600 hover:bg-blue-700"
+                title={`${templateName} (${hands.length}ハンド)`}
               >
-                {hand}
+                <div className="font-medium">{templateName}</div>
+                <div className="text-xs text-blue-200">{hands.length}ハンド</div>
               </button>
             ))}
           </div>
         </div>
         
-        <div className="p-4 sm:p-6 border-t border-gray-700">
-          <div className="flex items-center justify-between">
-            <span className="text-sm sm:text-base text-gray-300">
-              選択済み: {selectedHands.length}個
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="px-4 sm:px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors text-sm sm:text-base"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleConfirm}
-                className="px-4 sm:px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors text-sm sm:text-base"
-              >
-                確定
-              </button>
-            </div>
+        <div className="flex flex-wrap gap-1 md:gap-3 text-xs text-white bg-gray-800 rounded-lg p-1 md:p-3 border border-gray-600">
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="w-2 md:w-3 h-2 md:h-3 bg-gray-800 border border-gray-600 rounded"></div>
+            <span>未選択</span>
+          </div>
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="w-2 md:w-3 h-2 md:h-3 bg-purple-600 border-2 border-purple-500 rounded"></div>
+            <span>選択済み</span>
           </div>
         </div>
       </div>
@@ -241,128 +353,124 @@ const SimpleHandRangeSelector: React.FC<{
 
 export default function MTTTrainerPage() {
   const router = useRouter();
-  const { isAdmin } = useAdmin();
-  const { user } = useAuth();
-  const [showHandSelector, setShowHandSelector] = useState(false);
-  const [selectedHands, setSelectedHands] = useState<string[]>([]);
-  const [settings, setSettings] = useState({
-    difficulty: 'medium' as 'easy' | 'medium' | 'hard',
-    stackSize: 'medium' as 'short' | 'medium' | 'deep',
-    position: 'random' as 'UTG' | 'MP' | 'CO' | 'BTN' | 'SB' | 'BB' | 'random',
-    tournamentStage: 'mid' as 'early' | 'mid' | 'late' | 'bubble' | 'final' | 'random',
-    icmPressure: 'medium' as 'low' | 'medium' | 'high',
-    handRangeLevel: 3
-  });
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 設定の状態管理
+  const { canUseStackSize, getAllowedStackSizes } = useAuth();
+  
   const [stackSize, setStackSize] = useState('75BB');
   const [position, setPosition] = useState('BTN');
   const [actionType, setActionType] = useState('openraise');
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [selectedHands, setSelectedHands] = useState<string[]>([]);
+  const [showHandSelector, setShowHandSelector] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
-
-  // スタックサイズの選択肢
-  const allStackSizes = ['30BB', '50BB', '75BB', '100BB', '150BB', '200BB'];
-  const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
+  
+  const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB', '10BB'];
+  const stackSizes = getAllowedStackSizes();
+  const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
     { id: 'vsopen', label: 'vs オープン' },
-    { id: 'vs3bet', label: 'vs 3bet' },
-    { id: 'vs4bet', label: 'vs 4bet' },
-    { id: 'vs5bet', label: 'vs 5bet' },
-    { id: 'random', label: 'ランダム' }
+    { id: 'vs3bet', label: 'vs 3ベット' },
+    { id: 'vs4bet', label: 'vs 4ベット' },
+    { id: 'random', label: 'ランダム' },
   ];
 
-  // スタックサイズの使用可否をチェック
-  const canUseStackSize = (stack: string) => {
-    if (!user) return false;
-    if (user.subscriptionStatus === 'master' || user.subscriptionStatus === 'premium') return true;
-    return stack === '30BB'; // 無料プランは30BBのみ
-  };
-
-  // 利用可能なスタックサイズを取得
-  const stackSizes = allStackSizes.filter(canUseStackSize);
-
-  // 設定を保存する関数
-  const saveSettings = () => {
-    setSaveStatus('saving');
+  // 設定をlocalStorageから読み込み
+  useEffect(() => {
     try {
-      const settingsData = {
+      const savedSettings = localStorage.getItem('mtt-trainer-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        console.log('💾 保存された設定を読み込み:', settings);
+        
+        if (settings.stackSize && canUseStackSize(settings.stackSize)) {
+          setStackSize(settings.stackSize);
+        } else if (settings.stackSize && !canUseStackSize(settings.stackSize)) {
+          // 保存されたスタックサイズが使用できない場合は30BBに変更
+          setStackSize('30BB');
+        }
+        if (settings.position && positions.includes(settings.position)) {
+          setPosition(settings.position);
+        }
+        if (settings.actionType && actionTypes.some(a => a.id === settings.actionType)) {
+          setActionType(settings.actionType);
+        }
+        if (settings.selectedHands && Array.isArray(settings.selectedHands)) {
+          setSelectedHands(settings.selectedHands);
+        }
+        
+        console.log('✅ 設定の読み込み完了');
+      } else {
+        console.log('💡 保存された設定がありません。デフォルト値を使用します。');
+      }
+    } catch (error) {
+      console.error('❌ 設定の読み込みに失敗:', error);
+    } finally {
+      // 初期読み込み完了をマーク
+      setIsInitialLoad(false);
+      // LocalStorageの状態を確認
+      setHasLocalStorage(!!localStorage.getItem('mtt-trainer-settings'));
+    }
+  }, []);
+
+  // 設定をlocalStorageに保存
+  const saveSettings = () => {
+    try {
+      const settings = {
         stackSize,
         position,
         actionType,
         selectedHands,
-        timestamp: Date.now()
+        lastUpdated: new Date().toISOString()
       };
-      localStorage.setItem('mtt-trainer-settings', JSON.stringify(settingsData));
-      setHasLocalStorage(true);
+      localStorage.setItem('mtt-trainer-settings', JSON.stringify(settings));
+      console.log('💾 自動保存完了:', settings);
       setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      setHasLocalStorage(true);
+      
+      // 2秒後にステータスをクリア
+      setTimeout(() => setSaveStatus(null), 2000);
     } catch (error) {
-      console.error('設定の保存に失敗:', error);
-      setSaveStatus('idle');
+      console.error('❌ 自動保存に失敗:', error);
+      setSaveStatus(null);
     }
   };
 
-  // 設定を読み込む関数
-  const loadSettings = () => {
-    try {
-      const saved = localStorage.getItem('mtt-trainer-settings');
-      if (saved) {
-        const settingsData = JSON.parse(saved);
-        if (settingsData.stackSize && canUseStackSize(settingsData.stackSize)) {
-          setStackSize(settingsData.stackSize);
-        }
-        if (settingsData.position) {
-          setPosition(settingsData.position);
-        }
-        if (settingsData.actionType) {
-          setActionType(settingsData.actionType);
-        }
-        if (settingsData.selectedHands && Array.isArray(settingsData.selectedHands)) {
-          setSelectedHands(settingsData.selectedHands);
-        }
-        setHasLocalStorage(true);
-      }
-    } catch (error) {
-      console.error('設定の読み込みに失敗:', error);
-    } finally {
-      setIsInitialLoad(false);
-    }
-  };
-
-  // 設定変更時に自動保存
+  // 設定変更時に自動保存（初回読み込み時は除外）
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   useEffect(() => {
     if (!isInitialLoad) {
-      saveSettings();
+      // 設定変更を検知したら即座に保存ステータスを表示
+      setSaveStatus('saving');
+      
+      const saveTimer = setTimeout(() => {
+        saveSettings();
+      }, 500); // 500msでより確実な保存
+      
+      return () => clearTimeout(saveTimer);
     }
   }, [stackSize, position, actionType, selectedHands]);
 
-  // 初期読み込み
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
   const handleHandSelectionChange = (hands: string[]) => {
     setSelectedHands(hands);
+    setShowHandSelector(false);
   };
 
   const openHandSelector = () => {
     setShowHandSelector(true);
   };
-
+  
   const handleStartTraining = () => {
-    setIsLoading(true);
-    // トレーニングページに遷移
-    router.push(`/trainer/mtt/training?stack=${stackSize}&position=${position}&action=${actionType}&hands=${selectedHands.join(',')}`);
+    let url = `/trainer/mtt/training?stack=${stackSize}&position=${position}&action=${actionType}`;
+    if (selectedHands.length > 0) {
+      url += `&hands=${encodeURIComponent(selectedHands.join(','))}`;
+    }
+    router.push(url);
   };
 
   // 設定をリセットする関数
   const resetSettings = () => {
-    if (confirm('🔄 すべての設定をリセットしますか？')) {
+    if (confirm('🔄 すべての設定をリセットしますか？\n\n現在の設定：\n・スタック: ' + stackSize + '\n・ポジション: ' + position + '\n・アクション: ' + actionTypes.find(a => a.id === actionType)?.label + '\n・選択ハンド: ' + selectedHands.length + '個')) {
       setStackSize('75BB');
       setPosition('BTN');
       setActionType('openraise');
@@ -370,190 +478,198 @@ export default function MTTTrainerPage() {
       
       try {
         localStorage.removeItem('mtt-trainer-settings');
+        console.log('🔄 設定をリセットしました（自動保存により設定クリア）');
         setHasLocalStorage(false);
       } catch (error) {
         console.error('❌ 設定のリセットに失敗:', error);
       }
     }
   };
-
+  
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-900 text-white">
-        {/* ヘッダー */}
-        <div className="bg-gray-900/50 backdrop-blur-sm border-b border-gray-700 sticky top-0 z-10">
-          <div className="max-w-4xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => router.push('/trainer')}
-                className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors text-sm"
-              >
-                <FaArrowLeft className="text-sm" />
-                <span className="hidden sm:inline">戻る</span>
-              </button>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">MTT プリフロップトレーニング</h1>
-              <div className="w-8"></div> {/* スペーサー */}
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-900 text-white p-2 md:p-8">
+        <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-3 md:mb-6">
+          <h1 className="text-xl md:text-3xl font-bold text-center">MTTプリフロップトレーニング</h1>
         </div>
-
-        <div className="p-3 sm:p-4 md:p-8">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-center text-gray-300 mb-4 sm:mb-6 md:mb-8 text-sm sm:text-base leading-relaxed">
-              トーナメントでのプリフロップ意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
-            </p>
-            
-            <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg mb-4 sm:mb-6 md:mb-8">
-              <div className="flex justify-between items-center mb-3 sm:mb-4">
-                <h2 className="text-lg sm:text-xl font-semibold">シナリオ設定</h2>
-                <div className="flex items-center gap-1 sm:gap-2">
-                  {(saveStatus === 'saving' || saveStatus === 'saved') && (
-                    <div className={`text-xs px-2 sm:px-3 py-1 rounded-lg transition-all duration-300 ${
-                      saveStatus === 'saving' ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-600/50' :
-                      'text-green-400 bg-green-900/30 border border-green-600/50'
-                    }`}>
-                      {saveStatus === 'saving' ? '🔄 保存中' : '✅ 完了'}
-                    </div>
-                  )}
-                  <button
-                    onClick={resetSettings}
-                    className="px-2 sm:px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs sm:text-sm rounded-lg transition-colors"
-                    title="設定をリセット"
-                  >
-                    🔄 リセット
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mb-4 sm:mb-6">
-                <h3 className="text-base sm:text-lg font-medium mb-2">エフェクティブスタック</h3>
-                <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {allStackSizes.map(stack => (
-                    <button 
-                      key={stack}
-                      className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base transition-colors min-h-[44px] touch-manipulation ${
-                        stackSize === stack 
-                          ? canUseStackSize(stack) ? 'bg-yellow-600' : 'bg-red-600' 
-                          : canUseStackSize(stack) ? 'bg-gray-700 hover:bg-yellow-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                      }`}
-                      onClick={() => canUseStackSize(stack) && setStackSize(stack)}
-                      disabled={!canUseStackSize(stack)}
-                      title={!canUseStackSize(stack) ? '無料プランでは30BBのみ利用可能です' : ''}
-                    >
-                      {stack}
-                      {!canUseStackSize(stack) && <span className="ml-1 text-xs">🔒</span>}
-                    </button>
-                  ))}
-                </div>
-                {stackSizes.length === 1 && (
-                  <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                    💡 無料プランでは30BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
-                  </div>
-                )}
-              </div>
-              
-              <div className="mb-4 sm:mb-6">
-                <h3 className="text-base sm:text-lg font-medium mb-2">あなたのポジション</h3>
-                <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {positions.map(pos => (
-                    <button 
-                      key={pos}
-                      className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
-                      onClick={() => setPosition(pos)}
-                    >
-                      {pos}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mb-4 sm:mb-6">
-                <h3 className="text-base sm:text-lg font-medium mb-2">アクションタイプ</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-2">
-                  {actionTypes.map(action => (
-                    <button 
-                      key={action.id}
-                      className={`px-2 sm:px-3 py-2 sm:py-3 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation ${
-                        actionType === action.id ? 'bg-blue-600' : 'bg-gray-700'
-                      } transition-colors hover:bg-blue-500`}
-                      onClick={() => setActionType(action.id)}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="mb-4 sm:mb-6 md:mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-3 sm:p-4 md:p-5">
-              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">ハンド範囲選択</h3>
-              
-              <button 
-                onClick={openHandSelector}
-                className="w-full py-3 sm:py-4 px-4 sm:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-base sm:text-lg transition-colors shadow-lg flex items-center justify-center min-h-[44px] touch-manipulation"
-              >
-                ハンドを選択
-              </button>
-              
-              {selectedHands.length > 0 ? (
-                <div className="mt-3 sm:mt-4">
-                  <div className="text-xs sm:text-sm text-purple-300 mb-2">{selectedHands.length}種類のハンドを選択中</div>
-                  <div className="bg-gray-800 rounded-lg p-2 sm:p-3 max-h-24 sm:max-h-32 overflow-auto border border-gray-700">
-                    <div className="flex flex-wrap gap-1 sm:gap-2">
-                      {selectedHands.map(hand => (
-                        <span key={hand} className="inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-700 rounded text-xs font-medium">
-                          {hand}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-300 text-center">
-                  ハンドを選択しない場合、すべてのハンドからランダムに出題されます
+        <p className="text-center text-gray-300 mb-4 md:mb-8 text-sm md:text-base">
+          トーナメントに特化したプリフロップ意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
+        </p>
+        
+        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
+          <div className="flex justify-between items-center mb-3 md:mb-4">
+            <h2 className="text-lg md:text-xl font-semibold">シナリオ設定</h2>
+            <div className="flex items-center gap-1 md:gap-2">
+              {(saveStatus === 'saving' || saveStatus === 'saved') && (
+                <div className={`text-xs px-2 md:px-3 py-1 rounded-lg transition-all duration-300 ${
+                  saveStatus === 'saving' ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-600/50' :
+                  'text-green-400 bg-green-900/30 border border-green-600/50'
+                }`}>
+                  {saveStatus === 'saving' ? '🔄 保存中' : '✅ 完了'}
                 </div>
               )}
+              <button
+                onClick={resetSettings}
+                className="px-2 md:px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs md:text-sm rounded-lg transition-colors"
+                title="設定をリセット"
+              >
+                🔄 リセット
+              </button>
             </div>
+          </div>
+          
+          <div className="mb-4 md:mb-6">
+            <h3 className="text-base md:text-lg font-medium mb-2">エフェクティブスタック</h3>
+            <div className="flex flex-wrap gap-1 md:gap-2">
+              {allStackSizes.map(stack => (
+                <button 
+                  key={stack}
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base transition-colors ${
+                    stackSize === stack 
+                      ? canUseStackSize(stack) ? 'bg-yellow-600' : 'bg-red-600' 
+                      : canUseStackSize(stack) ? 'bg-gray-700 hover:bg-yellow-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  }`}
+                  onClick={() => canUseStackSize(stack) && setStackSize(stack)}
+                  disabled={!canUseStackSize(stack)}
+                  title={!canUseStackSize(stack) ? '無料プランでは30BBのみ利用可能です' : ''}
+                >
+                  {stack}
+                  {!canUseStackSize(stack) && <span className="ml-1 text-xs">🔒</span>}
+                </button>
+              ))}
+            </div>
+            {stackSizes.length === 1 && (
+              <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
+                💡 無料プランでは30BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
+              </div>
+            )}
+          </div>
+          
+          <div className="mb-4 md:mb-6">
+            <h3 className="text-base md:text-lg font-medium mb-2">あなたのポジション</h3>
+            <div className="flex flex-wrap gap-1 md:gap-2">
+              {positions.map(pos => (
+                <button 
+                  key={pos}
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                  onClick={() => setPosition(pos)}
+                >
+                  {pos}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="mb-4 md:mb-6">
+            <h3 className="text-base md:text-lg font-medium mb-2">アクションタイプ</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
+              {actionTypes.map(action => (
+                <button 
+                  key={action.id}
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${actionType === action.id ? 'bg-red-600' : 'bg-gray-700'} transition-colors text-left hover:bg-red-500`}
+                  onClick={() => setActionType(action.id)}
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="mb-4 md:mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-3 md:p-5">
+            <h3 className="text-base md:text-lg font-medium mb-3 md:mb-4">ハンド範囲選択</h3>
             
             <button 
-              onClick={handleStartTraining}
-              disabled={isLoading}
-              className="w-full py-3 sm:py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg font-bold text-base sm:text-lg transition-colors shadow-lg flex items-center justify-center min-h-[44px] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={openHandSelector}
+              className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-base md:text-lg transition-colors shadow-lg flex items-center justify-center"
             >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  読み込み中...
-                </>
-              ) : (
-                <>
-                  <FaPlay className="mr-2" />
-                  トレーニングスタート
-                </>
-              )}
+              ハンドを選択
             </button>
             
-                         <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg mb-4 sm:mb-6 md:mb-8 mt-6 sm:mt-8">
-               <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">MTT プリフロップ戦略とは？</h2>
-               <p className="mb-3 sm:mb-4 text-gray-300 text-sm sm:text-base leading-relaxed">
-                 MTT（マルチテーブルトーナメント）でのプリフロップ戦略はキャッシュゲームとは異なります。
-                 スタックサイズに応じて戦略を変える必要があります。
-               </p>
-             </div>
-
-            
+            {selectedHands.length > 0 ? (
+              <div className="mt-3 md:mt-4">
+                <div className="text-xs md:text-sm text-purple-300 mb-2">{selectedHands.length}種類のハンドを選択中</div>
+                <div className="bg-gray-800 rounded-lg p-2 md:p-3 max-h-24 md:max-h-32 overflow-auto border border-gray-700">
+                  <div className="flex flex-wrap gap-1 md:gap-2">
+                    {selectedHands.map(hand => (
+                      <span key={hand} className="inline-block px-1.5 md:px-2 py-0.5 md:py-1 bg-purple-700 rounded text-xs font-medium">
+                        {hand}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 md:mt-3 text-xs md:text-sm text-gray-300 text-center">
+                ハンドを選択しない場合、すべてのハンドからランダムに出題されます
+              </div>
+            )}
           </div>
+          
+          <button 
+            onClick={handleStartTraining}
+            className="w-full py-3 md:py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg font-bold text-base md:text-lg transition-colors shadow-lg flex items-center justify-center"
+          >
+            トレーニングスタート
+          </button>
+        </div>
+        
+        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
+          <h2 className="text-lg md:text-xl font-semibold mb-2 md:mb-3">MTTプリフロップトレーニングとは？</h2>
+          <p className="mb-3 md:mb-4 text-gray-300 text-sm md:text-base">
+            MTT（マルチテーブルトーナメント）でのプリフロップGTO戦略を学習します。
+            このトレーニングではチップEVを考慮しており、ICM（Independent Chip Model）は考慮していません。
+            スタックサイズに応じて戦略を変える必要があります。
+          </p>
+        </div>
+
+        {/* デバッグ用設定表示 */}
+        <div className="bg-gray-800/50 rounded-xl p-2 md:p-4 shadow-lg">
+          <details className="group">
+            <summary className="cursor-pointer text-xs md:text-sm font-medium text-gray-400 hover:text-white transition-colors">
+              🔧 設定詳細 (デバッグ情報)
+            </summary>
+            <div className="mt-2 md:mt-3 text-xs space-y-1 md:space-y-2 text-gray-300 bg-gray-900/50 rounded-lg p-2 md:p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
+                <div><strong>スタックサイズ:</strong> {stackSize}</div>
+                <div><strong>ポジション:</strong> {position}</div>
+                <div><strong>アクションタイプ:</strong> {actionTypes.find(a => a.id === actionType)?.label} ({actionType})</div>
+                <div><strong>選択ハンド数:</strong> {selectedHands.length}個</div>
+              </div>
+              <div className="pt-1 md:pt-2 border-t border-gray-700">
+                <div><strong>自動保存ステータス:</strong> {
+                  saveStatus === 'saving' ? '🔄 保存中' :
+                  saveStatus === 'saved' ? '✅ 完了' :
+                  '💾 有効'
+                }</div>
+                <div><strong>初期読み込み:</strong> {isInitialLoad ? '読み込み中' : '✅ 完了'}</div>
+                <div><strong>LocalStorage確認:</strong> 
+                  {hasLocalStorage ? '✅ 設定保存済み' : '❌ 未保存'}
+                </div>
+              </div>
+              {selectedHands.length > 0 && (
+                <div className="pt-1 md:pt-2 border-t border-gray-700">
+                  <strong>選択ハンド:</strong>
+                  <div className="mt-1 max-h-16 md:max-h-20 overflow-y-auto">
+                    {selectedHands.slice(0, 20).join(', ')}
+                    {selectedHands.length > 20 && ` ...他${selectedHands.length - 20}個`}
+                  </div>
+                </div>
+              )}
+            </div>
+          </details>
         </div>
         
         {showHandSelector && (
           <SimpleHandRangeSelector
             onSelectHands={handleHandSelectionChange}
-            title="MTT トレーニング用ハンド範囲選択"
+            title="MTTプリフロップトレーニング用ハンド範囲選択"
             onClose={() => setShowHandSelector(false)}
             initialSelectedHands={selectedHands}
           />
         )}
       </div>
+    </div>
     </AuthGuard>
   );
 } 

@@ -114,8 +114,8 @@ export default function Home() {
                 <div className="text-xs md:text-base text-gray-300">最適化エンジン</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-4xl font-bold text-pink-400 mb-1 md:mb-2">∞</div>
-                <div className="text-xs md:text-base text-gray-300">成長の可能性</div>
+                <div className="text-2xl md:text-4xl font-bold text-pink-400 mb-1 md:mb-2">200%</div>
+                <div className="text-xs md:text-base text-gray-300">勝率向上</div>
               </div>
             </div>
           </div>
@@ -196,11 +196,11 @@ export default function Home() {
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
                   <FaTrophy className="text-lg md:text-xl text-white" />
                 </div>
-                              <h3 className="text-xl md:text-2xl font-bold text-white">MTT プリフロップトレーニング</h3>
-            </div>
-            <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
-              トーナメントでのプリフロップ意思決定を練習し、MTTでの勝率を向上させます。スタックサイズに応じた戦略調整や、チップEVベースの最適プレイを習得。プリフロップに特化したGTO戦略を実践的に学習できます。
-            </p>
+                <h3 className="text-xl md:text-2xl font-bold text-white">MTTプリフロップトレーニング</h3>
+              </div>
+              <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
+                トーナメントに特化したプリフロップ戦略を学び、MTTでの勝率を向上させます。このトレーニングではチップEVを考慮しており、ICMは考慮していません。スタックサイズに応じた戦略調整や、ポジション別の最適プレイを習得。プリフロップGTO戦略を実践的に学習できます。
+              </p>
               <Link 
                 href="/trainer/mtt"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm md:text-base font-semibold transition-all duration-300"
@@ -314,7 +314,7 @@ export default function Home() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>200回/日練習</span>
+                    <span>50回/日練習</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />

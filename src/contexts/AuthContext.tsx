@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface User {
   id: string;
@@ -34,7 +34,6 @@ interface AuthContextType {
   incrementPracticeCount: () => void;
   canUseStackSize: (stackSize: string) => boolean;
   getAllowedStackSizes: () => string[];
-  changeSubscriptionStatus: (newStatus: 'free' | 'light' | 'premium' | 'master') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,87 +52,17 @@ const MASTER_USER_EMAILS = [
   'master@gtovantage.com'
 ];
 
-// マスターアカウントの初期パスワード（本番環境では変更が必要）
-const MASTER_PASSWORD = 'master123456';
-
-// 簡単なハッシュ関数（本番環境ではbcrypt等を使用）
-const simpleHash = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash.toString();
-};
-
 // メール確認トークンを生成する関数
 const generateVerificationToken = (): string => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
-
-// マスターアカウントを初期化する関数
-const initializeMasterAccounts = () => {
-  const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-  let updated = false;
-
-  MASTER_USER_EMAILS.forEach(email => {
-    const existingUser = users.find((u: any) => u.email === email);
-    if (!existingUser) {
-      const masterUser = {
-        id: `master-${Date.now()}-${Math.random()}`,
-        email,
-        name: email === 'master@gtovantage.com' ? 'Master User' : 'Admin User',
-        password: simpleHash(MASTER_PASSWORD),
-        createdAt: new Date().toISOString(),
-        emailVerified: true,
-        isMasterUser: true,
-        subscriptionStatus: 'master' as const,
-        subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString(),
-        practiceCount: 0,
-        lastPracticeDate: new Date().toISOString()
-      };
-      users.push(masterUser);
-      updated = true;
-      console.log(`マスターアカウントを作成しました: ${email}`);
-    }
-  });
-
-  if (updated) {
-    localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-  }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 練習回数をリセットする関数
-  const resetPracticeCountIfNewDay = useCallback(() => {
-    if (!user) return;
-    
-    const today = new Date().toDateString();
-    const lastPracticeDate = user.lastPracticeDate ? new Date(user.lastPracticeDate).toDateString() : null;
-    
-    if (lastPracticeDate !== today) {
-      const updatedUser = { ...user, practiceCount: 0, lastPracticeDate: new Date().toISOString() };
-      setUser(updatedUser);
-      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-      
-      // ユーザーリストも更新
-      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.email === user.email);
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-      }
-    }
-  }, [user]);
-
-  // 初期化時にマスターアカウントを確認・作成
+  // 初期化時にローカルストレージからユーザー情報を読み込み
   useEffect(() => {
-    initializeMasterAccounts();
-    
     const savedUser = localStorage.getItem('gto-vantage-user');
     if (savedUser) {
       try {
@@ -156,13 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  // ユーザーが設定された後に練習回数をリセット
-  useEffect(() => {
-    if (user) {
-      resetPracticeCountIfNewDay();
-    }
-  }, [user, resetPracticeCountIfNewDay]);
-
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
       // 既存ユーザーのチェック
@@ -177,67 +99,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const isMasterUser = MASTER_USER_EMAILS.includes(email);
       const verificationToken = generateVerificationToken();
 
-      const newUser = {
-        id: `user-${Date.now()}-${Math.random()}`,
+      // 新しいユーザーを作成
+      const newUser: User = {
+        id: Date.now().toString(),
         email,
         name,
-        password: simpleHash(password), // パスワードをハッシュ化
         createdAt: new Date().toISOString(),
-        emailVerified: isMasterUser, // マスターユーザーは自動的にメール確認済み
-        verificationToken: isMasterUser ? undefined : verificationToken,
+        emailVerified: false,
+        verificationToken,
         isMasterUser,
-        subscriptionStatus: isMasterUser ? 'master' as const : 'free' as const,
-        subscriptionExpiresAt: isMasterUser 
-          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString()
-          : undefined,
-        practiceCount: 0,
-        lastPracticeDate: new Date().toISOString()
+        subscriptionStatus: isMasterUser ? 'master' : 'free',
+        subscriptionExpiresAt: isMasterUser ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() : undefined // マスターユーザーは10年間有効
       };
 
-      existingUsers.push(newUser);
-      localStorage.setItem('gto-vantage-users', JSON.stringify(existingUsers));
+      // ユーザーリストに追加
+      const updatedUsers = [...existingUsers, { ...newUser, password }];
+      localStorage.setItem('gto-vantage-users', JSON.stringify(updatedUsers));
 
-      // マスターユーザーでない場合はメール確認を送信
-      if (!isMasterUser) {
-        try {
-          const response = await fetch('/api/auth/send-verification-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email,
-              token: verificationToken,
-              name
-            }),
-          });
+      // 現在のユーザーとして設定（メール確認前でもログイン可能）
+      setUser(newUser);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
 
-          if (!response.ok) {
-            console.error('Failed to send verification email');
-          } else {
-            console.log('Verification email sent successfully to:', email);
-          }
-        } catch (error) {
-          console.error('Error sending verification email:', error);
+      // メール確認メールを送信
+      try {
+        const response = await fetch('/api/auth/send-verification-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            token: verificationToken,
+            name
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to send verification email');
+        } else {
+          console.log('Verification email sent successfully to:', email);
         }
+      } catch (error) {
+        console.error('Error sending verification email:', error);
       }
-
-      const { password: _, ...userWithoutPassword } = newUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('gto-vantage-user', JSON.stringify(userWithoutPassword));
 
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
-      throw error;
+      return false;
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      const hashedPassword = simpleHash(password);
-      const user = users.find((u: any) => u.email === email && u.password === hashedPassword);
+      const user = users.find((u: any) => u.email === email && u.password === password);
       
       if (!user) {
         throw new Error('メールアドレスまたはパスワードが正しくありません');
@@ -357,13 +273,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // 練習回数管理
   const getMaxPracticeCount = (subscriptionStatus: string): number => {
     switch (subscriptionStatus) {
-      case 'free': return 20;
-      case 'light': return 200;
+      case 'free': return 5;
+      case 'light': return 50;
       case 'premium':
       case 'master': return Infinity;
-      default: return 20;
+      default: return 5;
+    }
+  };
+
+  const resetPracticeCountIfNewDay = () => {
+    if (!user) return;
+    
+    const today = new Date().toDateString();
+    const lastPracticeDate = user.lastPracticeDate ? new Date(user.lastPracticeDate).toDateString() : null;
+    
+    if (lastPracticeDate !== today) {
+      const updatedUser = { ...user, practiceCount: 0, lastPracticeDate: new Date().toISOString() };
+      setUser(updatedUser);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+      
+      // ユーザーリストも更新
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.email === user.email);
+      if (userIndex !== -1) {
+        users[userIndex] = updatedUser;
+        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+      }
     }
   };
 
@@ -394,12 +332,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                                Boolean(user?.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date());
 
   // 練習制限チェック
+  resetPracticeCountIfNewDay();
   const maxPracticeCount = getMaxPracticeCount(user?.subscriptionStatus || 'free');
   const practiceCount = user?.practiceCount || 0;
   const canPractice = user?.subscriptionStatus === 'premium' || 
                      user?.subscriptionStatus === 'master' || 
-                     (user?.subscriptionStatus === 'light' && practiceCount < maxPracticeCount) ||
-                     (user?.subscriptionStatus === 'free' && practiceCount < maxPracticeCount);
+                     practiceCount < maxPracticeCount;
 
   // スタックサイズ制限機能
   const canUseStackSize = (stackSize: string): boolean => {
@@ -422,33 +360,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return ['30BB']; // 無料プランは30BBのみ
   };
 
-  // マスターアカウント用：プラン変更機能
-  const changeSubscriptionStatus = (newStatus: 'free' | 'light' | 'premium' | 'master') => {
-    if (!user || !user.isMasterUser) {
-      console.warn('マスターアカウントのみがプランを変更できます');
-      return;
-    }
-
-    const updatedUser = { 
-      ...user, 
-      subscriptionStatus: newStatus,
-      subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() // 10年間
-    };
-    
-    setUser(updatedUser);
-    localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-    
-    // ユーザーリストも更新
-    const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.email === user.email);
-    if (userIndex !== -1) {
-      users[userIndex] = updatedUser;
-      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-    }
-    
-    console.log(`マスターアカウントのプランを ${newStatus} に変更しました`);
-  };
-
   const value: AuthContextType = {
     user,
     isLoading,
@@ -466,8 +377,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     maxPracticeCount,
     incrementPracticeCount,
     canUseStackSize,
-    getAllowedStackSizes,
-    changeSubscriptionStatus
+    getAllowedStackSizes
   };
 
   return (

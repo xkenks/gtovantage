@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function POST(request: NextRequest) {
   try {
     const { email, token, name } = await request.json();
@@ -13,23 +15,6 @@ export async function POST(request: NextRequest) {
     }
 
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
-
-    // テスト用: APIキーが設定されていない場合はコンソールに出力
-    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') {
-      console.log('=== メール送信テスト（開発モード） ===');
-      console.log('送信先:', email);
-      console.log('確認URL:', verificationUrl);
-      console.log('=====================================');
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: '開発モード: メール送信をシミュレートしました',
-        verificationUrl 
-      });
-    }
-
-    // Resend APIキーが設定されている場合のみResendを初期化
-    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const { data, error } = await resend.emails.send({
       from: 'GTO Vantage <noreply@gtovantage.com>',
