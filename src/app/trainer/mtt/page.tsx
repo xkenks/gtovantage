@@ -506,7 +506,6 @@ export default function MTTTrainerPage() {
                         title={!isAvailable ? `${actionType === 'vsopen' || actionType === 'vs4bet' ? 'UTGは最初のアクションなので、このシナリオでは選択できません' : 'このアクションタイプでは選択できません'}` : ''}
                       >
                         {pos}
-                        {!isAvailable && <span className="ml-1 text-xs">🚫</span>}
                       </button>
                     );
                   })}
