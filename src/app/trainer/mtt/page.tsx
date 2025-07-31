@@ -265,13 +265,14 @@ export default function MTTTrainerPage() {
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
 
   // スタックサイズの選択肢
-  const allStackSizes = ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB'];
-  const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  const allStackSizes = ['30BB', '50BB', '75BB', '100BB', '150BB', '200BB'];
+  const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
     { id: 'vsopen', label: 'vs オープン' },
     { id: 'vs3bet', label: 'vs 3bet' },
     { id: 'vs4bet', label: 'vs 4bet' },
+    { id: 'vs5bet', label: 'vs 5bet' },
     { id: 'random', label: 'ランダム' }
   ];
 
@@ -280,29 +281,6 @@ export default function MTTTrainerPage() {
     if (!user) return false;
     if (user.subscriptionStatus === 'master' || user.subscriptionStatus === 'premium') return true;
     return stack === '30BB'; // 無料プランは30BBのみ
-  };
-
-  // アクションタイプに応じて利用可能なポジションを取得
-  const getAvailablePositions = (actionType: string) => {
-    switch (actionType) {
-      case 'openraise':
-        // オープンレイズは全ポジションで可能
-        return positions;
-      case 'vsopen':
-        // vs オープンはUTG以外で可能（UTGは最初のアクションなので）
-        return positions.filter(pos => pos !== 'UTG');
-      case 'vs3bet':
-        // vs 3betは全ポジションで可能
-        return positions;
-      case 'vs4bet':
-        // vs 4betはUTG以外で可能（UTGは最初のアクションなので）
-        return positions.filter(pos => pos !== 'UTG');
-      case 'random':
-        // ランダムは全ポジションで可能
-        return positions;
-      default:
-        return positions;
-    }
   };
 
   // 利用可能なスタックサイズを取得
@@ -355,15 +333,6 @@ export default function MTTTrainerPage() {
       setIsInitialLoad(false);
     }
   };
-
-  // アクションタイプが変更された時に、利用できないポジションが選択されている場合は自動的に変更
-  useEffect(() => {
-    const availablePositions = getAvailablePositions(actionType);
-    if (!availablePositions.includes(position)) {
-      // 利用できないポジションが選択されている場合、最初の利用可能なポジションに変更
-      setPosition(availablePositions[0]);
-    }
-  }, [actionType]);
 
   // 設定変更時に自動保存
   useEffect(() => {
@@ -486,36 +455,16 @@ export default function MTTTrainerPage() {
               <div className="mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-medium mb-2">あなたのポジション</h3>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {positions.map(pos => {
-                    const availablePositions = getAvailablePositions(actionType);
-                    const isAvailable = availablePositions.includes(pos);
-                    return (
-                      <button 
-                        key={pos}
-                        className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation transition-colors ${
-                          position === pos 
-                            ? isAvailable ? 'bg-green-600' : 'bg-red-600' 
-                            : isAvailable ? 'bg-gray-700 hover:bg-green-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                        }`}
-                        onClick={() => isAvailable && setPosition(pos)}
-                        disabled={!isAvailable || actionType === 'random'}
-                        title={actionType === 'random' ? 'ランダムモードではポジションは自動選択されます' : !isAvailable ? `${actionType === 'vsopen' || actionType === 'vs4bet' ? 'UTGは最初のアクションなので、このシナリオでは選択できません' : 'このアクションタイプでは選択できません'}` : ''}
-                      >
-                        {pos}
-                      </button>
-                    );
-                  })}
+                  {positions.map(pos => (
+                    <button 
+                      key={pos}
+                      className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base min-h-[44px] touch-manipulation ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                      onClick={() => setPosition(pos)}
+                    >
+                      {pos}
+                    </button>
+                  ))}
                 </div>
-                {(actionType === 'vsopen' || actionType === 'vs4bet') && (
-                  <div className="mt-2 text-xs text-blue-400 bg-blue-900/30 border border-blue-600/50 rounded-lg p-2">
-                    💡 UTGは最初のアクションなので、vs オープンとvs 4ベットでは選択できません。
-                  </div>
-                )}
-                {actionType === 'random' && (
-                  <div className="mt-2 text-xs text-purple-400 bg-purple-900/30 border border-purple-600/50 rounded-lg p-2">
-                    🎲 ランダムモード: トレーニング中に毎回ポジションとアクションタイプがランダムに選択されます。エフェクティブスタックは選択した値のままです。
-                  </div>
-                )}
               </div>
               
               <div className="mb-4 sm:mb-6">
