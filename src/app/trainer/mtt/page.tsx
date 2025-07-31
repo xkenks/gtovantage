@@ -6,7 +6,7 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { HAND_TEMPLATES } from '@/components/HandRange';
 import { useAuth } from '@/contexts/AuthContext';
-import { FaArrowLeft, FaMobile, FaPlay } from 'react-icons/fa';
+import { FaArrowLeft, FaPlay } from 'react-icons/fa';
 
 interface HandData {
   hand: string;
@@ -392,10 +392,7 @@ export default function MTTTrainerPage() {
                 <span className="hidden sm:inline">戻る</span>
               </button>
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold">MTT GTO トレーニング</h1>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <FaMobile className="text-xs" />
-                <span className="hidden sm:inline">モバイル対応</span>
-              </div>
+              <div className="w-8"></div> {/* スペーサー */}
             </div>
           </div>
         </div>
@@ -544,22 +541,7 @@ export default function MTTTrainerPage() {
               </p>
             </div>
 
-            {/* モバイル最適化情報 */}
-            <div className="bg-blue-900/20 border border-blue-700/30 rounded-xl p-4 sm:p-6">
-              <div className="flex items-start gap-3">
-                <FaMobile className="text-blue-400 text-lg mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-300 mb-2">
-                    モバイル最適化済み
-                  </h3>
-                  <p className="text-blue-200 text-sm leading-relaxed">
-                    スマートフォンやタブレットでも快適にトレーニングできます。
-                    タッチ操作に最適化されたボタンサイズと、読みやすいレイアウトで、
-                    いつでもどこでもMTT戦略を学習できます。
-                  </p>
-                </div>
-              </div>
-            </div>
+            
           </div>
         </div>
         

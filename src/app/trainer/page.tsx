@@ -7,7 +7,7 @@ import { ResultsView } from '@/components/ResultsView';
 import { PokerTable } from '@/components/PokerTable';
 import { generateRandomSpot } from '@/lib/spotGenerator';
 import { evaluateAction } from '@/lib/gtoEngine';
-import { FaPlay, FaCog, FaRedo, FaArrowLeft, FaMobile, FaDesktop } from 'react-icons/fa';
+import { FaPlay, FaCog, FaRedo, FaArrowLeft } from 'react-icons/fa';
 import Link from 'next/link';
 
 // コンポーネント間で共有するSpotの型定義
@@ -54,10 +54,7 @@ export default function TrainerHomePage() {
               <FaArrowLeft className="text-sm" />
               <span className="hidden sm:inline">ホームに戻る</span>
             </Link>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <FaMobile className="text-xs" />
-              <span className="hidden sm:inline">モバイル最適化</span>
-            </div>
+            <div className="w-8"></div> {/* スペーサー */}
           </div>
         </div>
       </div>
@@ -140,22 +137,7 @@ export default function TrainerHomePage() {
             </div>
           </div>
 
-          {/* モバイル最適化情報 */}
-          <div className="mt-6 sm:mt-8 bg-blue-900/20 border border-blue-700/30 rounded-xl p-4 sm:p-6">
-            <div className="flex items-start gap-3">
-              <FaMobile className="text-blue-400 text-lg mt-1 flex-shrink-0" />
-              <div>
-                <h3 className="text-lg font-semibold text-blue-300 mb-2">
-                  モバイル最適化済み
-                </h3>
-                <p className="text-blue-200 text-sm leading-relaxed">
-                  スマートフォンやタブレットでも快適にトレーニングできます。
-                  タッチ操作に最適化されたボタンサイズと、読みやすいレイアウトで、
-                  いつでもどこでもポーカースキルを向上させることができます。
-                </p>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
