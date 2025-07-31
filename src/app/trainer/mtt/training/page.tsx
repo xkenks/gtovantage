@@ -1246,6 +1246,13 @@ export default function MTTTrainingPage() {
 
   // 新しいシナリオを生成
   const generateNewScenario = () => {
+    // ランダムモードの場合、アクションタイプをランダムに選択
+    let actualActionType = actionType;
+    if (actionType === 'random') {
+      const availableActions = ['openraise', 'vsopen', 'vs3bet', 'vs4bet'];
+      actualActionType = availableActions[Math.floor(Math.random() * availableActions.length)];
+    }
+    
     // 新しいハンドの生成方法を決定
     let newHand: string[];
     let handType: string;
@@ -1274,7 +1281,7 @@ export default function MTTTrainingPage() {
     
     // vs open, vs3bet, vs4betの場合、相手のポジションを動的に決定
     let openerPosition: string | undefined;
-    if (actionType === 'vsopen') {
+    if (actualActionType === 'vsopen') {
       // URLパラメータでオープンレイザーが指定されている場合はそれを使用
       const urlOpener = searchParams.get('opener');
       if (urlOpener && isValidVsOpenCombination(position, urlOpener)) {
@@ -1286,7 +1293,7 @@ export default function MTTTrainingPage() {
           openerPosition = validOpeners[Math.floor(Math.random() * validOpeners.length)];
         }
       }
-    } else if (actionType === 'vs3bet') {
+    } else if (actualActionType === 'vs3bet') {
       // vs3betの場合、3ベッターをランダムに選択（オープンレイザーより後のポジション）
       const urlThreeBetter = searchParams.get('threebetter');
       if (urlThreeBetter) {
@@ -1306,7 +1313,7 @@ export default function MTTTrainingPage() {
           }
         }
       }
-    } else if (actionType === 'vs4bet') {
+    } else if (actualActionType === 'vs4bet') {
       // vs4betの場合、4ベッターをランダムに選択（3ベッターより前のポジション）
       const urlFourBetter = searchParams.get('fourbetter');
       if (urlFourBetter) {
@@ -1333,7 +1340,7 @@ export default function MTTTrainingPage() {
       newHand, 
       position, 
       stackSize, 
-      actionType as string,
+      actualActionType as string,
       customRanges,
       openerPosition
     );
