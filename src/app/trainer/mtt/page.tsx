@@ -265,7 +265,7 @@ export default function MTTTrainerPage() {
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
 
   // スタックサイズの選択肢
-  const allStackSizes = ['30BB', '50BB', '75BB', '100BB', '150BB', '200BB'];
+  const allStackSizes = ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB'];
   const positions = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
