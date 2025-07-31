@@ -171,17 +171,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* マスターアカウント情報 */}
-            <div className="mt-4 p-4 bg-yellow-900/30 border border-yellow-600/50 rounded-lg">
-              <h3 className="text-sm font-semibold text-yellow-400 mb-2">🔑 マスターアカウント</h3>
-              <div className="text-xs text-yellow-300 space-y-1">
-                <div>メール: admin@gtovantage.com</div>
-                <div>パスワード: master123</div>
-                <div className="mt-2 text-yellow-200">
-                  または: master@gtovantage.com / master123
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>

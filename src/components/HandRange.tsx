@@ -1234,10 +1234,10 @@ export const HandRangeSelector: React.FC<{
     const grid = [];
 
     // ヘッダー行
-    const headerRow = [<div key="empty" className="w-8 h-8"></div>];
+    const headerRow = [<div key="empty" className="w-8 h-8 md:w-10 md:h-10"></div>];
     ranks.forEach(rank => {
       headerRow.push(
-        <div key={`header-${rank}`} className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white">
+        <div key={`header-${rank}`} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-sm md:text-xl font-bold text-white">
           {rank}
         </div>
       );
@@ -1247,7 +1247,7 @@ export const HandRangeSelector: React.FC<{
     // ハンド行
     ranks.forEach((rank1, i) => {
       const row = [
-        <div key={`row-header-${rank1}`} className="w-8 h-8 flex items-center justify-center text-xs font-bold text-white">
+        <div key={`row-header-${rank1}`} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-sm md:text-xl font-bold text-white">
           {rank1}
         </div>
       ];
@@ -1274,11 +1274,12 @@ export const HandRangeSelector: React.FC<{
                 setSelectedHands(prev => [...prev, hand]);
               }
             }}
-            className={`w-8 h-8 text-xs font-bold rounded transition-all duration-200 ${
+            className={`w-8 h-8 md:w-10 md:h-10 text-xs md:text-xl font-bold rounded transition-all duration-200 ${
               isSelected 
                 ? 'bg-purple-600 text-white border-2 border-purple-400' 
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                : 'bg-gray-700 text-gray-100 md:text-white hover:bg-gray-600 border border-gray-600'
             }`}
+            style={{ fontSize: '40px' }}
           >
             {hand}
           </button>
@@ -1299,29 +1300,7 @@ export const HandRangeSelector: React.FC<{
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
         </div>
         
-        {/* テンプレート選択セクション */}
-        <div className="mb-6 bg-red-800 rounded-lg p-4 border border-red-600">
-          <h3 className="text-lg font-semibold text-white mb-3">📋 ハンドテンプレート (デバッグ表示)</h3>
-          <div className="text-white mb-2">HAND_TEMPLATES keys: {Object.keys(HAND_TEMPLATES).length}</div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {Object.entries(HAND_TEMPLATES).map(([templateName, hands]) => (
-              <button
-                key={templateName}
-                onClick={() => {
-                  if (onTemplateSelect) {
-                    onTemplateSelect(templateName);
-                  }
-                  setSelectedHands(hands);
-                }}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 text-left"
-                title={`${templateName} (${hands.length}ハンド)`}
-              >
-                <div className="font-medium">{templateName}</div>
-                <div className="text-xs text-blue-200">{hands.length}ハンド</div>
-              </button>
-            ))}
-          </div>
-        </div>
+
         
         {/* ハンドレンジグリッド */}
         <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>

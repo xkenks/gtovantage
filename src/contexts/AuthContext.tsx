@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: `master-${Date.now()}`,
             email,
             name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
-            password: 'master123', // デフォルトパスワード
+            password: 'Acs@ef3UR', // マスターアカウントパスワード
             createdAt: new Date().toISOString(),
             emailVerified: true,
             isMasterUser: true,
@@ -94,11 +94,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updated) {
         localStorage.setItem('gto-vantage-users', JSON.stringify(users));
         console.log('✅ マスターアカウントの初期化が完了しました');
+      } else {
+        console.log('ℹ️ マスターアカウントは既に存在しています');
       }
+      console.log('📋 現在のユーザーリスト:', users.map((u: any) => ({ email: u.email, isMaster: MASTER_USER_EMAILS.includes(u.email) })));
     };
 
     // マスターアカウントを初期化
     initializeMasterAccounts();
+    
+    // マスターアカウントの確認と修正
+    const ensureMasterAccounts = () => {
+      try {
+        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+        let updated = false;
+        let newUsers = [...users];
+        
+        MASTER_USER_EMAILS.forEach(email => {
+          const existingUser = newUsers.find((u: any) => u.email === email);
+          if (!existingUser || existingUser.password !== 'Acs@ef3UR') {
+            // マスターアカウントが存在しないか、パスワードが間違っている場合は作成/更新
+            newUsers = newUsers.filter((u: any) => u.email !== email);
+            const masterUser = {
+              id: `master-${Date.now()}`,
+              email,
+              name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
+              password: 'Acs@ef3UR',
+              createdAt: new Date().toISOString(),
+              emailVerified: true,
+              isMasterUser: true,
+              subscriptionStatus: 'master',
+              subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString(),
+              practiceCount: 0,
+              lastPracticeDate: new Date().toISOString()
+            };
+            newUsers.push(masterUser);
+            updated = true;
+            console.log(`✅ マスターアカウント確保: ${email}`);
+          }
+        });
+        
+        if (updated) {
+          localStorage.setItem('gto-vantage-users', JSON.stringify(newUsers));
+          console.log('✅ マスターアカウントの確保が完了しました');
+        }
+      } catch (error) {
+        console.error('マスターアカウント確保エラー:', error);
+      }
+    };
+    
+    // マスターアカウントを確保
+    ensureMasterAccounts();
 
     const savedUser = localStorage.getItem('gto-vantage-user');
     if (savedUser) {
@@ -189,10 +235,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('🔐 ログイン試行:', { email, password: '***' });
       const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      console.log('📋 登録済みユーザー:', users.map((u: any) => ({ email: u.email, isMaster: MASTER_USER_EMAILS.includes(u.email) })));
+      
       const user = users.find((u: any) => u.email === email && u.password === password);
       
       if (!user) {
+        console.log('❌ ユーザーが見つかりません');
         throw new Error('メールアドレスまたはパスワードが正しくありません');
       }
 

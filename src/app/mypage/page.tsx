@@ -236,6 +236,7 @@ export default function MyPage() {
                   </svg>
                   通知設定
                 </button>
+
               </div>
             </div>
           </div>

@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/trainer/not-found": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/trainer/not-found.js"
+      "static/chunks/app/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -11,30 +11,20 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/trainer/mtt/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/trainer/mtt/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/mypage/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/mypage/page.js"
     ],
-    "/subscription/page": [
+    "/trainer/not-found": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/subscription/page.js"
+      "static/chunks/app/trainer/not-found.js"
     ],
-    "/trainer/mtt/training/page": [
+    "/trainer/mtt/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/trainer/mtt/training/page.js"
+      "static/chunks/app/trainer/mtt/page.js"
     ],
     "/not-found": [
       "static/chunks/webpack.js",

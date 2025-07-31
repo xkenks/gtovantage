@@ -2387,6 +2387,10 @@ video {
   --tw-text-opacity: 1;
   color: rgb(30 64 175 / var(--tw-text-opacity, 1));
 }
+.text-gray-100 {
+  --tw-text-opacity: 1;
+  color: rgb(243 244 246 / var(--tw-text-opacity, 1));
+}
 .text-gray-200 {
   --tw-text-opacity: 1;
   color: rgb(229 231 235 / var(--tw-text-opacity, 1));
@@ -3242,6 +3246,10 @@ video {
     display: none;
   }
 
+  .md\:h-10 {
+    height: 2.5rem;
+  }
+
   .md\:h-12 {
     height: 3rem;
   }
@@ -3272,6 +3280,10 @@ video {
 
   .md\:min-h-\[2\.5rem\] {
     min-height: 2.5rem;
+  }
+
+  .md\:w-10 {
+    width: 2.5rem;
   }
 
   .md\:w-12 {
@@ -3500,6 +3512,11 @@ video {
   .md\:text-xl {
     font-size: 1.25rem;
     line-height: 1.75rem;
+  }
+
+  .md\:text-white {
+    --tw-text-opacity: 1;
+    color: rgb(255 255 255 / var(--tw-text-opacity, 1));
   }
 }
 

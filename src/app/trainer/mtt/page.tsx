@@ -276,7 +276,7 @@ const SimpleHandRangeSelector: React.FC<{
             <div
               key={`${row}-${col}`}
               className={`${selectedHands.includes(hand) ? 'bg-purple-600 border-purple-500' : 'bg-gray-800 hover:bg-gray-700 border-gray-600'} text-white text-xs font-normal py-0.5 md:py-2 px-0 md:px-1 text-center cursor-pointer rounded transition-all duration-200 border border-gray-600 hover:shadow-md min-h-[1rem] md:min-h-[2.5rem] flex items-center justify-center`}
-              style={{ fontSize: '0.65rem' }}
+              style={{ fontSize: '12px' }}
               onMouseDown={(e) => handleMouseDown(hand, row, col, e)}
               onMouseEnter={() => handleMouseEnter(hand, row, col)}
               onMouseUp={() => handleMouseUp()}
@@ -623,42 +623,7 @@ export default function MTTTrainerPage() {
           </p>
         </div>
 
-        {/* デバッグ用設定表示 */}
-        <div className="bg-gray-800/50 rounded-xl p-2 md:p-4 shadow-lg">
-          <details className="group">
-            <summary className="cursor-pointer text-xs md:text-sm font-medium text-gray-400 hover:text-white transition-colors">
-              🔧 設定詳細 (デバッグ情報)
-            </summary>
-            <div className="mt-2 md:mt-3 text-xs space-y-1 md:space-y-2 text-gray-300 bg-gray-900/50 rounded-lg p-2 md:p-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1 md:gap-2">
-                <div><strong>スタックサイズ:</strong> {stackSize}</div>
-                <div><strong>ポジション:</strong> {position}</div>
-                <div><strong>アクションタイプ:</strong> {actionTypes.find(a => a.id === actionType)?.label} ({actionType})</div>
-                <div><strong>選択ハンド数:</strong> {selectedHands.length}個</div>
-              </div>
-              <div className="pt-1 md:pt-2 border-t border-gray-700">
-                <div><strong>自動保存ステータス:</strong> {
-                  saveStatus === 'saving' ? '🔄 保存中' :
-                  saveStatus === 'saved' ? '✅ 完了' :
-                  '💾 有効'
-                }</div>
-                <div><strong>初期読み込み:</strong> {isInitialLoad ? '読み込み中' : '✅ 完了'}</div>
-                <div><strong>LocalStorage確認:</strong> 
-                  {hasLocalStorage ? '✅ 設定保存済み' : '❌ 未保存'}
-                </div>
-              </div>
-              {selectedHands.length > 0 && (
-                <div className="pt-1 md:pt-2 border-t border-gray-700">
-                  <strong>選択ハンド:</strong>
-                  <div className="mt-1 max-h-16 md:max-h-20 overflow-y-auto">
-                    {selectedHands.slice(0, 20).join(', ')}
-                    {selectedHands.length > 20 && ` ...他${selectedHands.length - 20}個`}
-                  </div>
-                </div>
-              )}
-            </div>
-          </details>
-        </div>
+
         
         {showHandSelector && (
           <SimpleHandRangeSelector
