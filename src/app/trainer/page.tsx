@@ -128,10 +128,7 @@ export default function TrainerHomePage() {
                   <li>プリフロップとポストフロップの両方をカバー</li>
                   <li>EV（期待値）とアクション頻度の詳細な分析</li>
                   <li>様々なテーブルサイズとスタックサイズをサポート</li>
-                  <li className="flex items-center gap-2">
-                    <FaMobile className="text-blue-400 text-xs" />
-                    モバイルフレンドリーなデザイン
-                  </li>
+                  <li>モバイルフレンドリーなデザイン</li>
                 </ul>
               </div>
             </div>
