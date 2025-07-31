@@ -272,7 +272,6 @@ export default function MTTTrainerPage() {
     { id: 'vsopen', label: 'vs オープン' },
     { id: 'vs3bet', label: 'vs 3bet' },
     { id: 'vs4bet', label: 'vs 4bet' },
-    { id: 'vs5bet', label: 'vs 5bet' },
     { id: 'random', label: 'ランダム' }
   ];
 
@@ -298,9 +297,6 @@ export default function MTTTrainerPage() {
       case 'vs4bet':
         // vs 4betはUTG以外で可能（UTGは最初のアクションなので）
         return positions.filter(pos => pos !== 'UTG');
-      case 'vs5bet':
-        // vs 5betは全ポジションで可能
-        return positions;
       case 'random':
         // ランダムは全ポジションで可能
         return positions;
@@ -366,6 +362,16 @@ export default function MTTTrainerPage() {
     if (!availablePositions.includes(position)) {
       // 利用できないポジションが選択されている場合、最初の利用可能なポジションに変更
       setPosition(availablePositions[0]);
+    }
+    
+    // ランダムが選択された場合、ポジションとアクションをランダムに設定
+    if (actionType === 'random') {
+      const randomPosition = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+      const randomActionTypes = ['openraise', 'vsopen', 'vs3bet', 'vs4bet'];
+      const randomAction = randomActionTypes[Math.floor(Math.random() * randomActionTypes.length)];
+      
+      setPosition(randomPosition);
+      // アクションタイプはランダムのままにして、トレーニング時にランダムに選択されるようにする
     }
   }, [actionType]);
 
@@ -513,6 +519,11 @@ export default function MTTTrainerPage() {
                 {(actionType === 'vsopen' || actionType === 'vs4bet') && (
                   <div className="mt-2 text-xs text-blue-400 bg-blue-900/30 border border-blue-600/50 rounded-lg p-2">
                     💡 UTGは最初のアクションなので、vs オープンとvs 4ベットでは選択できません。
+                  </div>
+                )}
+                {actionType === 'random' && (
+                  <div className="mt-2 text-xs text-purple-400 bg-purple-900/30 border border-purple-600/50 rounded-lg p-2">
+                    🎲 ランダムモード: ポジションとアクションタイプがランダムに選択されます。エフェクティブスタックは選択した値のままです。
                   </div>
                 )}
               </div>
