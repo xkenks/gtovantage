@@ -63,6 +63,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 初期化時にローカルストレージからユーザー情報を読み込み
   useEffect(() => {
+    // マスターアカウントの初期化
+    const initializeMasterAccounts = () => {
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      let updated = false;
+      
+      MASTER_USER_EMAILS.forEach(email => {
+        const existingUser = users.find((u: any) => u.email === email);
+        if (!existingUser) {
+          // マスターアカウントが存在しない場合は作成
+          const masterUser = {
+            id: `master-${Date.now()}`,
+            email,
+            name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
+            password: 'master123', // デフォルトパスワード
+            createdAt: new Date().toISOString(),
+            emailVerified: true,
+            isMasterUser: true,
+            subscriptionStatus: 'master',
+            subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString(),
+            practiceCount: 0,
+            lastPracticeDate: new Date().toISOString()
+          };
+          users.push(masterUser);
+          updated = true;
+          console.log(`✅ マスターアカウント初期化: ${email}`);
+        }
+      });
+      
+      if (updated) {
+        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+        console.log('✅ マスターアカウントの初期化が完了しました');
+      }
+    };
+
+    // マスターアカウントを初期化
+    initializeMasterAccounts();
+
     const savedUser = localStorage.getItem('gto-vantage-user');
     if (savedUser) {
       try {
