@@ -34,6 +34,7 @@ interface AuthContextType {
   incrementPracticeCount: () => void;
   canUseStackSize: (stackSize: string) => boolean;
   getAllowedStackSizes: () => string[];
+  changeSubscriptionStatus: (newStatus: 'free' | 'light' | 'premium' | 'master') => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -397,7 +398,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const practiceCount = user?.practiceCount || 0;
   const canPractice = user?.subscriptionStatus === 'premium' || 
                      user?.subscriptionStatus === 'master' || 
-                     practiceCount < maxPracticeCount;
+                     (user?.subscriptionStatus === 'light' && practiceCount < maxPracticeCount) ||
+                     (user?.subscriptionStatus === 'free' && practiceCount < maxPracticeCount);
 
   // スタックサイズ制限機能
   const canUseStackSize = (stackSize: string): boolean => {
@@ -420,6 +422,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return ['30BB']; // 無料プランは30BBのみ
   };
 
+  // マスターアカウント用：プラン変更機能
+  const changeSubscriptionStatus = (newStatus: 'free' | 'light' | 'premium' | 'master') => {
+    if (!user || !user.isMasterUser) {
+      console.warn('マスターアカウントのみがプランを変更できます');
+      return;
+    }
+
+    const updatedUser = { 
+      ...user, 
+      subscriptionStatus: newStatus,
+      subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() // 10年間
+    };
+    
+    setUser(updatedUser);
+    localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+    
+    // ユーザーリストも更新
+    const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+    const userIndex = users.findIndex((u: any) => u.email === user.email);
+    if (userIndex !== -1) {
+      users[userIndex] = updatedUser;
+      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+    }
+    
+    console.log(`マスターアカウントのプランを ${newStatus} に変更しました`);
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -437,7 +466,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     maxPracticeCount,
     incrementPracticeCount,
     canUseStackSize,
-    getAllowedStackSizes
+    getAllowedStackSizes,
+    changeSubscriptionStatus
   };
 
   return (
