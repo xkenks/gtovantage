@@ -391,7 +391,7 @@ export default function MTTTrainerPage() {
                 <FaArrowLeft className="text-sm" />
                 <span className="hidden sm:inline">戻る</span>
               </button>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">MTT GTO トレーニング</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold">MTT プリフロップトレーニング</h1>
               <div className="w-8"></div> {/* スペーサー */}
             </div>
           </div>
@@ -400,7 +400,7 @@ export default function MTTTrainerPage() {
         <div className="p-3 sm:p-4 md:p-8">
           <div className="max-w-4xl mx-auto">
             <p className="text-center text-gray-300 mb-4 sm:mb-6 md:mb-8 text-sm sm:text-base leading-relaxed">
-              トーナメントに特化した意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
+              トーナメントでのプリフロップ意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
             </p>
             
             <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg mb-4 sm:mb-6 md:mb-8">
@@ -533,13 +533,13 @@ export default function MTTTrainerPage() {
               )}
             </button>
             
-            <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg mb-4 sm:mb-6 md:mb-8 mt-6 sm:mt-8">
-              <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">MTT GTO戦略とは？</h2>
-              <p className="mb-3 sm:mb-4 text-gray-300 text-sm sm:text-base leading-relaxed">
-                MTT（マルチテーブルトーナメント）でのGTO戦略はキャッシュゲームとは異なります。
-                スタックサイズに応じて戦略を変える必要があります。
-              </p>
-            </div>
+                         <div className="bg-gray-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg mb-4 sm:mb-6 md:mb-8 mt-6 sm:mt-8">
+               <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">MTT プリフロップ戦略とは？</h2>
+               <p className="mb-3 sm:mb-4 text-gray-300 text-sm sm:text-base leading-relaxed">
+                 MTT（マルチテーブルトーナメント）でのプリフロップ戦略はキャッシュゲームとは異なります。
+                 スタックサイズに応じて戦略を変える必要があります。
+               </p>
+             </div>
 
             
           </div>

@@ -78,20 +78,20 @@ export default function TrainerHomePage() {
               <div className="h-40 sm:h-56 bg-gradient-to-br from-purple-700 to-indigo-800 bg-center relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-purple-900 to-transparent flex items-end">
                   <div className="p-4 sm:p-6">
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
-                      MTT トレーニング
-                    </h2>
-                    <p className="text-purple-100 text-xs sm:text-sm">
-                      トーナメントプレイヤー向け特別トレーニング
-                    </p>
+                                      <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
+                    MTT プリフロップトレーニング
+                  </h2>
+                  <p className="text-purple-100 text-xs sm:text-sm">
+                    トーナメントプレイヤー向けプリフロップトレーニング
+                  </p>
                   </div>
                 </div>
               </div>
               <div className="p-4 sm:p-6">
                 <p className="text-gray-200 mb-4 sm:mb-5 leading-relaxed text-sm sm:text-base">
-                  トーナメント特有のICM考慮を含む意思決定を練習します。
-                  バブル、ファイナルテーブル、異なるスタックサイズでの最適なプレイを学びましょう。
-                  プリフロップからポストフロップまで、包括的なGTO戦略を実践的に学習できます。
+                  トーナメントでのプリフロップ意思決定を練習します。
+                  異なるスタックサイズでの最適なプレイを学びましょう。
+                  チップEVベースのGTO戦略を実践的に学習できます。
                 </p>
                 <Link 
                   href="/trainer/mtt" 
@@ -125,9 +125,9 @@ export default function TrainerHomePage() {
                 </h3>
                 <ul className="list-disc pl-4 sm:pl-5 text-gray-300 space-y-2 text-sm sm:text-base">
                   <li>実際のGTOソルバーの結果に基づいたトレーニング</li>
-                  <li>プリフロップとポストフロップの両方をカバー</li>
-                  <li>EV（期待値）とアクション頻度の詳細な分析</li>
-                  <li>様々なテーブルサイズとスタックサイズをサポート</li>
+                  <li>プリフロップの意思決定に特化</li>
+                  <li>チップEV（期待値）の詳細な分析</li>
+                  <li>様々なスタックサイズをサポート</li>
                   <li>モバイルフレンドリーなデザイン</li>
                 </ul>
               </div>
