@@ -3,11 +3,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useState } from 'react';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 export default function MyPage() {
   const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount } = useAuth();
-  const [showIconSelector, setShowIconSelector] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState(user?.name?.charAt(0).toUpperCase() || 'U');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   if (!user) {
     return (
@@ -28,55 +28,10 @@ export default function MyPage() {
               <h1 className="text-3xl font-bold text-white">マイページ</h1>
               <p className="text-gray-300 mt-1">アカウント情報と設定を管理</p>
             </div>
-            <div className="hidden sm:block relative">
-              <div 
-                className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors"
-                onClick={() => setShowIconSelector(!showIconSelector)}
-              >
-                <span className="text-white text-xl font-bold">{selectedIcon}</span>
+            <div className="hidden sm:block">
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-xl font-bold">{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
               </div>
-              
-              {/* アイコン選択モーダル */}
-              {showIconSelector && (
-                <div className="absolute right-0 top-20 bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-4 z-10 min-w-[200px]">
-                  <h3 className="text-white font-semibold mb-3">アイコンを選択</h3>
-                  <div className="grid grid-cols-6 gap-2 mb-3">
-                    {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => (
-                      <button
-                        key={letter}
-                        onClick={() => {
-                          setSelectedIcon(letter);
-                          setShowIconSelector(false);
-                        }}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-                          selectedIcon === letter 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        {letter}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between">
-                    <button
-                      onClick={() => setShowIconSelector(false)}
-                      className="text-gray-400 hover:text-white text-sm"
-                    >
-                      キャンセル
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedIcon(user?.name?.charAt(0).toUpperCase() || 'U');
-                        setShowIconSelector(false);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      リセット
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -215,33 +170,25 @@ export default function MyPage() {
               <h3 className="text-lg font-semibold text-white mb-4">アカウント設定</h3>
               <div className="space-y-3">
                 <button 
+                  onClick={() => setShowPasswordModal(true)}
                   className="flex items-center w-full p-3 text-left bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                  onClick={() => setShowIconSelector(true)}
                 >
-                  <svg className="w-5 h-5 text-gray-300 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  アイコン変更
-                </button>
-                <button className="flex items-center w-full p-3 text-left bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
                   <svg className="w-5 h-5 text-gray-300 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                   パスワード変更
                 </button>
-                <button className="flex items-center w-full p-3 text-left bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
-                  <svg className="w-5 h-5 text-gray-300 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  通知設定
-                </button>
-
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* パスワード変更モーダル */}
+      <PasswordChangeModal 
+        isOpen={showPasswordModal} 
+        onClose={() => setShowPasswordModal(false)} 
+      />
     </div>
   );
 } 

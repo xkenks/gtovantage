@@ -32,28 +32,32 @@ const SimpleHandRangeSelector: React.FC<{
     if (level === 0) return [];
     
     const levelHands = {
-      1: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'AKo', 'AQo', 'AJo', 'KQs', 'KJs', 'KTs', 'KQo', 'QJs', 'QTs'],
-      2: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'QJo', 'JTs', 'J9s', 'T9s'],
-      3: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'Q8s', 'QJo', 'QTo', 'JTs', 'J9s', 'J8s', 'JTo', 'T9s', 'T8s', 'T9o', '98s', '87s'],
-      4: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'QJo', 'QTo', 'JTs', 'J9s', 'J8s', 'J7s', 'JTo', 'T9s', 'T8s', 'T7s', 'T9o', '98s', '97s', '87s', '86s'],
-      5: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'QJo', 'QTo', 'JTs', 'J9s', 'J8s', 'J7s', 'J6s', 'JTo', 'T9s', 'T8s', 'T7s', 'T9o', 'T8o', '98s', '97s', '98o', '87s', '86s'],
-      6: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s', 'KQo', 'KJo', 'KTo', 'K9o', 'K8o', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s', 'QJo', 'QTo', 'Q9o', 'Q8o', 'JTs', 'J9s', 'J8s', 'J7s', 'J6s', 'J5s', 'J4s', 'J3s', 'J2s', 'JTo', 'J9o', 'J8o', 'T9s', 'T8s', 'T7s', 'T6s', 'T5s', 'T4s', 'T3s', 'T2s', 'T9o', 'T8o', '98s', '97s', '96s', '95s', '94s', '93s', '92s', '98o', '97o', '87s', '86s', '85s', '84s', '83s', '82s', '87o', '86o', '76s', '75s', '74s', '73s', '72s', '76o', '75o', '65s', '64s', '63s', '62s', '65o', '64o', '54s', '53s', '52s', '54o', '53o', '43s', '42s', '43o', '42o', '32s', '32o']
+      0: [], // レベル0: 空のハンドセット
+      1: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'AKo', 'AQo', 'AJo', 'ATo', 'KQs', 'KJs', 'KTs', 'K9s', 'JTs', 'T9s', 'KQo', 'QJs', 'QTs'],
+      2: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', '98s', 'T8s', '87s', 'KQo', 'KJo', 'QJs', 'QTs', 'Q9s', 'QJo', 'JTs', 'J9s', 'T9s'],
+      3: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'QJo', 'JTs', 'J9s', 'J8s', 'T9s', 'T8s', '98s', '87s'],
+      4: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s', 'KQo', 'KJo', 'KTo', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'QJo', 'QTo', 'JTs', 'J9s', 'J8s', 'J7s', 'JTo', 'T9s', 'T8s', 'T7s', '98s', '97s', '96s', '87s', '86s', '76s', '75s', '65s', '54s'],
+      5: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s', 'KQo', 'KJo', 'KTo', 'K9o', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s', 'QJo', 'QTo', 'JTs', 'J9s', 'J8s', 'J7s', 'J6s', 'J5s', 'JTo', 'T9s', 'T8s', 'T7s', 'T6s', 'T9o', '98s', '97s', '96s', '87s', '86s', '85s', '76s', '75s', '65s', '64s', '54s'],
+      6: ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o', 'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'K3s', 'K2s', 'KQo', 'KJo', 'KTo', 'K9o', 'K8o', 'QJs', 'QTs', 'Q9s', 'Q8s', 'Q7s', 'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s', 'QJo', 'QTo', 'Q9o', 'Q8o', 'JTs', 'J9s', 'J8s', 'J7s', 'J6s', 'J5s', 'J4s', 'J3s', 'J2s', 'JTo', 'J9o', 'T9s', 'T8s', 'T7s', 'T6s', 'T5s', 'T4s', 'T3s', 'T2s', 'T9o', '98s', '97s', '96s', '95s', '94s', '93s', '92s', '87s', '86s', '85s', '84s', '83s', '82s', '76s', '75s', '74s', '73s', '72s', '65s', '64s', '63s', '62s', '54s', '53s', '52s', '43s', '42s', '32s'],
+      7: allHands.map(h => h.hand) // レベル7: 全選択（全てのハンド）
     };
     
-    const selectedLevelHands: string[] = [];
-    for (let i = 1; i <= level; i++) {
-      if (levelHands[i as keyof typeof levelHands]) {
-        selectedLevelHands.push(...levelHands[i as keyof typeof levelHands]);
-      }
+    // 指定されたレベルのハンドのみを返す（累積しない）
+    if (levelHands[level as keyof typeof levelHands]) {
+      return levelHands[level as keyof typeof levelHands];
     }
     
-    return Array.from(new Set(selectedLevelHands));
+    return [];
   };
 
-  // 初期化時にinitialSelectedHandsがある場合はそれを設定
+  // 初期化時にinitialSelectedHandsがある場合はそれを設定、なければレベル0を設定
   useEffect(() => {
     if (initialSelectedHands.length > 0) {
       setSelectedHands(initialSelectedHands);
+    } else {
+      // 初期値がない場合はレベル0のハンドを設定（空の配列）
+      const level0Hands = getLevelHands(0);
+      setSelectedHands(level0Hands);
     }
   }, [initialSelectedHands]);
 
@@ -294,19 +298,50 @@ const SimpleHandRangeSelector: React.FC<{
 
         {/* レベルスライダー */}
         <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-2 border border-gray-600">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs md:text-sm text-white font-medium">レベル選択</span>
+            <span className="text-xs md:text-sm text-purple-400 font-bold" id="level-display">レベル0</span>
+          </div>
           <input
             type="range"
             min="0"
-            max="6"
+            max="7"
             step="1"
             defaultValue="0"
-            onChange={(e) => handleLevelChange(Number(e.target.value))}
+            onChange={(e) => {
+              const level = Number(e.target.value);
+              handleLevelChange(level);
+              // レベル表示を更新
+              const levelDisplay = document.getElementById('level-display');
+              if (levelDisplay) {
+                if (level === 7) {
+                  levelDisplay.textContent = '全レンジ';
+                } else {
+                  levelDisplay.textContent = `レベル${level}`;
+                }
+              }
+            }}
             className="w-full h-1 md:h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider transition-all duration-300 ease-in-out"
             style={{
               background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 0%, #374151 0%, #374151 100%)`,
               transition: 'background 0.3s ease-in-out'
             }}
           />
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>レベル0</span>
+            <span>レベル1</span>
+            <span>レベル2</span>
+            <span>レベル3</span>
+            <span>レベル4</span>
+            <span>レベル5</span>
+            <span>レベル6</span>
+            <span>全レンジ</span>
+          </div>
+          <div className="mt-1 text-xs text-gray-500">
+            <p>レベル0: ランダム出題</p>
+            <p>レベル1-6: 段階的なハンドセット</p>
+            <p>全レンジ: 全選択（全てのハンド）</p>
+          </div>
         </div>
 
         <div className="mb-1 md:mb-4">

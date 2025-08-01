@@ -25,6 +25,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   verifyEmail: (token: string) => Promise<boolean>;
   resendVerificationEmail: (email: string) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   isEmailVerified: boolean;
   isMasterUser: boolean;
   hasActiveSubscription: boolean;
@@ -456,6 +457,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated,
     verifyEmail,
     resendVerificationEmail,
+    changePassword: async (currentPassword, newPassword) => {
+      try {
+        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+        const userIndex = users.findIndex((u: any) => u.email === user?.email);
+
+        if (userIndex === -1) return false;
+
+        const currentUser = users[userIndex];
+        if (currentUser.password !== currentPassword) {
+          console.error('Current password does not match');
+          return false;
+        }
+
+        const updatedUser: User = {
+          ...currentUser,
+          password: newPassword,
+          verificationToken: undefined // パスワード変更時はトークンをリセット
+        };
+
+        users[userIndex] = updatedUser;
+        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+        setUser(updatedUser);
+        localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+        console.log('Password changed successfully');
+        return true;
+      } catch (error) {
+        console.error('Password change failed:', error);
+        return false;
+      }
+    },
     isEmailVerified,
     isMasterUser,
     hasActiveSubscription,

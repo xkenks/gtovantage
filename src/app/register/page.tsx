@@ -110,9 +110,17 @@ export default function RegisterPage() {
             <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
               新規登録
             </h1>
-            <p className="text-gray-300 text-sm md:text-base">
+            <p className="text-gray-300 text-sm md:text-base mb-4">
               GTO Vantageを利用するには、アカウントの作成が必要です
             </p>
+            <div className="bg-red-900/30 border border-red-600/50 rounded-lg p-3 mb-4">
+              <p className="text-red-300 text-sm font-medium">
+                ⚠️ 現在は招待制です
+              </p>
+              <p className="text-red-200 text-xs mt-1">
+                新規登録は招待されたユーザーのみ可能です
+              </p>
+            </div>
           </div>
 
           {/* Register Form */}
