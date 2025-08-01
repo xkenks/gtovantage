@@ -383,17 +383,21 @@ export default function Home() {
               ログイン
             </Link>
           </div>
-          <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-6 text-gray-400 text-xs md:text-sm mt-4 md:mt-6">
-            <Link href="/terms" className="hover:text-white transition-colors">
-              利用規約
-            </Link>
-            <Link href="/privacy" className="hover:text-white transition-colors">
-              プライバシーポリシー
-            </Link>
-            <Link href="/contact" className="hover:text-white transition-colors">
-              お問い合わせ
-            </Link>
-          </div>
+                          <div className="flex flex-col sm:flex-row justify-center gap-3 md:gap-6 text-gray-400 text-xs md:text-sm mt-4 md:mt-6">
+                  <Link href="/terms" className="hover:text-white transition-colors">
+                    利用規約
+                  </Link>
+                  <Link href="/privacy" className="hover:text-white transition-colors">
+                    プライバシーポリシー
+                  </Link>
+                  <Link href="/operator" className="hover:text-white transition-colors">
+                    運営者情報
+                  </Link>
+                  <Link href="/contact" className="hover:text-white transition-colors">
+                    お問い合わせ
+                  </Link>
+                </div>
+          
           <div className="mt-6 md:mt-8 text-xs md:text-sm text-gray-500">
             © 2024 GTO Vantage. All rights reserved.
           </div>

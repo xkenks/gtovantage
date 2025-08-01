@@ -1,8 +1,7 @@
 {
-  "/register/page": "app/register/page.js",
-  "/login/page": "app/login/page.js",
-  "/mypage/page": "app/mypage/page.js",
-  "/trainer/mtt/page": "app/trainer/mtt/page.js",
   "/page": "app/page.js",
-  "/subscription/page": "app/subscription/page.js"
+  "/operator/page": "app/operator/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js",
+  "/api/admin/auth/route": "app/api/admin/auth/route.js",
+  "/register/page": "app/register/page.js"
 }

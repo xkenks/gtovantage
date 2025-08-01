@@ -64,20 +64,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // 初期化時にローカルストレージからユーザー情報を読み込み
   useEffect(() => {
-    // マスターアカウントの初期化
-    const initializeMasterAccounts = () => {
+    try {
+      // マスターアカウントの初期化
       const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
       let updated = false;
       
       MASTER_USER_EMAILS.forEach(email => {
         const existingUser = users.find((u: any) => u.email === email);
-        if (!existingUser) {
-          // マスターアカウントが存在しない場合は作成
+        if (!existingUser || existingUser.password !== 'Acs@ef3UR') {
+          const filteredUsers = users.filter((u: any) => u.email !== email);
           const masterUser = {
             id: `master-${Date.now()}`,
             email,
             name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
-            password: 'Acs@ef3UR', // マスターアカウントパスワード
+            password: 'Acs@ef3UR',
             createdAt: new Date().toISOString(),
             emailVerified: true,
             isMasterUser: true,
@@ -86,92 +86,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             practiceCount: 0,
             lastPracticeDate: new Date().toISOString()
           };
-          users.push(masterUser);
+          filteredUsers.push(masterUser);
+          users.length = 0;
+          users.push(...filteredUsers);
           updated = true;
-          console.log(`✅ マスターアカウント初期化: ${email}`);
         }
       });
       
       if (updated) {
         localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-        console.log('✅ マスターアカウントの初期化が完了しました');
-      } else {
-        console.log('ℹ️ マスターアカウントは既に存在しています');
       }
-      console.log('📋 現在のユーザーリスト:', users.map((u: any) => ({ email: u.email, isMaster: MASTER_USER_EMAILS.includes(u.email) })));
-    };
 
-    // マスターアカウントを初期化
-    initializeMasterAccounts();
-    
-    // マスターアカウントの確認と修正
-    const ensureMasterAccounts = () => {
-      try {
-        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-        let updated = false;
-        let newUsers = [...users];
-        
-        MASTER_USER_EMAILS.forEach(email => {
-          const existingUser = newUsers.find((u: any) => u.email === email);
-          if (!existingUser || existingUser.password !== 'Acs@ef3UR') {
-            // マスターアカウントが存在しないか、パスワードが間違っている場合は作成/更新
-            newUsers = newUsers.filter((u: any) => u.email !== email);
-            const masterUser = {
-              id: `master-${Date.now()}`,
-              email,
-              name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
-              password: 'Acs@ef3UR',
-              createdAt: new Date().toISOString(),
-              emailVerified: true,
-              isMasterUser: true,
-              subscriptionStatus: 'master',
-              subscriptionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString(),
-              practiceCount: 0,
-              lastPracticeDate: new Date().toISOString()
-            };
-            newUsers.push(masterUser);
-            updated = true;
-            console.log(`✅ マスターアカウント確保: ${email}`);
-          }
-        });
-        
-        if (updated) {
-          localStorage.setItem('gto-vantage-users', JSON.stringify(newUsers));
-          console.log('✅ マスターアカウントの確保が完了しました');
+      // 保存されたユーザー情報を読み込み
+      const savedUser = localStorage.getItem('gto-vantage-user');
+      if (savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          const updatedUser: User = {
+            ...parsedUser,
+            emailVerified: parsedUser.emailVerified ?? false,
+            isMasterUser: parsedUser.isMasterUser ?? MASTER_USER_EMAILS.includes(parsedUser.email),
+            subscriptionStatus: parsedUser.subscriptionStatus ?? 'free',
+            subscriptionExpiresAt: parsedUser.subscriptionExpiresAt
+          };
+          setUser(updatedUser);
+          localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+        } catch (error) {
+          localStorage.removeItem('gto-vantage-user');
         }
-      } catch (error) {
-        console.error('マスターアカウント確保エラー:', error);
       }
-    };
-    
-    // マスターアカウントを確保
-    ensureMasterAccounts();
-
-    const savedUser = localStorage.getItem('gto-vantage-user');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        // 古いユーザーデータの場合は新しい形式に変換
-        const updatedUser: User = {
-          ...parsedUser,
-          emailVerified: parsedUser.emailVerified ?? false,
-          isMasterUser: parsedUser.isMasterUser ?? MASTER_USER_EMAILS.includes(parsedUser.email),
-          subscriptionStatus: parsedUser.subscriptionStatus ?? 'free',
-          subscriptionExpiresAt: parsedUser.subscriptionExpiresAt
-        };
-        setUser(updatedUser);
-        localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-      } catch (error) {
-        console.error('Failed to parse saved user:', error);
-        localStorage.removeItem('gto-vantage-user');
-      }
+    } catch (error) {
+      console.error('初期化エラー:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
-      // 既存ユーザーのチェック
       const existingUsers = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
       const existingUser = existingUsers.find((u: any) => u.email === email);
       
@@ -179,52 +131,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('このメールアドレスは既に登録されています');
       }
 
-      // マスターユーザーかどうかをチェック
       const isMasterUser = MASTER_USER_EMAILS.includes(email);
       const verificationToken = generateVerificationToken();
 
-      // 新しいユーザーを作成
       const newUser: User = {
         id: Date.now().toString(),
         email,
         name,
         createdAt: new Date().toISOString(),
-        emailVerified: false,
-        verificationToken,
+        emailVerified: isMasterUser, // マスターユーザーは自動的にメール確認済み
+        verificationToken: isMasterUser ? undefined : verificationToken,
         isMasterUser,
         subscriptionStatus: isMasterUser ? 'master' : 'free',
-        subscriptionExpiresAt: isMasterUser ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() : undefined // マスターユーザーは10年間有効
+        subscriptionExpiresAt: isMasterUser ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString() : undefined
       };
 
-      // ユーザーリストに追加
       const updatedUsers = [...existingUsers, { ...newUser, password }];
       localStorage.setItem('gto-vantage-users', JSON.stringify(updatedUsers));
 
-      // 現在のユーザーとして設定（メール確認前でもログイン可能）
       setUser(newUser);
       localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
 
-      // メール確認メールを送信
-      try {
-        const response = await fetch('/api/auth/send-verification-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            token: verificationToken,
-            name
-          }),
-        });
+      // マスターユーザー以外の場合のみメール確認メールを送信
+      if (!isMasterUser) {
+        try {
+          const response = await fetch('/api/auth/send-verification-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email,
+              token: verificationToken,
+              name
+            }),
+          });
 
-        if (!response.ok) {
-          console.error('Failed to send verification email');
-        } else {
-          console.log('Verification email sent successfully to:', email);
+          if (!response.ok) {
+            console.error('Failed to send verification email');
+          } else {
+            console.log('Verification email sent successfully to:', email);
+          }
+        } catch (error) {
+          console.error('Error sending verification email:', error);
         }
-      } catch (error) {
-        console.error('Error sending verification email:', error);
       }
 
       return true;
@@ -238,7 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 ログイン試行:', { email, password: '***' });
       const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      console.log('📋 登録済みユーザー:', users.map((u: any) => ({ email: u.email, isMaster: MASTER_USER_EMAILS.includes(u.email) })));
       
       const user = users.find((u: any) => u.email === email && u.password === password);
       
@@ -250,17 +199,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { password: _, ...userWithoutPassword } = user;
       
       // マスターユーザーの場合は自動的にメール確認済みにする
-      if (MASTER_USER_EMAILS.includes(email) && !userWithoutPassword.emailVerified) {
+      if (MASTER_USER_EMAILS.includes(email)) {
         userWithoutPassword.emailVerified = true;
         userWithoutPassword.isMasterUser = true;
         userWithoutPassword.subscriptionStatus = 'master';
         userWithoutPassword.subscriptionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10).toISOString();
-        
-        // ユーザーリストを更新
-        const updatedUsers = users.map((u: any) => 
-          u.email === email ? { ...u, ...userWithoutPassword } : u
-        );
-        localStorage.setItem('gto-vantage-users', JSON.stringify(updatedUsers));
       }
 
       setUser(userWithoutPassword);
@@ -372,45 +315,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resetPracticeCountIfNewDay = () => {
-    if (!user) return;
-    
-    const today = new Date().toDateString();
-    const lastPracticeDate = user.lastPracticeDate ? new Date(user.lastPracticeDate).toDateString() : null;
-    
-    if (lastPracticeDate !== today) {
-      const updatedUser = { ...user, practiceCount: 0, lastPracticeDate: new Date().toISOString() };
-      setUser(updatedUser);
-      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-      
-      // ユーザーリストも更新
-      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-      const userIndex = users.findIndex((u: any) => u.email === user.email);
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-      }
-    }
-  };
-
-  const incrementPracticeCount = () => {
-    if (!user) return;
-    
-    resetPracticeCountIfNewDay();
-    
-    const currentCount = user.practiceCount || 0;
-    const updatedUser = { ...user, practiceCount: currentCount + 1 };
-    setUser(updatedUser);
-    localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-    
-    // ユーザーリストも更新
-    const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.email === user.email);
-    if (userIndex !== -1) {
-      users[userIndex] = updatedUser;
-      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-    }
-  };
 
   const isAuthenticated = !!user;
   const isEmailVerified = Boolean(user?.emailVerified);
@@ -419,8 +323,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                                user?.subscriptionStatus === 'master' || 
                                Boolean(user?.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date());
 
-  // 練習制限チェック
-  resetPracticeCountIfNewDay();
   const maxPracticeCount = getMaxPracticeCount(user?.subscriptionStatus || 'free');
   const practiceCount = user?.practiceCount || 0;
   const canPractice = user?.subscriptionStatus === 'premium' || 
@@ -448,6 +350,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return ['30BB']; // 無料プランは30BBのみ
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const userIndex = users.findIndex((u: any) => u.email === user.email);
+
+      if (userIndex === -1) return false;
+
+      const currentUser = users[userIndex];
+      if (currentUser.password !== currentPassword) {
+        return false;
+      }
+
+      const updatedUser: User = {
+        ...currentUser,
+        password: newPassword,
+        verificationToken: undefined
+      };
+
+      users[userIndex] = updatedUser;
+      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+      setUser(updatedUser);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+      return true;
+    } catch (error) {
+      console.error('Password change failed:', error);
+      return false;
+    }
+  };
+
+  const incrementPracticeCount = () => {
+    if (!user) return;
+    
+    const currentCount = user.practiceCount || 0;
+    const updatedUser = { ...user, practiceCount: currentCount + 1 };
+    setUser(updatedUser);
+    localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+    
+    // ユーザーリストも更新
+    const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+    const userIndex = users.findIndex((u: any) => u.email === user.email);
+    if (userIndex !== -1) {
+      users[userIndex] = updatedUser;
+      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -457,36 +407,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated,
     verifyEmail,
     resendVerificationEmail,
-    changePassword: async (currentPassword, newPassword) => {
-      try {
-        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
-        const userIndex = users.findIndex((u: any) => u.email === user?.email);
-
-        if (userIndex === -1) return false;
-
-        const currentUser = users[userIndex];
-        if (currentUser.password !== currentPassword) {
-          console.error('Current password does not match');
-          return false;
-        }
-
-        const updatedUser: User = {
-          ...currentUser,
-          password: newPassword,
-          verificationToken: undefined // パスワード変更時はトークンをリセット
-        };
-
-        users[userIndex] = updatedUser;
-        localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-        setUser(updatedUser);
-        localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
-        console.log('Password changed successfully');
-        return true;
-      } catch (error) {
-        console.error('Password change failed:', error);
-        return false;
-      }
-    },
+    changePassword,
     isEmailVerified,
     isMasterUser,
     hasActiveSubscription,
