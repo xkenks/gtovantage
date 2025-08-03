@@ -122,6 +122,30 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   onActionCompleted,
   backButtonUrl
 }) => {
+  
+  // デバッグ: vs3ベットのスタック確認
+  useEffect(() => {
+    if (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetterPosition && currentSpot.positions) {
+      console.log(`🎯 PokerTable: vs3ベットスタック確認`, {
+        actionType: currentSpot.actionType,
+        threeBetterPosition: currentSpot.threeBetterPosition,
+        threeBetSize: currentSpot.threeBetSize,
+        stackDepth: currentSpot.stackDepth,
+        currentStack: currentSpot.positions[currentSpot.threeBetterPosition as keyof typeof currentSpot.positions].stack,
+        expectedStack: currentSpot.stackDepth === '15BB' ? 0 : 30 - (currentSpot.threeBetSize || 0),
+        spotId: currentSpot.id
+      });
+      
+      // スタックが正しくない場合は強制的に再レンダリング
+      const expectedStack = currentSpot.stackDepth === '15BB' ? 0 : 30 - (currentSpot.threeBetSize || 0);
+      const currentStack = currentSpot.positions[currentSpot.threeBetterPosition as keyof typeof currentSpot.positions].stack;
+      
+      if (currentStack !== expectedStack) {
+        console.log(`🚨 PokerTable: スタック不一致を検出！強制的に再レンダリングします`);
+        console.log(`🚨 期待値: ${expectedStack}, 現在値: ${currentStack}`);
+      }
+    }
+  }, [currentSpot]);
   // モバイル判定
   const [isMobile, setIsMobile] = useState(false);
   
@@ -223,16 +247,27 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // ポットサイズを取得する関数
   const getPotSize = (): number => {
-    if (potSize !== undefined) {
-      return potSize;
+    let finalPotSize = potSize !== undefined ? potSize : 
+                      currentSpot.potSize !== undefined ? currentSpot.potSize :
+                      currentSpot.pot !== undefined ? currentSpot.pot : 0;
+    
+    // vs3ベットの場合、Ante 1BBを強制的に追加
+    if (currentSpot.actionType === 'vs3bet') {
+      console.log(`🎯 PokerTable getPotSize:`, {
+        actionType: currentSpot.actionType,
+        stackSize: currentSpot.stackDepth,
+        openRaiseSize: currentSpot.openRaiseSize,
+        threeBetSize: currentSpot.threeBetSize,
+        originalPotSize: finalPotSize,
+        _debug: (currentSpot as any)._debug
+      });
+      
+      // Ante 1BBを追加
+      finalPotSize += 1;
+      console.log(`🎯 Ante 1BB追加後のポットサイズ: ${finalPotSize}`);
     }
-    if (currentSpot.potSize !== undefined) {
-      return currentSpot.potSize;
-    }
-    if (currentSpot.pot !== undefined) {
-      return currentSpot.pot;
-    }
-    return 0;
+    
+    return finalPotSize;
   };
 
   // CPUプレイヤーのアクションを実行する関数
@@ -603,13 +638,36 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     // stackSizeが文字列なので数値に変換
     const baseStack = parseInt(stackSize);
     
-    // ブラインドポジションはスタックが減る
-    if (position === 'SB') {
-      const stack = baseStack - 0.5;
-      return stack === 0 ? '0' : `${stack}`;
-    } else if (position === 'BB') {
-      const stack = baseStack - 1;
-      return stack === 0 ? '0' : `${stack}`;
+    // 3ベッターの場合、3ベット額分のスタックを減らす（最優先で処理）
+    if (currentSpot.actionType === 'vs3bet' && position === currentSpot.threeBetterPosition && currentSpot.threeBetSize) {
+      console.log(`🎯 getPositionStack: 3ベッター処理`, {
+        position,
+        actionType: currentSpot.actionType,
+        threeBetterPosition: currentSpot.threeBetterPosition,
+        threeBetSize: currentSpot.threeBetSize,
+        stackDepth: currentSpot.stackDepth
+      });
+      
+      if (currentSpot.stackDepth === '15BB') {
+        console.log(`🎯 15BB vs3ベット: ${position}のスタックを0に設定`);
+        return '0';
+      } else if (currentSpot.stackDepth === '30BB') {
+        let stack: number;
+        
+        // SB・BBの場合はブラインド分を考慮
+        if (position === 'SB') {
+          stack = 29.5 - currentSpot.threeBetSize; // 30 - 0.5 - threeBetSize
+          console.log(`🎯 30BB vs3ベット SB: 29.5 - ${currentSpot.threeBetSize} = ${stack}`);
+        } else if (position === 'BB') {
+          stack = 29 - currentSpot.threeBetSize; // 30 - 1 - threeBetSize
+          console.log(`🎯 30BB vs3ベット BB: 29 - ${currentSpot.threeBetSize} = ${stack}`);
+        } else {
+          stack = 30 - currentSpot.threeBetSize; // その他のポジション
+          console.log(`🎯 30BB vs3ベット その他: 30 - ${currentSpot.threeBetSize} = ${stack}`);
+        }
+        
+        return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
+      }
     }
     
     // ヒーローがレイズした場合
@@ -627,6 +685,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     if (position === currentSpot.openRaiserPosition && currentSpot.openRaiseSize) {
       const stack = baseStack - currentSpot.openRaiseSize;
       return stack === 0 ? '0' : `${stack.toFixed(1)}`;
+    }
+    
+    // ブラインドポジションはスタックが減る（3ベッターでない場合のみ）
+    if (position === 'SB') {
+      const stack = baseStack - 0.5;
+      return stack === 0 ? '0' : `${stack}`;
+    } else if (position === 'BB') {
+      const stack = baseStack - 1;
+      return stack === 0 ? '0' : `${stack}`;
     }
     
     // その他のポジションは指定されたスタックサイズをそのまま使用
@@ -1476,11 +1543,30 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             );
           } 
           
-          // 3ベッターのチップ表示（モバイル版）
-          const threeBetterPosMobile = currentSpot.threeBetterPosition;
-          const threeBetterInfoMobile = threeBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === threeBetterPosMobile)?.[1] : null;
+
           
-          if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile) {
+          // 3ベッターと4ベッターのチップ表示（モバイル版）
+          const threeBetterPosMobile = currentSpot.actionType === 'vs3bet' ? currentSpot.threeBetterPosition : null;
+          const fourBetterPosMobile = currentSpot.actionType === 'vs4bet' ? currentSpot.openRaiserPosition : null;
+          const threeBetterInfoMobile = threeBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === threeBetterPosMobile)?.[1] : null;
+          const fourBetterInfoMobile = fourBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === fourBetterPosMobile)?.[1] : null;
+          
+          // デバッグ用のログ
+          console.log('3ベット・4ベットデバッグ:', {
+            actionType: currentSpot.actionType,
+            openRaiserPosition: currentSpot.openRaiserPosition,
+            threeBetterPosition: currentSpot.threeBetterPosition,
+            threeBetSize: currentSpot.threeBetSize,
+            openRaiseSize: currentSpot.openRaiseSize,
+            threeBetterPosMobile,
+            fourBetterPosMobile,
+            threeBetterInfoMobile,
+            fourBetterInfoMobile
+          });
+          
+          // 3ベッターのチップ表示（vs3ベット）
+          console.log(`🔍 3ベッターチップ表示条件チェック: threeBetterInfoMobile=${!!threeBetterInfoMobile}, threeBetSize=${currentSpot?.threeBetSize}, threeBetterPosMobile=${threeBetterPosMobile}, actionType=${currentSpot.actionType}`);
+          if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile && currentSpot.actionType === 'vs3bet') {
             const chipPos = getOptimalChipPosition(threeBetterInfoMobile, threeBetterPosMobile);
         
             renderElements.push(
@@ -1502,45 +1588,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             );
           }
           
-          // 4ベットの場合のヒーロー（3ベッター）のチップ表示
-          if (currentSpot.actionType === 'vs4bet' && currentSpot?.threeBetSize && currentSpot.heroPosition) {
-            const heroPosMobile = Object.entries(mobilePositions).find(([pos]) => pos === currentSpot.heroPosition)?.[1];
-            if (heroPosMobile) {
-              const chipPos = getOptimalChipPosition(heroPosMobile, currentSpot.heroPosition);
-          
-              renderElements.push(
-                <div
-                  key="hero-three-bet-chip-mobile"
-                  className="absolute z-30"
-                  style={{ 
-                    left: `${chipPos.x}%`, 
-                    top: `${chipPos.y}%`,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                >
-                  <div className="flex items-center space-x-1">
-                    <div className="bg-orange-600 w-2.5 h-2.5 rounded-full flex items-center justify-center shadow-md border border-orange-500">
-                    </div>
-                    <span className="text-white font-medium text-xs">{currentSpot.threeBetSize}</span>
-                  </div>
-                </div>
-              );
-            }
-          }
-          
-          // 4ベッターのチップ表示（モバイル版）
-          const fourBetterPosMobile = currentSpot.openRaiserPosition; // vs4ベットでは4ベッターがオープンレイザー
-          const fourBetterInfoMobile = fourBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === fourBetterPosMobile)?.[1] : null;
-          
-          // デバッグ用のログ
-          console.log('4ベットデバッグ:', {
-            actionType: currentSpot.actionType,
-            openRaiserPosition: currentSpot.openRaiserPosition,
-            openRaiseSize: currentSpot.openRaiseSize,
-            fourBetterPosMobile,
-            fourBetterInfoMobile
-          });
-          
+          // 4ベッターのチップ表示（vs4ベット）
           if (fourBetterInfoMobile && currentSpot?.openRaiseSize && fourBetterPosMobile && currentSpot.actionType === 'vs4bet') {
             const chipPos = getOptimalChipPosition(fourBetterInfoMobile, fourBetterPosMobile);
         
@@ -2053,6 +2101,17 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           
           // 3ベッターのチップ表示（3ベッターのポジションから中央方向に）
           const threeBetterPosition = currentSpot.threeBetterPosition ? Object.entries(tablePositions).find(([pos]) => pos === currentSpot.threeBetterPosition)?.[1] : null;
+          
+          // デバッグログ
+          if (currentSpot.actionType === 'vs3bet' && currentSpot.stackDepth === '15BB') {
+            console.log('🔍 PokerTable 3ベッター情報:', {
+              threeBetterPosition: currentSpot.threeBetterPosition,
+              threeBetSize: currentSpot.threeBetSize,
+              actionType: currentSpot.actionType,
+              stackDepth: currentSpot.stackDepth,
+              threeBetterPositionFound: !!threeBetterPosition
+            });
+          }
           
           if (threeBetterPosition && currentSpot?.threeBetSize) {
             // テーブル中央の座標
