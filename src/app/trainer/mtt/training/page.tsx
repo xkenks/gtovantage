@@ -1342,8 +1342,8 @@ export default function MTTTrainingPage() {
     // レイズ推奨サイズを取得
     const recommendedBetSize = data.recommendedBetSize;
     
-    // ポットサイズの計算 - 30BBスタック固有のサイジング
-    let potSize = 1.5;     // デフォルト
+    // ポットサイズの計算 - Ante 1BBを含む正確な計算
+    let potSize = 1.5;     // デフォルト（SB + BB）
     let openRaiseSize = actionType === 'vs4bet' ? 30 : 2.0; // 4ベットの場合は30BB、それ以外は2.0BB
     let threeBetSize = 6.3; // デフォルトの3ベットサイズ
     
@@ -1351,10 +1351,10 @@ export default function MTTTrainingPage() {
     if (stackSize === '30BB') {
       if (actionType === 'openraise') {
         openRaiseSize = 2.1;
-        potSize = 1.5; // SB + BB
+        potSize = 1.5 + 1; // SB + BB + Ante
       } else if (actionType === 'vsopen') {
         openRaiseSize = 2.1;
-        potSize = openRaiseSize + 1.5; // オープンレイズ + ブラインド
+        potSize = openRaiseSize + 1.5 + 1; // オープンレイズ + ブラインド + Ante
       } else if (actionType === 'vs3bet') {
         openRaiseSize = 2.1;
         // 3ベッターのポジションに応じて3ベットサイズを決定
@@ -1365,39 +1365,65 @@ export default function MTTTrainingPage() {
         } else {
           threeBetSize = 6.3; // UTG+1・LJ・HJ・CO・BTN
         }
-        potSize = openRaiseSize + threeBetSize + 0.5; // オープン + 3ベット + SB残り
+        // 3ベッターのポジションに応じてポットサイズを計算
+        if (openerPosition === 'SB') {
+          // SBが3ベッターの場合：SBの0.5BBは引っ込めて、3ベット額だけ追加
+          potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
+        } else if (openerPosition === 'BB') {
+          // BBが3ベッターの場合：BBの1BBは引っ込めて、3ベット額だけ追加
+          potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
+        } else {
+          // その他のポジションの場合：通常の計算
+          potSize = openRaiseSize + threeBetSize + 0.5 + 1; // オープン + 3ベット + SB残り + Ante
+        }
         potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 30BB vs3ベットポット計算:`, {
+          openerPosition,
+          openRaiseSize,
+          threeBetSize,
+          sbRemaining: openerPosition === 'SB' ? 0 : 0.5,
+          bbRemaining: openerPosition === 'BB' ? 0 : 1,
+          ante: 1,
+          total: potSize
+        });
       } else if (actionType === 'vs4bet') {
-        potSize = 25;
+        potSize = 25 + 1; // 4ベット + Ante
       }
     } else {
       // 他のスタックサイズでの従来の処理
       if (actionType === 'vsopen' && openerPosition === 'BTN' && stackSize === '15BB') {
         openRaiseSize = 1.0; // リンプ
-        potSize = openRaiseSize + 1.0; // リンプ + BB（SBのブラインド分は除外）
+        potSize = openRaiseSize + 1.0 + 1; // リンプ + BB + Ante
       } else if (actionType === 'vsopen' && openerPosition === 'SB' && stackSize === '15BB') {
         openRaiseSize = 1.0; // SBリンプ
-        potSize = openRaiseSize + 1.0; // SBリンプ + BB
+        potSize = openRaiseSize + 1.0 + 1; // SBリンプ + BB + Ante
       } else if (actionType === 'vsopen') {
         // 通常のオープンレイズの場合は2.0BBを使用
-        potSize = openRaiseSize + 1.5;
+        potSize = openRaiseSize + 1.5 + 1; // オープンレイズ + ブラインド + Ante
       } else if (actionType === 'openraise') {
-        potSize = 1.5; // SB + BB
+        potSize = 1.5 + 1; // SB + BB + Ante
       } else if (actionType === 'vs3bet') {
-        potSize = 13;
+        // 15BBのvs3ベットの正確な計算
+        if (stackSize === '15BB') {
+          // 15BBのvs3ベットはオールイン
+          potSize = 15 + 1; // オールイン + Ante
+        } else {
+          // その他のスタックサイズ
+          potSize = 13 + 1; // 3ベット + Ante
+        }
       } else if (actionType === 'vs4bet') {
         if (stackSize === '30BB') {
           openRaiseSize = 30; // 30BBの4ベットはオールイン
           threeBetSize = 6.3; // ヒーロー（3ベッター）のチップサイズ
-          potSize = 30; // 4ベッターのオールイン
+          potSize = 30 + 1; // 4ベッターのオールイン + Ante
         } else {
           // 他のスタックサイズでも4ベットの場合は適切なサイズを設定
           openRaiseSize = 30; // 4ベットは常にオールイン
           threeBetSize = 6.3; // 3ベッターのサイズ
-          potSize = 30;
+          potSize = 30 + 1; // 4ベット + Ante
         }
       } else if (actionType === 'vs5bet') {
-        potSize = 70;
+        potSize = 70 + 1; // 5ベット + Ante
       }
     }
     
@@ -1427,6 +1453,17 @@ export default function MTTTrainingPage() {
       heroPosition: position,
       heroHand: newHand,
       potSize: potSize,
+      // ポットサイズのデバッグログ
+      ...(actionType === 'vs3bet' && {
+        _debug: {
+          actionType,
+          stackSize,
+          openRaiseSize,
+          threeBetSize,
+          calculatedPotSize: potSize,
+          expectedPotSize: openRaiseSize + threeBetSize + 0.5 + 1
+        }
+      }),
       correctAction: data.correctAction,
       evData: data.evData as { [action: string]: number } | undefined,
       frequencies: data.frequencies, // 頻度データを追加
@@ -1440,22 +1477,62 @@ export default function MTTTrainingPage() {
                          actionType === 'vs4bet' ? openerPosition : openerPosition, // vs4betでは4ベッターがopenRaiserPosition
       openRaiseSize: openRaiseSize, // 計算されたオープンサイズを使用
       // vs3bet用の追加情報
-      threeBetSize: stackSize === '30BB' && (actionType === 'vs3bet' || actionType === 'vs4bet') ? threeBetSize : undefined,
+      threeBetSize: (actionType === 'vs3bet' || actionType === 'vs4bet') ? (actionType === 'vs3bet' && stackSize === '15BB' ? 15 : threeBetSize) : undefined,
       threeBetterPosition: actionType === 'vs3bet' ? openerPosition : 
                           actionType === 'vs4bet' ? position : undefined, // vs4betではヒーローが3ベッター
-      // 各ポジションのスタック情報を作成（全てのポジションに同じスタックを設定）
-      positions: {
-        'UTG': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'UTG' ? 0 : parseInt(stackSize), isHero: position === 'UTG' },
-        'UTG1': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'UTG1' ? 0 : parseInt(stackSize), isHero: position === 'UTG1' },
-        'LJ': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'LJ' ? 0 : parseInt(stackSize), isHero: position === 'LJ' },
-        'HJ': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'HJ' ? 0 : parseInt(stackSize), isHero: position === 'HJ' },
-        'CO': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'CO' ? 0 : parseInt(stackSize), isHero: position === 'CO' },
-        'BTN': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'BTN' ? 0 : parseInt(stackSize), isHero: position === 'BTN' },
-        'SB': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'SB' ? 0 : parseInt(stackSize) - 0.5, isHero: position === 'SB' },
-        'BB': { active: true, stack: actionType === 'vs4bet' && openerPosition === 'BB' ? 0 : parseInt(stackSize) - 1, isHero: position === 'BB' }
-      }
+      // 各ポジションのスタック情報を作成（根本的に確実な方法）
+      positions: (() => {
+        const stackValue = parseInt(stackSize);
+        
+        // 3ベッターのスタックを事前計算（SB・BBのブラインド分を考慮）
+        let threeBetterStack = stackValue;
+        if (actionType === 'vs3bet' && openerPosition) {
+          if (stackSize === '15BB') {
+            threeBetterStack = 0;
+          } else if (stackSize === '30BB') {
+            // SB・BBの場合はブラインド分を考慮
+            if (openerPosition === 'SB') {
+              threeBetterStack = 29.5 - threeBetSize; // 30 - 0.5 - threeBetSize
+            } else if (openerPosition === 'BB') {
+              threeBetterStack = 29 - threeBetSize; // 30 - 1 - threeBetSize
+            } else {
+              threeBetterStack = 30 - threeBetSize; // その他のポジション
+            }
+          }
+        }
+        
+        // 各ポジションのスタックを直接設定（SB・BBの3ベッター対応）
+        const positions = {
+          'UTG': { active: true, stack: openerPosition === 'UTG' ? threeBetterStack : stackValue, isHero: position === 'UTG' },
+          'UTG1': { active: true, stack: openerPosition === 'UTG1' ? threeBetterStack : stackValue, isHero: position === 'UTG1' },
+          'LJ': { active: true, stack: openerPosition === 'LJ' ? threeBetterStack : stackValue, isHero: position === 'LJ' },
+          'HJ': { active: true, stack: openerPosition === 'HJ' ? threeBetterStack : stackValue, isHero: position === 'HJ' },
+          'CO': { active: true, stack: openerPosition === 'CO' ? threeBetterStack : stackValue, isHero: position === 'CO' },
+          'BTN': { active: true, stack: openerPosition === 'BTN' ? threeBetterStack : stackValue, isHero: position === 'BTN' },
+          'SB': { 
+            active: true, 
+            stack: openerPosition === 'SB' ? threeBetterStack : (stackValue - 0.5), 
+            isHero: position === 'SB' 
+          },
+          'BB': { 
+            active: true, 
+            stack: openerPosition === 'BB' ? threeBetterStack : (stackValue - 1), 
+            isHero: position === 'BB' 
+          }
+        };
+        
+        console.log(`🎯 根本的実装: actionType=${actionType}, openerPosition=${openerPosition}, threeBetterStack=${threeBetterStack}, threeBetSize=${threeBetSize}`);
+        console.log(`🎯 ${openerPosition}のスタック: ${positions[openerPosition as keyof typeof positions]?.stack || 'N/A'}`);
+        
+        return positions;
+      })()
     };
-    setSpot(newSpot);
+    
+    // 強制的にUIを更新
+    setSpot({
+      ...newSpot,
+      id: Date.now().toString()
+    });
   };
 
   useEffect(() => {
@@ -1473,6 +1550,64 @@ export default function MTTTrainingPage() {
   useEffect(() => {
     generateNewScenario();
   }, [position, stackSize, actionType, customHandsString, customRanges]);
+  
+  // 新しいアプローチ: spot変更後にスタックを監視・修正
+  useEffect(() => {
+    if (spot && spot.actionType === 'vs3bet' && spot.threeBetterPosition && spot.positions) {
+      console.log(`🔍 useEffect: vs3ベットスタック監視開始`);
+      console.log(`🔍 spot詳細:`, {
+        actionType: spot.actionType,
+        threeBetterPosition: spot.threeBetterPosition,
+        stackDepth: spot.stackDepth,
+        threeBetSize: spot.threeBetSize,
+        currentStack: spot.positions[spot.threeBetterPosition as keyof typeof spot.positions].stack
+      });
+      
+      // SB・BBの場合はブラインド分を考慮した期待値を計算
+      let expectedStack: number;
+      if (spot.stackDepth === '15BB') {
+        expectedStack = 0;
+      } else if (spot.stackDepth === '30BB') {
+        if (spot.threeBetterPosition === 'SB') {
+          expectedStack = 29.5 - (spot.threeBetSize || 0); // 30 - 0.5 - threeBetSize
+        } else if (spot.threeBetterPosition === 'BB') {
+          expectedStack = 29 - (spot.threeBetSize || 0); // 30 - 1 - threeBetSize
+        } else {
+          expectedStack = 30 - (spot.threeBetSize || 0); // その他のポジション
+        }
+      } else {
+        expectedStack = 30 - (spot.threeBetSize || 0);
+      }
+      const currentStack = spot.positions[spot.threeBetterPosition as keyof typeof spot.positions].stack;
+      
+      console.log(`🔍 計算詳細: stackDepth=${spot.stackDepth}, threeBetSize=${spot.threeBetSize}, threeBetterPosition=${spot.threeBetterPosition}, expectedStack=${expectedStack}`);
+      
+      if (currentStack !== expectedStack) {
+        console.log(`🚨 スタック不一致を検出: 期待値=${expectedStack}, 現在値=${currentStack}`);
+        
+        // 新しいspotオブジェクトを作成してスタックを修正
+        const correctedSpot = {
+          ...spot,
+          positions: {
+            ...spot.positions,
+            [spot.threeBetterPosition]: {
+              ...spot.positions[spot.threeBetterPosition as keyof typeof spot.positions],
+              stack: expectedStack
+            }
+          }
+        };
+        
+        console.log(`🔧 スタックを修正: ${spot.threeBetterPosition} = ${expectedStack}`);
+        console.log(`🔧 修正後のspot確認:`, {
+          threeBetterPosition: correctedSpot.threeBetterPosition,
+          stack: correctedSpot.positions[correctedSpot.threeBetterPosition as keyof typeof correctedSpot.positions].stack
+        });
+        setSpot(correctedSpot);
+      } else {
+        console.log(`✅ スタックは正しい: ${spot.threeBetterPosition} = ${currentStack}`);
+      }
+    }
+  }, [spot]);
   
   // カスタムレンジをlocalStorageから読み込み
   useEffect(() => {
@@ -2078,7 +2213,7 @@ export default function MTTTrainingPage() {
       <div className="min-h-screen bg-black md:bg-gray-900 text-white p-4">
         <div className="max-w-6xl mx-auto">
           <div className="mb-4 hidden md:flex justify-between items-center">
-            <h1 className="text-2xl font-bold">MTT GTOトレーニング</h1>
+            <h1 className="text-2xl font-bold">MTTプリフロップトレーニング</h1>
             <div className="flex items-center gap-4">
               <Link 
                 href={`/trainer/mtt?${new URLSearchParams({
