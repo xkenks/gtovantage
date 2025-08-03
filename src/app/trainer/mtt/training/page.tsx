@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PokerTable, Spot } from '@/components/PokerTable';
 import Link from 'next/link';
@@ -55,26 +55,75 @@ const generateRandomHand = (): string[] => {
 };
 
 const normalizeHandType = (hand: string[]): string => {
-  if (!hand || hand.length !== 2) return 'XX';
+  if (!hand || hand.length !== 2) {
+    console.log('🎯 normalizeHandType エラー: 無効なハンド', { hand });
+    return 'XX';
+  }
   
-  const rank1 = hand[0][0];
-  const rank2 = hand[1][0];
-  const suit1 = hand[0][1];
-  const suit2 = hand[1][1];
+  // カードの形式を確認
+  const card1 = hand[0];
+  const card2 = hand[1];
+  
+  if (!card1 || !card2 || card1.length < 1 || card2.length < 1) {
+    console.log('🎯 normalizeHandType エラー: 無効なカード形式', { card1, card2 });
+    return 'XX';
+  }
+  
+  const rank1 = card1[0];
+  const rank2 = card2[0];
+  const suit1 = card1[1] || '';
+  const suit2 = card2[1] || '';
+  
+  console.log('🎯 normalizeHandType 詳細入力:', { 
+    hand, 
+    card1, 
+    card2, 
+    rank1, 
+    rank2, 
+    suit1, 
+    suit2,
+    rank1Length: rank1?.length,
+    rank2Length: rank2?.length
+  });
   
   const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
   const rank1Index = ranks.indexOf(rank1);
   const rank2Index = ranks.indexOf(rank2);
   
+  console.log('🎯 normalizeHandType ランク検索:', { 
+    rank1, 
+    rank2, 
+    rank1Index, 
+    rank2Index,
+    ranks
+  });
+  
+  if (rank1Index === -1 || rank2Index === -1) {
+    console.log('🎯 normalizeHandType エラー: 無効なランク', { rank1, rank2, rank1Index, rank2Index });
+    return 'XX';
+  }
+  
   if (rank1 === rank2) {
     // ペア
-    return rank1 + rank2;
+    const result = rank1 + rank2;
+    console.log('🎯 normalizeHandType ペア結果:', { result, rank1, rank2 });
+    return result;
   } else {
     // 異なるランク
     const higher = rank1Index > rank2Index ? rank1 : rank2;
     const lower = rank1Index > rank2Index ? rank2 : rank1;
     const suffix = suit1 === suit2 ? 's' : 'o';
-    return higher + lower + suffix;
+    const result = higher + lower + suffix;
+    console.log('🎯 normalizeHandType 非ペア結果:', { 
+      result, 
+      higher, 
+      lower, 
+      suffix,
+      rank1Index,
+      rank2Index,
+      isHigher: rank1Index > rank2Index
+    });
+    return result;
   }
 };
 
@@ -172,11 +221,40 @@ const simulateMTTGTOData = (
   customRanges?: Record<string, Record<string, HandInfo>>,
   openerPosition?: string
 ) => {
+  console.log('🎯 simulateMTTGTOData 開始:', {
+    hand,
+    position,
+    stackSize,
+    actionType,
+    openerPosition,
+    hasCustomRanges: !!customRanges,
+    customRangesKeys: customRanges ? Object.keys(customRanges) : [],
+    customRangesCount: customRanges ? Object.keys(customRanges).length : 0
+  });
   // 手札のランク情報を取得
   const normalizedHandType = normalizeHandType(hand);
+  console.log('🎯 simulateMTTGTOData ハンド正規化:', {
+    originalHand: hand,
+    normalizedHandType,
+    handLength: hand.length,
+    actionType,
+    position,
+    stackSize
+  });
+  
+  // ハンドタイプを固定（変更されないようにする）
+  const finalHandType = normalizedHandType;
   const rankA = hand[0][0];
   const rankB = hand[1][0];
   const suited = hand[0][1] === hand[1][1];
+  
+  console.log('🎯 ハンド正規化デバッグ:', {
+    originalHand: hand,
+    normalizedHandType,
+    rankA,
+    rankB,
+    suited
+  });
   
   // 15BBスタック専用の戦略（GTOレンジに基づく）
   const stackDepthBB = parseInt(stackSize.replace('BB', ''));
@@ -218,7 +296,7 @@ const simulateMTTGTOData = (
         correctAction: gtoAction,
         evData: evData,
         frequencies: frequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `❌ 無効なポジション組み合わせ: ${openerPosition} → ${position}`,
         stackSizeStrategy: `${position}ポジションに対して、${openerPosition}からのオープンは無効です。有効なオープンレイザー: ${getValidOpenerPositions(position).join(', ')}`,
         icmConsideration: 'vs オープンでは、オープンレイザーはヒーローより前のポジションである必要があります。',
@@ -283,7 +361,15 @@ const simulateMTTGTOData = (
         customPrimaryAction = maxFreqEntry[0];
   } else {
         // 単一アクションの場合
-        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        let originalAction = customHandData.action;
+        customPrimaryAction = originalAction.replace('ALL_IN', 'ALL IN');
+        
+        // MINをRAISEに変換
+        if (customPrimaryAction === 'MIN') {
+          customPrimaryAction = 'RAISE';
+        }
+        
+        // 頻度データを正しく設定
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -291,6 +377,15 @@ const simulateMTTGTOData = (
         if (customHandData.frequency < 100) {
           customFrequencies['FOLD'] = 100 - customHandData.frequency;
         }
+        
+        console.log('🎯 vs3bet 単一アクション処理デバッグ:', {
+          originalAction: originalAction,
+          convertedAction: customPrimaryAction,
+          frequency: customHandData.frequency,
+          actionKey,
+          customFrequencies,
+          handType: normalizedHandType
+        });
       }
       
       // カスタムレンジ用のEVデータを生成
@@ -306,7 +401,9 @@ const simulateMTTGTOData = (
         handType: normalizedHandType,
         customHandData,
         primaryAction: customPrimaryAction,
-        frequencies: customFrequencies
+        frequencies: customFrequencies,
+        correctAction: customPrimaryAction,
+        finalFrequencies: customFrequencies
       });
       
       const vsOpenAdvice = getVsOpenAdvice(position, openerPosition, customPrimaryAction, stackDepthBB);
@@ -316,7 +413,7 @@ const simulateMTTGTOData = (
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${openerPosition}からのオープンに対する${position}ポジションでの設定済み戦略です。`,
         stackSizeStrategy: vsOpenAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -345,7 +442,7 @@ const simulateMTTGTOData = (
         correctAction: gtoAction,
         evData: evData,
         frequencies: frequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `${openerPosition}からのオープンに対する${position}ポジションでの最適戦略です。`,
         stackSizeStrategy: vsOpenAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
@@ -367,7 +464,7 @@ const simulateMTTGTOData = (
         correctAction: 'FOLD',
         evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
         frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
         stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
         icmConsideration: `レンジ外ハンドの頻度が設定されていません。FOLD 100%が推奨されます。`,
@@ -394,7 +491,7 @@ const simulateMTTGTOData = (
           correctAction: 'FOLD',
           evData: { 'FOLD': 0, 'CALL': -3, 'RAISE': -3, 'ALL IN': -3 },
           frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-          normalizedHandType: normalizedHandType,
+          normalizedHandType: finalHandType,
           effectiveStackExplanation: '❌ 無効なvs3ベット設定: 有効な3ベッターが存在しません',
           stackSizeStrategy: 'vs3ベットには、オープンレイザーより後のポジションの3ベッターが必要です。',
           icmConsideration: 'ポジション設定を確認してください。',
@@ -431,10 +528,23 @@ const simulateMTTGTOData = (
     
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
       customHandData = customRanges[rangeKey][normalizedHandType];
+      console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
     } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
       customHandData = customRanges[fallbackRangeKey][normalizedHandType];
       usedRangeKey = fallbackRangeKey;
-      console.log('15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+      console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } else {
+      console.log('🎯 vs3bet カスタムレンジ未発見:', { 
+        rangeKey, 
+        fallbackRangeKey, 
+        handType: normalizedHandType,
+        hasCustomRanges: !!customRanges,
+        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+      });
     }
     
     if (customHandData) {
@@ -460,9 +570,12 @@ const simulateMTTGTOData = (
       } else {
         // 単一アクションの場合
         customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        // MINをRAISEに変換
+        if (customPrimaryAction === 'MIN') {
+          customPrimaryAction = 'RAISE';
+        }
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
-        
         // 残りの頻度をFOLDに設定
         if (customHandData.frequency < 100) {
           customFrequencies['FOLD'] = 100 - customHandData.frequency;
@@ -476,7 +589,7 @@ const simulateMTTGTOData = (
           correctAction: 'FOLD',
           evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
           frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-          normalizedHandType: normalizedHandType,
+          normalizedHandType: finalHandType,
           effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
           stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
           icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
@@ -486,6 +599,13 @@ const simulateMTTGTOData = (
         };
       }
 
+      console.log('🎯 vs3bet カスタムレンジ処理完了:', {
+        originalAction: customHandData.action,
+        finalAction: customPrimaryAction,
+        frequencies: customFrequencies,
+        handType: normalizedHandType
+      });
+      
       // カスタムレンジ用のEVデータを生成
       const customEvData = {
         'FOLD': 0,
@@ -506,7 +626,7 @@ const simulateMTTGTOData = (
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
         stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -516,7 +636,14 @@ const simulateMTTGTOData = (
       };
     }
     
-    // カスタムレンジがない場合はデフォルト戦略（簡略化）
+    // カスタムレンジがない場合のみデフォルト戦略を使用
+    console.log('🎯 vs3bet カスタムレンジなし - デフォルト戦略使用:', {
+      handType: normalizedHandType,
+      stackSize,
+      hasCustomRanges: !!customRanges,
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+    });
+    
     if (['AA', 'KK', 'QQ', 'AKs', 'AKo'].includes(normalizedHandType)) {
       gtoAction = 'ALL IN';
       frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 20, 'ALL IN': 80 };
@@ -527,6 +654,13 @@ const simulateMTTGTOData = (
       gtoAction = 'FOLD';
       frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
     }
+    
+    console.log('🎯 vs3bet デフォルト戦略適用:', {
+      handType: normalizedHandType,
+      gtoAction,
+      frequencies,
+      stackSize
+    });
     
     evData = {
       'FOLD': 0,
@@ -539,7 +673,7 @@ const simulateMTTGTOData = (
       correctAction: gtoAction,
       evData: evData,
       frequencies: frequencies,
-      normalizedHandType: normalizedHandType,
+      normalizedHandType: finalHandType,
       effectiveStackExplanation: `${stackSize}スタックでのvs 3ベット戦略です。`,
       stackSizeStrategy: `vs 3ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
@@ -558,7 +692,7 @@ const simulateMTTGTOData = (
         correctAction: 'FOLD',
         evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
         frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
         stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
         icmConsideration: `レンジ外ハンドの頻度が設定されていません。FOLD 100%が推奨されます。`,
@@ -585,7 +719,7 @@ const simulateMTTGTOData = (
           correctAction: 'FOLD',
           evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
           frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-          normalizedHandType: normalizedHandType,
+          normalizedHandType: finalHandType,
           effectiveStackExplanation: '❌ 無効なvs4ベット設定: 有効な4ベッターが存在しません',
           stackSizeStrategy: 'vs4ベットには、3ベッターより前のポジション（通常オリジナルのオープンレイザー）の4ベッターが必要です。',
           icmConsideration: 'ポジション設定を確認してください。',
@@ -651,9 +785,12 @@ const simulateMTTGTOData = (
       } else {
         // 単一アクションの場合
         customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        // MINをRAISEに変換
+        if (customPrimaryAction === 'MIN') {
+          customPrimaryAction = 'RAISE';
+        }
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
-        
         // 残りの頻度をFOLDに設定
         if (customHandData.frequency < 100) {
           customFrequencies['FOLD'] = 100 - customHandData.frequency;
@@ -667,7 +804,7 @@ const simulateMTTGTOData = (
           correctAction: 'FOLD',
           evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
           frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
-          normalizedHandType: normalizedHandType,
+          normalizedHandType: finalHandType,
           effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
           stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
           icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
@@ -677,6 +814,13 @@ const simulateMTTGTOData = (
         };
       }
 
+      console.log('🎯 vs4bet カスタムレンジ処理完了:', {
+        originalAction: customHandData.action,
+        finalAction: customPrimaryAction,
+        frequencies: customFrequencies,
+        handType: normalizedHandType
+      });
+      
       // カスタムレンジ用のEVデータを生成
       const customEvData = {
         'FOLD': 0,
@@ -693,11 +837,11 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies
       });
       
-      return {
+      const result = {
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 4ベット戦略です。`,
         stackSizeStrategy: `vs 4ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -705,9 +849,24 @@ const simulateMTTGTOData = (
         strategicAnalysis: `カスタムvs4ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         isCustomRange: true
       };
+      
+      console.log('🎯 vs4bet カスタムレンジ戻り値:', {
+        normalizedHandType: result.normalizedHandType,
+        originalNormalizedHandType: normalizedHandType,
+        resultKeys: Object.keys(result)
+      });
+      
+      return result;
     }
     
-    // カスタムレンジがない場合はデフォルト戦略（簡略化）
+    // カスタムレンジがない場合のみデフォルト戦略を使用
+    console.log('🎯 vs4bet カスタムレンジなし - デフォルト戦略使用:', {
+      handType: normalizedHandType,
+      stackSize,
+      hasCustomRanges: !!customRanges,
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+    });
+    
     if (['AA', 'KK'].includes(normalizedHandType)) {
       gtoAction = 'ALL IN';
       frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
@@ -718,6 +877,13 @@ const simulateMTTGTOData = (
       gtoAction = 'FOLD';
       frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
     }
+    
+    console.log('🎯 vs4bet デフォルト戦略適用:', {
+      handType: normalizedHandType,
+      gtoAction,
+      frequencies,
+      stackSize
+    });
     
     evData = {
       'FOLD': 0,
@@ -730,7 +896,7 @@ const simulateMTTGTOData = (
       correctAction: gtoAction,
       evData: evData,
       frequencies: frequencies,
-      normalizedHandType: normalizedHandType,
+      normalizedHandType: finalHandType,
       effectiveStackExplanation: `${stackSize}スタックでのvs 4ベット戦略です。`,
       stackSizeStrategy: `vs 4ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
@@ -823,7 +989,7 @@ const simulateMTTGTOData = (
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -898,7 +1064,7 @@ const simulateMTTGTOData = (
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジションでの設定済み15BBオープン戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -986,7 +1152,7 @@ const simulateMTTGTOData = (
         correctAction: customPrimaryAction,
         evData: customEvData,
         frequencies: customFrequencies,
-        normalizedHandType: normalizedHandType,
+        normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
@@ -1059,18 +1225,36 @@ const simulateMTTGTOData = (
     evData = { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL IN': -2.5 };
   }
   
-  return {
+  console.log('🎯 デフォルト戦略使用:', {
+    handType: normalizeHandType(hand),
+    position,
+    stackSize,
+    gtoAction,
+    frequencies,
+    hasCustomRanges: !!customRanges,
+    availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+  });
+  
+  const result = {
     correctAction: gtoAction,
     evData: evData,
     frequencies: frequencies,
-    normalizedHandType: normalizeHandType(hand),
+    normalizedHandType: finalHandType,
     effectiveStackExplanation: `${stackSize}スタックでのMTTレンジベース戦略です。`,
     stackSizeStrategy: `デフォルトMTTレンジ: ${normalizedHandType}は${gtoAction}が推奨されます。`,
     icmConsideration: 'スタックに余裕があるため標準的な戦略を使用します。',
     recommendedBetSize: gtoAction === 'RAISE' ? 2.5 : 0,
-    strategicAnalysis: `${stackSize}戦略: ${normalizeHandType(hand)}は${gtoAction}が推奨されます。`,
-    exploitSuggestion: getExploitSuggestion(gtoAction, position, normalizeHandType(hand))
+    strategicAnalysis: `${stackSize}戦略: ${finalHandType}は${gtoAction}が推奨されます。`,
+    exploitSuggestion: getExploitSuggestion(gtoAction, position, finalHandType)
   };
+  
+  console.log('🎯 simulateMTTGTOData 最終戻り値:', {
+    originalHand: hand,
+    finalHandType,
+    resultNormalizedHandType: result.normalizedHandType
+  });
+  
+  return result;
 };
 
 // ポジション別のアドバイスを生成する関数
@@ -1206,7 +1390,7 @@ const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: s
 
 
 
-export default function MTTTrainingPage() {
+function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
@@ -1398,6 +1582,16 @@ export default function MTTTrainingPage() {
       }
     }
     
+    console.log('🎯 シナリオ生成デバッグ:', {
+      newHand,
+      handType,
+      normalizedHandType: normalizeHandType(newHand),
+      position,
+      stackSize,
+      actionType,
+      openerPosition
+    });
+    
     // MTT特有のGTOデータをシミュレート（簡略化）
     const data = simulateMTTGTOData(
       newHand, 
@@ -1407,6 +1601,12 @@ export default function MTTTrainingPage() {
       customRanges,
       openerPosition
     );
+    console.log('🎯 setGtoData直前:', {
+      newHand,
+      dataNormalizedHandType: data.normalizedHandType,
+      dataFrequencies: data.frequencies,
+      dataCorrectAction: data.correctAction,
+    });
     setGtoData(data);
     
     // レイズ推奨サイズを取得
@@ -1487,6 +1687,77 @@ export default function MTTTrainingPage() {
           total: potSize
         });
       }
+    } else if (stackSize === '40BB') {
+      // 40BBスタック固有のサイジング
+      if (actionType === 'openraise') {
+        openRaiseSize = 2.1;
+        potSize = 1.5 + 1; // SB + BB + Ante
+      } else if (actionType === 'vsopen') {
+        openRaiseSize = 2.1;
+        potSize = openRaiseSize + 1.5 + 1; // オープンレイズ + ブラインド + Ante
+      } else if (actionType === 'vs3bet') {
+        openRaiseSize = 2.1;
+        // 3ベッターのポジションに応じて3ベットサイズを決定
+        if (openerPosition === 'SB') {
+          threeBetSize = 7.5;
+        } else if (openerPosition === 'BB') {
+          threeBetSize = 8.2;
+        } else {
+          threeBetSize = 6.3; // UTG+1・LJ・HJ・CO・BTN
+        }
+        // 3ベッターのポジションに応じてポットサイズを計算
+        if (openerPosition === 'SB') {
+          // SBが3ベッターの場合：SBの0.5BBは引っ込めて、3ベット額だけ追加
+          potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
+        } else if (openerPosition === 'BB') {
+          // BBが3ベッターの場合：BBの1BBは引っ込めて、3ベット額だけ追加
+          potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
+        } else {
+          // その他のポジションの場合：通常の計算
+          // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2.1BB) + 3ベット(6.3BB) = 10.9BB
+          potSize = 0.5 + 1 + 1 + openRaiseSize + threeBetSize;
+        }
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 40BB vs3ベットポット計算:`, {
+          openerPosition,
+          openRaiseSize,
+          threeBetSize,
+          sbRemaining: openerPosition === 'SB' ? 0 : 0.5,
+          bbRemaining: openerPosition === 'BB' ? 0 : 1,
+          ante: 1,
+          total: potSize
+        });
+      } else if (actionType === 'vs4bet') {
+        console.log(`🎯 40BB vs4ベット計算開始:`, { stackSize, position, actionType });
+        // vs4ベットの正確なポット計算
+        // テーブル上のチップ + Ante(1BB) - ヒーローのブラインド
+        if (position === 'SB') {
+          // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+          // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
+          potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+        } else if (position === 'BB') {
+          console.log(`🎯 40BB BBの場合の計算:`, { stackSize, position });
+          // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+          // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + Ante(1BB) = 37.8BB
+          // BBのブラインド分は引っ込めているので除外
+          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
+          console.log(`🎯 40BB BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+        } else {
+          // ヒーローがその他のポジションの場合
+          // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + BB(1BB) + Ante(1BB) = 38.8BB
+          potSize = 6.3 + 30 + 0.5 + 1 + 1;
+        }
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 ${stackSize} vs4ベットポット計算:`, {
+          stackSize,
+          heroPosition: position,
+          threeBetChip: 6.3,
+          fourBetChip: 30,
+          smallBlindChip: position === 'SB' ? 0 : 0.5,
+          ante: 1,
+          total: potSize
+        });
+      }
     } else {
       // 他のスタックサイズでの従来の処理
       if (actionType === 'vsopen' && openerPosition === 'BTN' && stackSize === '15BB') {
@@ -1521,6 +1792,26 @@ export default function MTTTrainingPage() {
             potSize = 0.5 + 1 + 1 + 2 + 15;
             console.log(`🎯 vs3bet 15BB その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2 + 15', potSize });
           }
+        } else if (stackSize === '40BB') {
+          // 40BBのvs3ベットの正確な計算
+          // 3ベッターのポジションに応じてポット計算を調整
+          if (openerPosition === 'SB') {
+            // 3ベッターがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            // BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2.1BB) + 3ベット(7.5BB) = 11.6BB
+            potSize = 1 + 1 + 2.1 + 7.5;
+            console.log(`🎯 vs3bet 40BB SB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '1 + 1 + 2.1 + 7.5', potSize });
+          } else if (openerPosition === 'BB') {
+            // 3ベッターがBBの場合、BB(1BB)を引っ込めて3ベット
+            // SB(0.5BB) + Ante(1BB) + ヒーローのオープンレイズ(2.1BB) + 3ベット(8.2BB) = 11.8BB
+            potSize = 0.5 + 1 + 2.1 + 8.2;
+            console.log(`🎯 vs3bet 40BB BB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 2.1 + 8.2', potSize });
+          } else {
+            // 3ベッターがその他のポジションの場合
+            // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2.1BB) + 3ベット(6.3BB) = 10.9BB
+            potSize = 0.5 + 1 + 1 + 2.1 + 6.3;
+            console.log(`🎯 vs3bet 40BB その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2.1 + 6.3', potSize });
+          }
+          potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
         } else {
           // その他のスタックサイズ
           // 3ベッターのポジションに応じてポット計算を調整
@@ -1544,28 +1835,59 @@ export default function MTTTrainingPage() {
       } else if (actionType === 'vs4bet') {
         console.log(`🎯 vs4ベット計算開始（その他）:`, { stackSize, position, actionType });
         // vs4ベットの正確なポット計算（その他のスタックサイズ）
-        if (position === 'SB') {
-          // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
-          potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
-        } else if (position === 'BB') {
-          console.log(`🎯 BBの場合の計算（その他）:`, { stackSize, position });
-          // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
-          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
-          console.log(`🎯 BB計算結果（その他）:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+        if (stackSize === '40BB') {
+          // 40BBのvs4ベットの正確なポット計算
+          if (position === 'SB') {
+            // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
+            potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+          } else if (position === 'BB') {
+            console.log(`🎯 40BB BBの場合の計算（その他）:`, { stackSize, position });
+            // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+            // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + Ante(1BB) = 37.8BB
+            // BBのブラインド分は引っ込めているので除外
+            potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
+            console.log(`🎯 40BB BB計算結果（その他）:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+          } else {
+            // ヒーローがその他のポジションの場合
+            // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + BB(1BB) + Ante(1BB) = 38.8BB
+            potSize = 6.3 + 30 + 0.5 + 1 + 1;
+          }
+          potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+          console.log(`🎯 ${stackSize} vs4ベットポット計算（その他）:`, {
+            stackSize,
+            heroPosition: position,
+            threeBetChip: 6.3,
+            fourBetChip: 30,
+            smallBlindChip: position === 'SB' ? 0 : 0.5,
+            ante: 1,
+            total: potSize
+          });
         } else {
-          // ヒーローがその他のポジションの場合
-          potSize = 6.3 + 30 + 0.5 + 1 + 1;
+          // その他のスタックサイズ
+          if (position === 'SB') {
+            // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+          } else if (position === 'BB') {
+            console.log(`🎯 BBの場合の計算（その他）:`, { stackSize, position });
+            // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+            potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
+            console.log(`🎯 BB計算結果（その他）:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+          } else {
+            // ヒーローがその他のポジションの場合
+            potSize = 6.3 + 30 + 0.5 + 1 + 1;
+          }
+          potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+          console.log(`🎯 ${stackSize} vs4ベットポット計算（その他）:`, {
+            stackSize,
+            heroPosition: position,
+            threeBetChip: 6.3,
+            fourBetChip: 30,
+            smallBlindChip: position === 'SB' ? 0 : 0.5,
+            ante: 1,
+            total: potSize
+          });
         }
-        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
-        console.log(`🎯 ${stackSize} vs4ベットポット計算（その他）:`, {
-          stackSize,
-          heroPosition: position,
-          threeBetChip: 6.3,
-          fourBetChip: 30,
-          smallBlindChip: position === 'SB' ? 0 : 0.5,
-          ante: 1,
-          total: potSize
-        });
       } else if (actionType === 'vs5bet') {
         potSize = 70 + 1; // 5ベット + Ante
       }
@@ -1801,6 +2123,11 @@ export default function MTTTrainingPage() {
               localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
               localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
               console.log('✅ システムAPIからレンジデータを自動同期しました（管理者設定レンジ）');
+              console.log('🎯 システムAPIレンジ詳細:', {
+                rangeKeys: Object.keys(systemData.ranges),
+                rangeCount: Object.keys(systemData.ranges).length,
+                sampleRange: Object.keys(systemData.ranges)[0] ? systemData.ranges[Object.keys(systemData.ranges)[0]] : null
+              });
               return; // API読み込み成功時は終了
             } else {
               console.log('📋 システムレンジは最新です');
@@ -1837,6 +2164,11 @@ export default function MTTTrainingPage() {
               localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
               localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
               console.log(`✅ データファイルからレンジデータを自動同期しました（${Object.keys(fileData.ranges).length}ポジション）`);
+              console.log('🎯 ファイルレンジ詳細:', {
+                rangeKeys: Object.keys(fileData.ranges),
+                rangeCount: Object.keys(fileData.ranges).length,
+                sampleRange: Object.keys(fileData.ranges)[0] ? fileData.ranges[Object.keys(fileData.ranges)[0]] : null
+              });
             } else {
               console.log('📋 ファイルレンジは最新です');
             }
@@ -1851,8 +2183,8 @@ export default function MTTTrainingPage() {
           console.log('緊急フォールバック: 基本レンジを設定します');
           // 必要最小限のレンジを設定
           const fallbackRanges: Record<string, Record<string, HandInfo>> = {
-            'UTG': { 'AA': { action: 'MIN' as const, frequency: 100 } },
-            'BTN': { 'AA': { action: 'MIN' as const, frequency: 100 } }
+                'UTG': { 'AA': { action: 'RAISE' as const, frequency: 100 } },
+    'BTN': { 'AA': { action: 'RAISE' as const, frequency: 100 } }
           };
           setCustomRanges(fallbackRanges);
         }
@@ -1861,6 +2193,15 @@ export default function MTTTrainingPage() {
 
     // 初回読み込み
     loadSystemRanges();
+    
+    // カスタムレンジの読み込み状況を確認
+    console.log('🎯 カスタムレンジ読み込み状況確認:', {
+      hasCustomRanges: !!customRanges,
+      customRangesKeys: customRanges ? Object.keys(customRanges) : [],
+      customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
+      localStorageRanges: localStorage.getItem('mtt-custom-ranges') ? '存在' : 'なし',
+      localStorageTimestamp: localStorage.getItem('mtt-ranges-timestamp') || 'なし'
+    });
     
     // 定期的にレンジの更新をチェック（30秒間隔）
     const intervalId = setInterval(() => {
@@ -2213,8 +2554,9 @@ export default function MTTTrainingPage() {
     const selectedBase = action.split(' ')[0];
     const correctBase = gtoData?.correctAction?.split(' ')[0] || '';
     
-    // 基本アクションが一致するかで正解判定
-    let correct = selectedBase === correctBase;
+    // MINをRAISEに変換して比較
+    const normalizedCorrectBase = correctBase === 'MIN' ? 'RAISE' : correctBase;
+    let correct = selectedBase === normalizedCorrectBase;
     
     // より詳細な評価：頻度情報があれば使用
     if (gtoData?.frequencies && action in gtoData.frequencies) {
@@ -2359,6 +2701,19 @@ export default function MTTTrainingPage() {
           <div className="mb-4 hidden md:flex justify-between items-center">
             <h1 className="text-2xl font-bold">MTTプリフロップトレーニング</h1>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <span className="bg-blue-600/20 px-3 py-1 rounded-full border border-blue-500/30">
+                  {stackSize}
+                </span>
+                <span className="bg-green-600/20 px-3 py-1 rounded-full border border-green-500/30">
+                  {position}
+                </span>
+                <span className="bg-purple-600/20 px-3 py-1 rounded-full border border-purple-500/30">
+                  {actionType === 'open' ? 'オープンレイズ' : 
+                   actionType === 'vsopen' ? 'vsオープン' :
+                   actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
+                </span>
+              </div>
               <Link 
                 href={`/trainer/mtt?${new URLSearchParams({
                   stack: stackSize,
@@ -2976,10 +3331,10 @@ export default function MTTTrainingPage() {
                       <div className="grid grid-cols-2 gap-3 mb-4">
                         <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
                           <h4 className="text-gray-400 text-xs mb-1">最適なアクション</h4>
-                          <div className="text-lg font-bold text-green-400">{gtoData.correctAction}</div>
-                              {gtoData.frequencies && gtoData.frequencies[gtoData.correctAction] && (
+                          <div className="text-lg font-bold text-green-400">{gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction}</div>
+                              {gtoData.frequencies && (
                                 <div className="text-xs text-green-300 mt-1">
-                                  推奨頻度: {gtoData.frequencies[gtoData.correctAction]}%
+                                  推奨頻度: {gtoData.frequencies[gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction] || 0}%
                         </div>
                               )}
                         </div>
@@ -3001,17 +3356,41 @@ export default function MTTTrainingPage() {
                           {gtoData.frequencies && (
                             <div className={`${isMobile ? 'bg-gray-700/10' : 'bg-gray-700/30'} p-4 rounded mb-4`}>
                               <h4 className="text-white font-semibold mb-3 text-sm">
-                                ハンド {gtoData.normalizedHandType} の正解頻度分布
-                                {(gtoData as any).isCustomRange && <span className="text-purple-400 text-xs ml-2">(カスタム設定)</span>}
+                                ハンド {(() => {
+                                  // テーブルに表示されているハンドと一致させる
+                                  const tableHandType = spot?.heroHand ? normalizeHandType(spot.heroHand as string[]) : 'XX';
+                                  console.log('🎯 結果表示タイトル - テーブルハンド一致:', { 
+                                    tableHandType,
+                                    spotHeroHand: spot?.heroHand,
+                                    gtoDataNormalizedHandType: gtoData?.normalizedHandType,
+                                    gtoDataExists: !!gtoData
+                                  });
+                                  return tableHandType;
+                                })()} の正解頻度分布
+                                {(gtoData as any)?.isCustomRange && <span className="text-purple-400 text-xs ml-2">(カスタム設定)</span>}
                               </h4>
+                              {(() => {
+                                console.log('🎯 結果表示デバッグ:', {
+                                  normalizedHandType: gtoData?.normalizedHandType,
+                                  frequencies: gtoData?.frequencies,
+                                  correctAction: gtoData?.correctAction,
+                                  isCustomRange: (gtoData as any)?.isCustomRange,
+                                  gtoDataKeys: gtoData ? Object.keys(gtoData) : [],
+                                  gtoDataType: typeof gtoData?.normalizedHandType,
+                                  gtoDataExists: !!gtoData
+                                });
+                                return null;
+                              })()}
                               <div className="grid grid-cols-2 gap-2 text-sm">
-                                {Object.entries(gtoData.frequencies).map(([action, frequency]) => (
+                                {Object.entries(gtoData.frequencies)
+                                  .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL IN'].includes(action))
+                                  .map(([action, frequency]) => (
                                   <div 
                                     key={action} 
                                     className={`flex justify-between p-2 rounded ${
                                       action === selectedAction 
                                         ? 'bg-blue-600/30 border border-blue-500' 
-                                        : action === gtoData.correctAction 
+                                        : action === (gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction) 
                                           ? 'bg-green-600/30 border border-green-500' 
                                           : 'bg-gray-600/30'
                                     }`}
@@ -3019,12 +3398,12 @@ export default function MTTTrainingPage() {
                                     <span className={`font-medium ${
                                       action === selectedAction 
                                         ? 'text-blue-300' 
-                                        : action === gtoData.correctAction 
+                                        : action === (gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction) 
                                           ? 'text-green-300' 
                                           : 'text-gray-300'
                                     }`}>
                                       {action}
-                                      {action === gtoData.correctAction && ' (推奨)'}
+                                      {action === (gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction) && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${
                                       Number(frequency) > 0 ? 'text-white' : 'text-gray-500'
@@ -3243,3 +3622,11 @@ export default function MTTTrainingPage() {
     </AuthGuard>
   );
 } 
+
+export default function MTTTrainingPageWrapper() {
+  return (
+    <Suspense>
+      <MTTTrainingPage />
+    </Suspense>
+  );
+}

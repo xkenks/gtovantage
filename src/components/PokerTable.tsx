@@ -500,7 +500,12 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     else {
       // 正しいアクションとの比較（正解がない場合は常にoptimal）
       if (currentSpot.correctAction) {
-        if (selectedAction === currentSpot.correctAction) {
+        // MINやRFIが正解の場合の処理
+        if (currentSpot.correctAction === 'MIN' && selectedAction === 'RAISE') {
+          evaluationLevel = 'perfect';
+        } else if (currentSpot.correctAction === 'RFI' && selectedAction === 'RAISE') {
+          evaluationLevel = 'perfect';
+        } else if (selectedAction === currentSpot.correctAction) {
           evaluationLevel = 'perfect';
         } else if (
           // リスクの低いアクションを選んだ場合（コールvs.レイズなど）
@@ -668,6 +673,22 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         } else {
           stack = 30 - currentSpot.threeBetSize; // その他のポジション
           console.log(`🎯 30BB vs3ベット その他: 30 - ${currentSpot.threeBetSize} = ${stack}`);
+        }
+        
+        return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
+      } else if (currentSpot.stackDepth === '40BB') {
+        let stack: number;
+        
+        // SB・BBの場合はブラインド分を考慮
+        if (position === 'SB') {
+          stack = 39.5 - currentSpot.threeBetSize; // 40 - 0.5 - threeBetSize
+          console.log(`🎯 40BB vs3ベット SB: 39.5 - ${currentSpot.threeBetSize} = ${stack}`);
+        } else if (position === 'BB') {
+          stack = 39 - currentSpot.threeBetSize; // 40 - 1 - threeBetSize
+          console.log(`🎯 40BB vs3ベット BB: 39 - ${currentSpot.threeBetSize} = ${stack}`);
+        } else {
+          stack = 40 - currentSpot.threeBetSize; // その他のポジション
+          console.log(`🎯 40BB vs3ベット その他: 40 - ${currentSpot.threeBetSize} = ${stack}`);
         }
         
         return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
