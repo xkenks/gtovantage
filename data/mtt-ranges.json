@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-07-29T01:55:43.217Z",
+  "lastUpdated": "2025-08-02T08:21:55.611Z",
   "ranges": {
     "vsopen_UTG1_vs_UTG": {
       "55": {
@@ -48883,11 +48883,2523 @@
           "FOLD": 95
         }
       }
+    },
+    "vs3bet_UTG_vs_UTG1_15BB": {
+      "77": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 20,
+          "FOLD": 80
+        }
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      }
+    },
+    "vs3bet_UTG_vs_UTG1": {
+      "77": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 20,
+          "FOLD": 80
+        }
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      }
+    },
+    "vs3bet_UTG_vs_LJ_15BB": {
+      "77": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 60
+        }
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      }
+    },
+    "vs3bet_UTG_vs_LJ": {
+      "77": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 60
+        }
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      }
+    },
+    "vs3bet_UTG_vs_HJ_15BB": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 20
+        }
+      }
+    },
+    "vs3bet_UTG_vs_HJ": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 20
+        }
+      }
+    },
+    "vs3bet_UTG_vs_CO_15BB": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      }
+    },
+    "vs3bet_UTG_vs_CO": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      }
+    },
+    "vs3bet_UTG_vs_BTN_15BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 55
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 50
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      }
+    },
+    "vs3bet_UTG_vs_BTN": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 55
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 50
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      }
+    },
+    "vs3bet_UTG_vs_SB_15BB": {
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 20
+        }
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 30
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      }
+    },
+    "vs3bet_UTG_vs_SB": {
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 20
+        }
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 30
+        }
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      }
+    },
+    "vs3bet_UTG_vs_BB_15BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 30
+        }
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
+    },
+    "vs3bet_UTG_vs_BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 30
+        }
+      },
+      "AJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_LJ_15BB": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 15
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_LJ": {
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 15
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_HJ_15BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_HJ": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 5,
+          "FOLD": 95
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_CO_15BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 60
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_CO": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 35
+        }
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 60
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_BTN_15BB": {
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 55
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_BTN": {
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 55
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_SB_15BB": {
+      "55": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 20,
+          "FOLD": 80
+        }
+      },
+      "ATo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 50
+        }
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_SB": {
+      "55": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 20,
+          "FOLD": 80
+        }
+      },
+      "ATo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 50
+        }
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 15,
+          "FOLD": 85
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_BB_15BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 45
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 45
+        }
+      }
+    },
+    "vs3bet_UTG1_vs_BB": {
+      "66": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 45
+        }
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 40
+        }
+      },
+      "A9s": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 45
+        }
+      }
+    },
+    "vs3bet_LJ_vs_HJ_15BB": {
+      "55": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
+    },
+    "vs3bet_LJ_vs_HJ": {
+      "55": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 70
+        }
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 10,
+          "FOLD": 90
+        }
+      }
     }
   },
   "metadata": {
-    "totalPositions": 160,
-    "totalHands": 8971,
+    "totalPositions": 188,
+    "totalHands": 9483,
     "creator": "MTT Admin System",
     "environment": "development"
   }

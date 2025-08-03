@@ -1,7 +1,7 @@
 {
+  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-  "/operator/page": "app/operator/page.js",
   "/trainer/mtt/page": "app/trainer/mtt/page.js",
-  "/api/admin/auth/route": "app/api/admin/auth/route.js",
-  "/register/page": "app/register/page.js"
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
+  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js"
 }

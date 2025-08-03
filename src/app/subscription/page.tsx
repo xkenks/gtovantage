@@ -74,11 +74,7 @@ export default function SubscriptionPage() {
                   {isMasterUser && <FaCrown className="text-purple-400 text-2xl" />}
                 </div>
                 
-                {user?.subscriptionExpiresAt && (
-                  <p className="text-sm text-gray-300">
-                    有効期限: {new Date(user.subscriptionExpiresAt).toLocaleDateString('ja-JP')}
-                  </p>
-                )}
+                {/* 有効期限の表示は現在のダミー実装では非表示 */}
               </div>
             </div>
 

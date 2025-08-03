@@ -405,7 +405,7 @@ export default function MTTTrainerPage() {
     { id: 'openraise', label: 'オープンレイズ' },
     { id: 'vsopen', label: 'vs オープン' },
     { id: 'vs3bet', label: 'vs 3ベット' },
-    { id: 'vs4bet', label: 'vs 4ベット' },
+    { id: 'vs4bet', label: 'vs 4ベット', disabled: stackSize === '15BB' || stackSize === '10BB' },
     { id: 'random', label: 'ランダム' },
   ];
 
@@ -472,6 +472,20 @@ export default function MTTTrainerPage() {
 
   // 設定変更時に自動保存（初回読み込み時は除外）
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // スタックサイズ変更時にアクションタイプをチェック
+  useEffect(() => {
+    if (!isInitialLoad) {
+      const currentAction = actionTypes.find(a => a.id === actionType);
+      if (currentAction?.disabled) {
+        // 現在のアクションが無効な場合、最初の有効なアクションに変更
+        const validAction = actionTypes.find(a => !a.disabled);
+        if (validAction) {
+          setActionType(validAction.id);
+        }
+      }
+    }
+  }, [stackSize, isInitialLoad]);
   
   useEffect(() => {
     if (!isInitialLoad) {
@@ -602,8 +616,12 @@ export default function MTTTrainerPage() {
               {actionTypes.map(action => (
                 <button 
                   key={action.id}
-                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${actionType === action.id ? 'bg-red-600' : 'bg-gray-700'} transition-colors text-left hover:bg-red-500`}
-                  onClick={() => setActionType(action.id)}
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                    action.disabled ? 'bg-gray-500 cursor-not-allowed opacity-50' : 
+                    actionType === action.id ? 'bg-red-600' : 'bg-gray-700'
+                  } transition-colors text-left ${!action.disabled ? 'hover:bg-red-500' : ''}`}
+                  onClick={() => !action.disabled && setActionType(action.id)}
+                  disabled={action.disabled}
                 >
                   {action.label}
                 </button>

@@ -399,7 +399,7 @@ export default function Home() {
                 </div>
           
           <div className="mt-6 md:mt-8 text-xs md:text-sm text-gray-500">
-            © 2024 GTO Vantage. All rights reserved.
+            © 2025 GTO Vantage. All rights reserved.
           </div>
         </div>
       </footer>

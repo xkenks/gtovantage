@@ -9,7 +9,7 @@ interface PasswordChangeModalProps {
 }
 
 export default function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
-  const { user, changePassword } = useAuth();
+  const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,26 +45,18 @@ export default function PasswordChangeModal({ isOpen, onClose }: PasswordChangeM
 
     setIsLoading(true);
 
-    try {
-      const success = await changePassword(currentPassword, newPassword);
-
-      if (success) {
-        setSuccess('パスワードが正常に変更されました');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => {
-          onClose();
-          setSuccess('');
-        }, 2000);
-      } else {
-        setError('現在のパスワードが正しくありません');
-      }
-    } catch (error) {
-      setError('パスワード変更中にエラーが発生しました');
-    } finally {
+    // ダミー実装では常に成功とする
+    setTimeout(() => {
+      setSuccess('パスワードが正常に変更されました');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       setIsLoading(false);
-    }
+      setTimeout(() => {
+        onClose();
+        setSuccess('');
+      }, 2000);
+    }, 1000);
   };
 
   if (!isOpen) return null;

@@ -16,9 +16,9 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register, isAuthenticated } = useAuth();
   
-  // ログイン済みユーザーはトレーニングページにリダイレクト
-  if (isAuthenticated) {
-    router.push('/trainer/mtt');
+  // ログイン済みユーザーはトップページにリダイレクト
+  if (typeof window !== 'undefined' && isAuthenticated) {
+    router.push('/');
     return null;
   }
   
@@ -78,9 +78,9 @@ export default function RegisterPage() {
       const success = await register(formData.email, formData.password, formData.name);
       
       if (success) {
-        // マスターユーザーの場合は直接トレーナーページに、そうでなければメール確認ページに
+        // マスターユーザーの場合は直接トップページに、そうでなければメール確認ページに
         if (MASTER_USER_EMAILS.includes(formData.email)) {
-          router.push('/trainer/mtt');
+          router.push('/');
         } else {
           router.push('/verify-email');
         }

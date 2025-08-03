@@ -251,9 +251,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                       currentSpot.potSize !== undefined ? currentSpot.potSize :
                       currentSpot.pot !== undefined ? currentSpot.pot : 0;
     
-    // vs3ベットの場合、Ante 1BBを強制的に追加
+    // vs3ベットの場合、training/page.tsxで既にAnte 1BBを含めて計算済みなので追加しない
     if (currentSpot.actionType === 'vs3bet') {
-      console.log(`🎯 PokerTable getPotSize:`, {
+      console.log(`🎯 PokerTable getPotSize vs3bet:`, {
         actionType: currentSpot.actionType,
         stackSize: currentSpot.stackDepth,
         openRaiseSize: currentSpot.openRaiseSize,
@@ -261,10 +261,14 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         originalPotSize: finalPotSize,
         _debug: (currentSpot as any)._debug
       });
-      
-      // Ante 1BBを追加
-      finalPotSize += 1;
-      console.log(`🎯 Ante 1BB追加後のポットサイズ: ${finalPotSize}`);
+    }
+    
+    // vs4ベットの場合は、training/page.tsxで既にAnte 1BBを含めて計算済みなので追加しない
+    if (currentSpot.actionType === 'vs4bet') {
+      console.log(`🎯 PokerTable getPotSize vs4bet:`, {
+        actionType: currentSpot.actionType,
+        originalPotSize: finalPotSize
+      });
     }
     
     return finalPotSize;
@@ -1546,7 +1550,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
           
           // 3ベッターと4ベッターのチップ表示（モバイル版）
-          const threeBetterPosMobile = currentSpot.actionType === 'vs3bet' ? currentSpot.threeBetterPosition : null;
+          const threeBetterPosMobile = currentSpot.actionType === 'vs3bet' ? currentSpot.threeBetterPosition : 
+                                      currentSpot.actionType === 'vs4bet' ? currentSpot.heroPosition : null;
           const fourBetterPosMobile = currentSpot.actionType === 'vs4bet' ? currentSpot.openRaiserPosition : null;
           const threeBetterInfoMobile = threeBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === threeBetterPosMobile)?.[1] : null;
           const fourBetterInfoMobile = fourBetterPosMobile ? Object.entries(mobilePositions).find(([pos]) => pos === fourBetterPosMobile)?.[1] : null;
@@ -1564,9 +1569,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             fourBetterInfoMobile
           });
           
-          // 3ベッターのチップ表示（vs3ベット）
+          // 3ベッターのチップ表示（vs3ベットとvs4ベット）
           console.log(`🔍 3ベッターチップ表示条件チェック: threeBetterInfoMobile=${!!threeBetterInfoMobile}, threeBetSize=${currentSpot?.threeBetSize}, threeBetterPosMobile=${threeBetterPosMobile}, actionType=${currentSpot.actionType}`);
-          if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile && currentSpot.actionType === 'vs3bet') {
+          if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile && (currentSpot.actionType === 'vs3bet' || currentSpot.actionType === 'vs4bet')) {
             const chipPos = getOptimalChipPosition(threeBetterInfoMobile, threeBetterPosMobile);
         
             renderElements.push(

@@ -196,6 +196,8 @@ const simulateMTTGTOData = (
     'ALL IN': -2.0
   };
   
+
+
   // vs オープンの場合の特別処理
   if (actionType === 'vsopen' && openerPosition) {
     // ポジション組み合わせの検証
@@ -358,6 +360,23 @@ const simulateMTTGTOData = (
   
   // vs 3ベットの場合の特別処理
   if (actionType === 'vs3bet') {
+    // レンジ外ハンドの処理（vs3bet）
+    if (['27o', '37o', '47o', '57o', '67o', '32o', '42o', '52o', '62o', '72o', '82o', '92o', 'T2o', 'J2o', 'Q2o', 'K2o', 'A2o', '23o', '24o', '25o', '26o', '28o', '29o', '2To', '2Jo', '2Qo', '2Ko', '2Ao'].includes(normalizedHandType)) {
+      console.log('🎯 レンジ外ハンド検出:', { actionType, normalizedHandType });
+      return {
+        correctAction: 'FOLD',
+        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
+        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
+        stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
+        icmConsideration: `レンジ外ハンドの頻度が設定されていません。FOLD 100%が推奨されます。`,
+        recommendedBetSize: 0,
+        isRangeOut: true,
+        exploitSuggestion: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。頻度が設定されていないため、FOLD 100%が推奨されます。`
+      };
+    }
+    
     // vs3betでは3ベッターのポジションが必要（オープンレイザーに対する3ベッターの位置）
     let threeBetterPosition = openerPosition; // URLパラメータで3ベッターが指定されている場合
     if (!threeBetterPosition) {
@@ -450,6 +469,23 @@ const simulateMTTGTOData = (
         }
       }
       
+      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
+      if (customFrequencies['FOLD'] === 100) {
+        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          normalizedHandType: normalizedHandType,
+          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
+          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
+          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
+          recommendedBetSize: 0,
+          isRangeOut: true,
+          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
+        };
+      }
+
       // カスタムレンジ用のEVデータを生成
       const customEvData = {
         'FOLD': 0,
@@ -489,7 +525,7 @@ const simulateMTTGTOData = (
       frequencies = { 'FOLD': 30, 'CALL': 60, 'RAISE': 0, 'ALL IN': 10 };
     } else {
       gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 85, 'CALL': 10, 'RAISE': 0, 'ALL IN': 5 };
+      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
     }
     
     evData = {
@@ -515,6 +551,23 @@ const simulateMTTGTOData = (
   
   // vs 4ベットの場合の特別処理
   if (actionType === 'vs4bet') {
+    // レンジ外ハンドの処理（vs4bet）
+    if (['27o', '37o', '47o', '57o', '67o', '32o', '42o', '52o', '62o', '72o', '82o', '92o', 'T2o', 'J2o', 'Q2o', 'K2o', 'A2o', '23o', '24o', '25o', '26o', '28o', '29o', '2To', '2Jo', '2Qo', '2Ko', '2Ao'].includes(normalizedHandType)) {
+      console.log('🎯 レンジ外ハンド検出:', { actionType, normalizedHandType });
+      return {
+        correctAction: 'FOLD',
+        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
+        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+        normalizedHandType: normalizedHandType,
+        effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
+        stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
+        icmConsideration: `レンジ外ハンドの頻度が設定されていません。FOLD 100%が推奨されます。`,
+        recommendedBetSize: 0,
+        isRangeOut: true,
+        exploitSuggestion: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。頻度が設定されていないため、FOLD 100%が推奨されます。`
+      };
+    }
+    
     // vs4betでは4ベッターのポジションが必要（通常はオリジナルのオープンレイザー）
     let fourBetterPosition = openerPosition; // URLパラメータで4ベッターが指定されている場合
     if (!fourBetterPosition) {
@@ -607,6 +660,23 @@ const simulateMTTGTOData = (
         }
       }
       
+      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
+      if (customFrequencies['FOLD'] === 100) {
+        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          normalizedHandType: normalizedHandType,
+          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
+          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
+          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
+          recommendedBetSize: 0,
+          isRangeOut: true,
+          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
+        };
+      }
+
       // カスタムレンジ用のEVデータを生成
       const customEvData = {
         'FOLD': 0,
@@ -646,7 +716,7 @@ const simulateMTTGTOData = (
       frequencies = { 'FOLD': 20, 'CALL': 70, 'RAISE': 0, 'ALL IN': 10 };
     } else {
       gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 95, 'CALL': 5, 'RAISE': 0, 'ALL IN': 0 };
+      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
     }
     
     evData = {
@@ -1387,7 +1457,35 @@ export default function MTTTrainingPage() {
           total: potSize
         });
       } else if (actionType === 'vs4bet') {
-        potSize = 25 + 1; // 4ベット + Ante
+        console.log(`🎯 vs4ベット計算開始:`, { stackSize, position, actionType });
+        // vs4ベットの正確なポット計算
+        // テーブル上のチップ + Ante(1BB) - ヒーローのブラインド
+                  if (position === 'SB') {
+            // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
+            potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+        } else if (position === 'BB') {
+          console.log(`🎯 BBの場合の計算:`, { stackSize, position });
+          // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+          // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + Ante(1BB) = 37.8BB
+          // BBのブラインド分は引っ込めているので除外
+          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
+          console.log(`🎯 BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+        } else {
+          // ヒーローがその他のポジションの場合
+          // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + BB(1BB) + Ante(1BB) = 38.8BB
+          potSize = 6.3 + 30 + 0.5 + 1 + 1;
+        }
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 ${stackSize} vs4ベットポット計算:`, {
+          stackSize,
+          heroPosition: position,
+          threeBetChip: 6.3,
+          fourBetChip: 30,
+          smallBlindChip: position === 'SB' ? 0 : 0.5,
+          ante: 1,
+          total: potSize
+        });
       }
     } else {
       // 他のスタックサイズでの従来の処理
@@ -1405,23 +1503,69 @@ export default function MTTTrainingPage() {
       } else if (actionType === 'vs3bet') {
         // 15BBのvs3ベットの正確な計算
         if (stackSize === '15BB') {
-          // 15BBのvs3ベットはオールイン
-          potSize = 15 + 1; // オールイン + Ante
+          // 15BBのvs3ベットの正確な計算
+          // 3ベッターのポジションに応じてポット計算を調整
+          if (openerPosition === 'SB') {
+            // 3ベッターがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            // BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19BB
+            potSize = 1 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet 15BB SB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '1 + 1 + 2 + 15', potSize });
+          } else if (openerPosition === 'BB') {
+            // 3ベッターがBBの場合、BB(1BB)を引っ込めて3ベット
+            // SB(0.5BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 18.5BB
+            potSize = 0.5 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet 15BB BB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 2 + 15', potSize });
+          } else {
+            // 3ベッターがその他のポジションの場合
+            // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19.5BB
+            potSize = 0.5 + 1 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet 15BB その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2 + 15', potSize });
+          }
         } else {
           // その他のスタックサイズ
-          potSize = 13 + 1; // 3ベット + Ante
+          // 3ベッターのポジションに応じてポット計算を調整
+          if (openerPosition === 'SB') {
+            // 3ベッターがSBの場合、SB(0.5BB)を引っ込めて3ベット
+            // BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19BB
+            potSize = 1 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet SB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '1 + 1 + 2 + 15', potSize });
+          } else if (openerPosition === 'BB') {
+            // 3ベッターがBBの場合、BB(1BB)を引っ込めて3ベット
+            // SB(0.5BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 18.5BB
+            potSize = 0.5 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet BB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 2 + 15', potSize });
+          } else {
+            // 3ベッターがその他のポジションの場合
+            // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19.5BB
+            potSize = 0.5 + 1 + 1 + 2 + 15;
+            console.log(`🎯 vs3bet その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2 + 15', potSize });
+          }
         }
       } else if (actionType === 'vs4bet') {
-        if (stackSize === '30BB') {
-          openRaiseSize = 30; // 30BBの4ベットはオールイン
-          threeBetSize = 6.3; // ヒーロー（3ベッター）のチップサイズ
-          potSize = 30 + 1; // 4ベッターのオールイン + Ante
+        console.log(`🎯 vs4ベット計算開始（その他）:`, { stackSize, position, actionType });
+        // vs4ベットの正確なポット計算（その他のスタックサイズ）
+        if (position === 'SB') {
+          // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+          potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+        } else if (position === 'BB') {
+          console.log(`🎯 BBの場合の計算（その他）:`, { stackSize, position });
+          // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
+          console.log(`🎯 BB計算結果（その他）:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
         } else {
-          // 他のスタックサイズでも4ベットの場合は適切なサイズを設定
-          openRaiseSize = 30; // 4ベットは常にオールイン
-          threeBetSize = 6.3; // 3ベッターのサイズ
-          potSize = 30 + 1; // 4ベット + Ante
+          // ヒーローがその他のポジションの場合
+          potSize = 6.3 + 30 + 0.5 + 1 + 1;
         }
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 ${stackSize} vs4ベットポット計算（その他）:`, {
+          stackSize,
+          heroPosition: position,
+          threeBetChip: 6.3,
+          fourBetChip: 30,
+          smallBlindChip: position === 'SB' ? 0 : 0.5,
+          ante: 1,
+          total: potSize
+        });
       } else if (actionType === 'vs5bet') {
         potSize = 70 + 1; // 5ベット + Ante
       }
@@ -2232,7 +2376,7 @@ export default function MTTTrainingPage() {
           {/* モバイル版ヘッダー */}
           <div className="mb-1 md:hidden">
             <div className="flex justify-start py-0">
-              <h1 className="text-lg font-bold text-blue-400 leading-none">GTO Vantage</h1>
+              
             </div>
           </div>
           
@@ -2803,6 +2947,28 @@ export default function MTTTrainingPage() {
                         </div>
                       )}
                       
+                      {/* レンジ外ハンドの警告表示 */}
+                      {gtoData.isRangeOut && (
+                        <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-4 mb-4">
+                          <h4 className="text-yellow-400 font-semibold mb-2 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            レンジ外ハンド
+                          </h4>
+                          <div className="text-yellow-300 text-sm mb-3">
+                            {gtoData.effectiveStackExplanation}
+                          </div>
+                          <div className="text-gray-300 text-sm mb-2">
+                            {gtoData.stackSizeStrategy}
+                          </div>
+                          <div className="text-blue-300 text-sm bg-blue-900/20 p-3 rounded border-l-4 border-blue-500">
+                            <strong>💡 推奨アクション:</strong><br/>
+                            {gtoData.icmConsideration}
+                          </div>
+                        </div>
+                      )}
+
                       {/* 通常の結果表示（エラーでない場合のみ） */}
                       {!gtoData.isInvalidCombination && (
                         <>
@@ -2858,7 +3024,6 @@ export default function MTTTrainingPage() {
                                           : 'text-gray-300'
                                     }`}>
                                       {action}
-                                      {action === selectedAction && ' (選択)'}
                                       {action === gtoData.correctAction && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${
@@ -2870,22 +3035,7 @@ export default function MTTTrainingPage() {
                                 ))}
                               </div>
                               
-                              {/* 選択の評価 */}
-                              {selectedAction && gtoData.frequencies[selectedAction] !== undefined && (
-                                <div className="mt-3 p-3 rounded-lg border-l-4 border-blue-500 bg-blue-900/20">
-                                  <h5 className="text-blue-300 font-semibold text-xs mb-1">選択の評価</h5>
-                                  <p className="text-sm text-gray-300">
-                                    {gtoData.frequencies[selectedAction] > 30 
-                                      ? `${selectedAction}は高頻度推奨アクション（${gtoData.frequencies[selectedAction]}%）です。優秀な選択です！`
-                                      : gtoData.frequencies[selectedAction] > 10
-                                        ? `${selectedAction}は中頻度アクション（${gtoData.frequencies[selectedAction]}%）です。場合によっては選択可能です。`
-                                        : gtoData.frequencies[selectedAction] > 0
-                                          ? `${selectedAction}は低頻度アクション（${gtoData.frequencies[selectedAction]}%）です。稀に選択される戦略です。`
-                                          : `${selectedAction}は推奨されないアクション（0%）です。別のアクションを検討しましょう。`
-                                    }
-                                  </p>
-                                </div>
-                              )}
+
                             </div>
                           )}
                       
@@ -2912,56 +3062,9 @@ export default function MTTTrainingPage() {
                         </div>
                       )}
                       
-                      {/* 30BBスタック固有のベットサイズ情報 */}
-                      {stackSize === '30BB' && gtoData && !gtoData.isInvalidCombination && (
-                        <div className="bg-blue-900/20 p-3 rounded border border-blue-600/30 mb-4">
-                          <h5 className="text-blue-300 font-semibold text-xs mb-2">🎯 30BBベットサイズ</h5>
-                          <div className="text-xs text-gray-300 space-y-1">
-                            {actionType === 'openraise' && (
-                              <div className="flex justify-between">
-                                <span>オープンレイズ:</span>
-                                <span className="font-semibold text-blue-400">2.1BB</span>
-                              </div>
-                            )}
-                            {actionType === 'vsopen' && (
-                              <div className="flex justify-between">
-                                <span>vs オープン(2.1BB):</span>
-                                <span className="font-semibold text-green-400">ポット {spot?.potSize}BB</span>
-                              </div>
-                            )}
-                            {actionType === 'vs3bet' && gtoData.openRaiserPosition && (
-                              <>
-                                <div className="flex justify-between">
-                                  <span>オープンレイズ:</span>
-                                  <span className="font-semibold text-gray-400">2.1BB</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>3ベット({gtoData.openRaiserPosition}):</span>
-                                  <span className="font-semibold text-orange-400">
-                                    {gtoData.openRaiserPosition === 'SB' ? '7.5BB' :
-                                     gtoData.openRaiserPosition === 'BB' ? '8.2BB' :
-                                     '6.3BB'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>現在のポット:</span>
-                                  <span className="font-semibold text-blue-400">{spot?.potSize}BB</span>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      )}
+
                       
-                          {/* エクスプロイト提案 */}
-                          {gtoData.exploitSuggestion && !gtoData.isInvalidCombination && (
-                            <div className="bg-yellow-900/20 p-3 rounded border border-yellow-700/50">
-                              <h5 className="text-yellow-300 font-semibold text-xs mb-2">エクスプロイト提案</h5>
-                              <p className="text-xs text-gray-300">
-                                {gtoData.exploitSuggestion}
-                              </p>
-                          </div>
-                        )}
+
                         </>
                       )}
                     </div>

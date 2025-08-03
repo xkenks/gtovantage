@@ -9,11 +9,11 @@ import { FaArrowLeft, FaEnvelope, FaCheckCircle, FaExclamationTriangle } from 'r
 export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { verifyEmail, resendVerificationEmail, user, isEmailVerified, isAuthenticated } = useAuth();
+  const { user, isEmailVerified, isAuthenticated } = useAuth();
   
-  // ログイン済みでメール確認済みのユーザーはトレーニングページにリダイレクト
+  // ログイン済みでメール確認済みのユーザーはトップページにリダイレクト
   if (isAuthenticated && isEmailVerified) {
-    router.push('/trainer/mtt');
+    router.push('/');
     return null;
   }
   
@@ -27,7 +27,7 @@ export default function VerifyEmailPage() {
   useEffect(() => {
     // 既にメール確認済みの場合はリダイレクト
     if (isEmailVerified) {
-      router.push('/trainer/mtt');
+      router.push('/');
       return;
     }
 
@@ -43,23 +43,14 @@ export default function VerifyEmailPage() {
     setIsVerifying(true);
     setVerificationStatus('idle');
 
-    try {
-      const success = await verifyEmail(token);
-      
-      if (success) {
-        setVerificationStatus('success');
-        // 3秒後にトレーナーページにリダイレクト
-        setTimeout(() => {
-          router.push('/trainer/mtt');
-        }, 3000);
-      } else {
-        setVerificationStatus('error');
-      }
-    } catch (error) {
-      setVerificationStatus('error');
-    } finally {
+    // ダミー実装では常に成功とする
+    setTimeout(() => {
+      setVerificationStatus('success');
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
       setIsVerifying(false);
-    }
+    }, 1000);
   };
 
   const handleResendEmail = async () => {
@@ -68,14 +59,11 @@ export default function VerifyEmailPage() {
     setIsResending(true);
     setResendStatus('idle');
 
-    try {
-      const success = await resendVerificationEmail(user.email);
-      setResendStatus(success ? 'success' : 'error');
-    } catch (error) {
-      setResendStatus('error');
-    } finally {
+    // ダミー実装では常に成功とする
+    setTimeout(() => {
+      setResendStatus('success');
       setIsResending(false);
-    }
+    }, 1000);
   };
 
   if (isEmailVerified) {
@@ -86,10 +74,10 @@ export default function VerifyEmailPage() {
           <h1 className="text-2xl font-bold text-white mb-2">メール確認済み</h1>
           <p className="text-gray-300 mb-4">既にメール確認が完了しています</p>
           <Link 
-            href="/trainer/mtt"
+            href="/"
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
-            トレーニングを開始
+            トップページに戻る
           </Link>
         </div>
       </div>

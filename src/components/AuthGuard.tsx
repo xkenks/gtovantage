@@ -15,7 +15,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireEmailVeri
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      // サーバーサイドレンダリング時はwindow.locationが利用できないため、デフォルトパスを使用
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+      router.push('/login?redirect=' + encodeURIComponent(currentPath));
       return;
     }
 

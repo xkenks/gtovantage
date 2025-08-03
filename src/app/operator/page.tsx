@@ -43,7 +43,7 @@ export default function OperatorPage() {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
                     <span className="font-medium">事業内容</span>
-                    <span>オンラインゲーム・アプリケーション開発</span>
+                    <span>アプリケーション開発</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
                     <span className="font-medium">サービス</span>

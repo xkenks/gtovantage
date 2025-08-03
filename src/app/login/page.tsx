@@ -9,16 +9,10 @@ import { FaArrowLeft, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
   
   // リダイレクト先を取得
-  const redirectTo = searchParams.get('redirect') || '/trainer/mtt';
-  
-  // ログイン済みユーザーは適切なページにリダイレクト
-  if (isAuthenticated) {
-    router.push(redirectTo);
-    return null;
-  }
+  const redirectTo = searchParams.get('redirect') || '/';
   
   const [formData, setFormData] = useState({
     email: '',
@@ -58,7 +52,7 @@ export default function LoginPage() {
       const success = await login(formData.email, formData.password);
       
       if (success) {
-        router.push(redirectTo);
+        router.push('/');
       } else {
         setError('メールアドレスまたはパスワードが正しくありません');
       }
