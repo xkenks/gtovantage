@@ -2844,6 +2844,13 @@ function MTTTrainingPage() {
 
   // システム全体にレンジデータを保存
   const handleSaveToSystem = async () => {
+    console.log('🎯 システム保存開始:', {
+      isAdmin,
+      hasToken: !!token,
+      customRangesCount: Object.keys(customRanges).length,
+      sampleRange: Object.keys(customRanges)[0] ? customRanges[Object.keys(customRanges)[0]] : null
+    });
+
     if (!isAdmin || !token) {
       alert('❌ 管理者権限が必要です。');
       return;
@@ -2855,19 +2862,29 @@ function MTTTrainingPage() {
     }
 
     try {
+      const requestBody = {
+        ranges: customRanges,
+        metadata: {
+          creator: 'MTT Admin System',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      console.log('🎯 リクエストボディ:', requestBody);
+
       const response = await fetch('/api/mtt-ranges', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          ranges: customRanges,
-          metadata: {
-            creator: 'MTT Admin System',
-            timestamp: new Date().toISOString()
-          }
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('🎯 レスポンス:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
       });
 
       if (response.ok) {
@@ -2878,8 +2895,9 @@ function MTTTrainingPage() {
           systemMetadata: result.metadata
         });
         alert(`✅ システム全体に保存完了！\n${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンドを保存しました。\n（ローカルデータは保持されます）`);
-        } else {
+      } else {
         const error = await response.json();
+        console.error('🎯 エラーレスポンス:', error);
         throw new Error(error.error || '保存に失敗しました');
       }
     } catch (error) {

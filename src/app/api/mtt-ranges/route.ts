@@ -16,6 +16,12 @@ if (!fs.existsSync(DATA_DIR)) {
 export interface HandInfo {
   action: string;
   frequency: number;
+  mixedFrequencies?: {
+    FOLD: number;
+    CALL: number;
+    MIN?: number;
+    ALL_IN: number;
+  };
 }
 
 export interface MTTRangeData {
@@ -88,19 +94,33 @@ export async function GET(request: NextRequest) {
 
 // システム全体にMTTレンジデータを保存（管理者のみ）
 export async function POST(request: NextRequest) {
+  console.log('🎯 POST /api/mtt-ranges 開始');
+  
   // 管理者認証チェック
   if (!verifyAdminToken(request)) {
+    console.log('❌ 管理者認証失敗');
     return NextResponse.json(
       { error: '管理者権限が必要です' },
       { status: 403 }
     );
   }
 
+  console.log('✅ 管理者認証成功');
+
   try {
     const body = await request.json();
     const { ranges, metadata } = body;
 
+    console.log('🎯 リクエストボディ:', {
+      hasRanges: !!ranges,
+      rangesType: typeof ranges,
+      rangesKeys: ranges ? Object.keys(ranges) : [],
+      rangesCount: ranges ? Object.keys(ranges).length : 0,
+      metadata
+    });
+
     if (!ranges || typeof ranges !== 'object') {
+      console.log('❌ 無効なレンジデータ');
       return NextResponse.json(
         { error: '無効なレンジデータです' },
         { status: 400 }
