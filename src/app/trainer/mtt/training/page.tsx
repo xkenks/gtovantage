@@ -1731,11 +1731,21 @@ function MTTTrainingPage() {
 
   // 新しいシナリオを生成
   const generateNewScenario = () => {
+    // URLパラメータで特定のハンドが指定されている場合はそれを維持
+    const urlHands = searchParams.get('hands');
+    
     // 新しいハンドの生成方法を決定
     let newHand: string[];
     let handType: string;
     
-    if (selectedTrainingHands.length > 0) {
+    if (urlHands) {
+      // URLパラメータで指定されたハンドを維持
+      const handTypes = urlHands.split(',');
+      const randomHandType = handTypes[Math.floor(Math.random() * handTypes.length)];
+      newHand = generateHandFromType(randomHandType);
+      handType = randomHandType;
+      console.log('🎯 URLパラメータハンドを維持:', { urlHands, selectedHandType: randomHandType });
+    } else if (selectedTrainingHands.length > 0) {
       // 選択されたトレーニングハンドがある場合はその中からランダムに選ぶ
       const randomHandType = selectedTrainingHands[Math.floor(Math.random() * selectedTrainingHands.length)];
       
@@ -3182,6 +3192,12 @@ function MTTTrainingPage() {
   
   // 次のスポットへ進むハンドラー
   const handleNextSpot = () => {
+    console.log('🎯 次のスポットに進む:', {
+      currentHand: hand,
+      currentHandType: normalizeHandType(hand),
+      urlHands: searchParams.get('hands')
+    });
+    
     // 練習回数をカウント
     incrementPracticeCount();
     
@@ -3190,12 +3206,18 @@ function MTTTrainingPage() {
     setIsCorrect(false);
     setShowResults(false);
     
-    // 新しいシナリオを生成
+    // 新しいシナリオを生成（URLパラメータのハンドは維持される）
     generateNewScenario();
   };
   
   // 同じスポットを繰り返すハンドラー
   const handleRepeatSpot = () => {
+    console.log('🎯 同じスポットを繰り返し:', {
+      currentHand: hand,
+      currentHandType: normalizeHandType(hand),
+      urlHands: searchParams.get('hands')
+    });
+    
     // 結果をリセットするが、同じハンドを使用
     setSelectedAction(null);
     setIsCorrect(false);
