@@ -362,7 +362,7 @@ const simulateMTTGTOData = (
         
         // MIXEDアクションの場合は、最大頻度のアクションを主要アクションとして設定
         if (customHandData.action === 'MIXED') {
-          customHandData.action = customPrimaryAction;
+          customHandData.action = customPrimaryAction as "FOLD" | "CALL" | "RAISE" | "ALL_IN" | "MIXED";
           customHandData.frequency = maxFreqEntry[1];
         }
         
@@ -842,13 +842,7 @@ const simulateMTTGTOData = (
         recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
         strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         isCustomRange: true,
-        _debug: {
-          customRangeUsed: true,
-          originalAction: customHandData.action,
-          finalAction: customPrimaryAction,
-          frequencies: customFrequencies,
-          handType: normalizedHandType
-        }
+
       };
     }
     
@@ -971,13 +965,7 @@ const simulateMTTGTOData = (
       recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
       strategicAnalysis: `vs3ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       exploitSuggestion: `vs 3ベットでは、相手の3ベット頻度と4ベットに対する反応を観察して調整しましょう。`,
-      _debug: {
-        customRangeUsed: false,
-        originalAction: 'DEFAULT',
-        finalAction: gtoAction,
-        frequencies: frequencies,
-        handType: normalizedHandType
-      }
+
     };
   }
   
@@ -2274,17 +2262,7 @@ function MTTTrainingPage() {
       correctAction: data.correctAction, // 頻度を含めずにアクションのみを保存
       evData: data.evData as { [action: string]: number } | undefined,
       frequencies: data.frequencies, // 頻度データを追加
-      // デバッグ用：カスタムレンジ情報を追加
-      _debug: {
-        ...data._debug,
-        customRangeUsed: data.isCustomRange,
-        normalizedHandType: data.normalizedHandType,
-        frequencies: data.frequencies,
-        correctAction: data.correctAction,
-        // 強制的にデータ同期を保証
-        dataSource: 'simulateMTTGTOData',
-        timestamp: Date.now()
-      },
+
       correctBetSize: recommendedBetSize,
       // スタック関連の情報を追加
       stackDepth: stackSize,
@@ -2356,7 +2334,7 @@ function MTTTrainingPage() {
       spotId: finalSpot.id,
       spotCorrectAction: finalSpot.correctAction,
       spotFrequencies: finalSpot.frequencies,
-      spotDebug: finalSpot._debug,
+
       heroHand: finalSpot.heroHand,
       actionType: finalSpot.actionType,
       stackSize: finalSpot.stackDepth
@@ -2617,19 +2595,22 @@ function MTTTrainingPage() {
             'vs3bet_HJ_vs_CO_40BB': { 
               'QQ': { 
                 action: 'MIXED' as const, 
-                mixedFrequencies: { FOLD: 0, CALL: 0, RAISE: 10, ALL_IN: 90 } 
+                frequency: 100,
+                mixedFrequencies: { FOLD: 0, CALL: 0, MIN: 10, ALL_IN: 90 } 
               } 
             },
             'vs3bet_UTG1_vs_SB_40BB': {
               'QQ': {
                 action: 'MIXED' as const,
-                mixedFrequencies: { FOLD: 0, CALL: 0, RAISE: 10, ALL_IN: 90 }
+                frequency: 100,
+                mixedFrequencies: { FOLD: 0, CALL: 0, MIN: 10, ALL_IN: 90 }
               }
             },
             'vs3bet_LJ_vs_BB_40BB': {
               'QQ': {
                 action: 'MIXED' as const,
-                mixedFrequencies: { FOLD: 0, CALL: 0, RAISE: 10, ALL_IN: 90 }
+                frequency: 100,
+                mixedFrequencies: { FOLD: 0, CALL: 0, MIN: 10, ALL_IN: 90 }
               }
             }
           };
