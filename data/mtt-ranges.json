@@ -56704,7 +56704,7 @@
         }
       },
       "AA": {
-        "action": "MIN",
+        "action": "ALL_IN",
         "frequency": 100
       },
       "AKs": {

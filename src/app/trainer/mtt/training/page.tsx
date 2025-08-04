@@ -632,68 +632,16 @@ const simulateMTTGTOData = (
       
       // 強力なハンドの場合は強制的に適切なアクションを設定
       if (!customHandData) {
-        if (normalizedHandType === 'AA') {
-          console.log('🎯 AAハンド強制ALL IN設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'ALL IN',
-            frequency: 100
-          };
-          usedRangeKey = 'AA_FORCE_ALL_IN';
-        } else if (normalizedHandType === 'KK') {
-          console.log('🎯 KKハンド強制ALL IN設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'ALL IN',
-            frequency: 100
-          };
-          usedRangeKey = 'KK_FORCE_ALL_IN';
-        } else if (normalizedHandType === 'QQ') {
-          console.log('🎯 QQハンド: カスタムレンジ未発見のため、デフォルト設定を使用');
-          // QQハンドの場合は、カスタムレンジが設定されていない場合でも強制設定は行わない
-          // 代わりに、カスタムレンジが正しく読み込まれているかを確認
-          console.log('🎯 QQハンド カスタムレンジ確認:', {
-            hasCustomRanges: !!customRanges,
-            customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
-            vs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')) : [],
-            targetRangeKey: rangeKey,
-            hasTargetRange: !!(customRanges && customRanges[rangeKey]),
-            targetRangeData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : []
-          });
-          
-          // デフォルトのQQ設定を使用
-          customHandData = {
-            action: 'MIXED',
-            mixedFrequencies: { FOLD: 0, CALL: 0, RAISE: 10, ALL_IN: 90 }
-          };
-          usedRangeKey = 'QQ_DEFAULT_MIXED';
-        } else if (normalizedHandType === 'JJ') {
-          console.log('🎯 JJハンド強制CALL設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'CALL',
-            frequency: 100
-          };
-          usedRangeKey = 'JJ_FORCE_CALL';
-        } else if (normalizedHandType === 'TT') {
-          console.log('🎯 TTハンド強制CALL設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'CALL',
-            frequency: 100
-          };
-          usedRangeKey = 'TT_FORCE_CALL';
-        } else if (['AKs', 'AKo'].includes(normalizedHandType)) {
-          console.log('🎯 AKハンド強制ALL IN設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'ALL IN',
-            frequency: 100
-          };
-          usedRangeKey = 'AK_FORCE_ALL_IN';
-        } else if (['AQs', 'AQo'].includes(normalizedHandType)) {
-          console.log('🎯 AQハンド強制CALL設定（カスタムレンジ未発見時）');
-          customHandData = {
-            action: 'CALL',
-            frequency: 100
-          };
-          usedRangeKey = 'AQ_FORCE_CALL';
-        }
+        // カスタムレンジが見つからない場合は、デフォルト戦略を使用
+        console.log('🎯 カスタムレンジ未発見 - デフォルト戦略を使用:', {
+          handType: normalizedHandType,
+          rangeKey,
+          hasCustomRanges: !!customRanges,
+          availableRanges: customRanges ? Object.keys(customRanges) : []
+        });
+        
+        // カスタムレンジが見つからない場合は、nullを返してデフォルト戦略に委ねる
+        customHandData = null;
       }
     }
     
@@ -737,35 +685,13 @@ const simulateMTTGTOData = (
           totalFreq: Object.values(customFrequencies).reduce((sum, freq) => sum + freq, 0)
         });
       } else {
-        // 強力なハンドの場合は強制的に適切なアクションを設定
-        if (normalizedHandType === 'AA' && customHandData.action !== 'ALL IN') {
-          console.log('🎯 AAハンド強制ALL IN設定（カスタムレンジ処理時）');
-          customHandData.action = 'ALL IN';
-          customHandData.frequency = 100;
-        } else if (normalizedHandType === 'KK' && customHandData.action !== 'ALL IN') {
-          console.log('🎯 KKハンド強制ALL IN設定（カスタムレンジ処理時）');
-          customHandData.action = 'ALL IN';
-          customHandData.frequency = 100;
-        } else if (normalizedHandType === 'QQ') {
-          console.log('🎯 QQハンド: カスタムレンジの設定を尊重');
-          // QQハンドの場合は、カスタムレンジの設定をそのまま使用
-        } else if (normalizedHandType === 'JJ' && customHandData.action !== 'CALL') {
-          console.log('🎯 JJハンド強制CALL設定（カスタムレンジ処理時）');
-          customHandData.action = 'CALL';
-          customHandData.frequency = 100;
-        } else if (normalizedHandType === 'TT' && customHandData.action !== 'CALL') {
-          console.log('🎯 TTハンド強制CALL設定（カスタムレンジ処理時）');
-          customHandData.action = 'CALL';
-          customHandData.frequency = 100;
-        } else if (['AKs', 'AKo'].includes(normalizedHandType) && customHandData.action !== 'ALL IN') {
-          console.log('🎯 AKハンド強制ALL IN設定（カスタムレンジ処理時）');
-          customHandData.action = 'ALL IN';
-          customHandData.frequency = 100;
-        } else if (['AQs', 'AQo'].includes(normalizedHandType) && customHandData.action !== 'CALL') {
-          console.log('🎯 AQハンド強制CALL設定（カスタムレンジ処理時）');
-          customHandData.action = 'CALL';
-          customHandData.frequency = 100;
-        }
+        // カスタムレンジの設定を尊重（強制設定を削除）
+        console.log('🎯 カスタムレンジ設定を尊重:', {
+          handType: normalizedHandType,
+          originalAction: customHandData.action,
+          originalFrequency: customHandData.frequency,
+          isMixed: customHandData.action === 'MIXED'
+        });
         // 単一アクションの場合
         customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
         // MINをRAISEに変換
@@ -3388,8 +3314,14 @@ function MTTTrainingPage() {
                     currentRangeKey: `vs3bet_${position}_vs_BTN_${stackSize}`,
                     hasCurrentRange: !!(customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`]),
                     currentRangeData: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
-                      Object.keys(customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`]) : []
+                      Object.keys(customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`]) : [],
+                    hasCurrentHand: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
+                      !!(customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`][handType]) : false,
+                    currentHandData: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
+                      customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`][handType] : null
                   });
+                  
+
                 }}
                 className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-medium"
               >
