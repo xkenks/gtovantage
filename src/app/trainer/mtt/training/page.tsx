@@ -1664,6 +1664,7 @@ function MTTTrainingPage() {
   const [showHandSelector, setShowHandSelector] = useState(false);
   const [selectedTrainingHands, setSelectedTrainingHands] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // ハンドタイプからカード配列を生成するヘルパー関数
   const generateHandFromType = (handType: string): string[] => {
@@ -2310,8 +2311,11 @@ function MTTTrainingPage() {
   
   // 初期化（依存関係も簡略化）
   useEffect(() => {
-    generateNewScenario();
-  }, [position, stackSize, actionType, customHandsString, customRanges]);
+    if (!isInitialized) {
+      generateNewScenario();
+      setIsInitialized(true);
+    }
+  }, [position, stackSize, actionType, customHandsString, isInitialized]);
   
   // 新しいアプローチ: spot変更後にスタックを監視・修正
   useEffect(() => {
