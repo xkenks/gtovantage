@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-08-03T18:18:13.233Z",
+  "lastUpdated": "2025-08-04T07:22:01.915Z",
   "ranges": {
     "vsopen_UTG1_vs_UTG": {
       "55": {
@@ -53576,8 +53576,8 @@
         }
       },
       "QQ": {
-        "action": "MIXED",
-        "frequency": 100,
+        "action": "ALL IN",
+        "frequency": 97,
         "mixedFrequencies": {
           "MIN": 3,
           "ALL_IN": 97,
@@ -53852,8 +53852,8 @@
         "frequency": 100
       },
       "QQ": {
-        "action": "MIXED",
-        "frequency": 100,
+        "action": "ALL IN",
+        "frequency": 90,
         "mixedFrequencies": {
           "MIN": 10,
           "ALL_IN": 90,
@@ -54168,8 +54168,8 @@
         }
       },
       "QQ": {
-        "action": "MIXED",
-        "frequency": 100,
+        "action": "ALL IN",
+        "frequency": 90,
         "mixedFrequencies": {
           "MIN": 10,
           "ALL_IN": 90,
@@ -54587,16 +54587,6 @@
           "FOLD": 70
         }
       },
-      "87s": {
-        "action": "MIXED",
-        "frequency": 100,
-        "mixedFrequencies": {
-          "MIN": 0,
-          "ALL_IN": 0,
-          "CALL": 50,
-          "FOLD": 50
-        }
-      },
       "65s": {
         "action": "MIXED",
         "frequency": 100,
@@ -54784,8 +54774,8 @@
         "frequency": 100
       },
       "QQ": {
-        "action": "MIXED",
-        "frequency": 100,
+        "action": "ALL IN",
+        "frequency": 85,
         "mixedFrequencies": {
           "MIN": 0,
           "ALL_IN": 85,
@@ -57955,6 +57945,16 @@
           "FOLD": 0
         }
       },
+      "QQ": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 90,
+          "CALL": 0,
+          "FOLD": 10
+        }
+      },
       "A5s": {
         "action": "ALL_IN",
         "frequency": 100
@@ -59895,7 +59895,7 @@
   },
   "metadata": {
     "totalPositions": 216,
-    "totalHands": 10894,
+    "totalHands": 10893,
     "creator": "MTT Admin System",
     "environment": "development"
   }
