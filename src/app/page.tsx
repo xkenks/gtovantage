@@ -114,8 +114,8 @@ export default function Home() {
                 <div className="text-xs md:text-base text-gray-300">GTOシナリオ</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl md:text-4xl font-bold text-purple-400 mb-1 md:mb-2">AI</div>
-                <div className="text-xs md:text-base text-gray-300">最適化エンジン</div>
+                <div className="text-2xl md:text-4xl font-bold text-purple-400 mb-1 md:mb-2">最新</div>
+                <div className="text-xs md:text-base text-gray-300">GTO Solver</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl md:text-4xl font-bold text-pink-400 mb-1 md:mb-2">200%</div>
