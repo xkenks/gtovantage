@@ -498,19 +498,41 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     }
     // 頻度情報がない場合は従来の評価方法を使用
     else {
-      // 正しいアクションとの比較（正解がない場合は常にoptimal）
-      if (currentSpot.correctAction) {
-        // MINやRFIが正解の場合の処理
-        if (currentSpot.correctAction === 'MIN' && selectedAction === 'RAISE') {
+      // 正しいアクションとの比較（頻度情報を優先使用）
+      if (currentSpot.correctAction && currentSpot.frequencies) {
+        const correctActionBase = currentSpot.correctAction.split(' ')[0];
+        const selectedActionBase = selectedAction.split(' ')[0];
+        
+        // 頻度情報から正解頻度を取得
+        const correctFrequency = currentSpot.frequencies[correctActionBase] || 0;
+        const selectedFrequency = currentSpot.frequencies[selectedActionBase] || 0;
+        
+        // 頻度に基づく評価
+        if (selectedActionBase === correctActionBase) {
           evaluationLevel = 'perfect';
-        } else if (currentSpot.correctAction === 'RFI' && selectedAction === 'RAISE') {
+          actionFrequency = correctFrequency;
+        } else if (selectedFrequency > 0) {
+          // 選択したアクションが推奨頻度に含まれている場合
+          evaluationLevel = selectedFrequency >= 50 ? 'optimal' : 'acceptable';
+          actionFrequency = selectedFrequency;
+        } else {
+          evaluationLevel = 'suboptimal';
+          actionFrequency = 0;
+        }
+      } else if (currentSpot.correctAction) {
+        // 頻度情報がない場合の従来の評価
+        const correctActionBase = currentSpot.correctAction.split(' ')[0];
+        const selectedActionBase = selectedAction.split(' ')[0];
+        
+        if (correctActionBase === 'MIN' && selectedActionBase === 'RAISE') {
           evaluationLevel = 'perfect';
-        } else if (selectedAction === currentSpot.correctAction) {
+        } else if (correctActionBase === 'RFI' && selectedActionBase === 'RAISE') {
+          evaluationLevel = 'perfect';
+        } else if (selectedActionBase === correctActionBase) {
           evaluationLevel = 'perfect';
         } else if (
-          // リスクの低いアクションを選んだ場合（コールvs.レイズなど）
-          (currentSpot.correctAction === 'RAISE' && selectedAction === 'CALL') ||
-          (currentSpot.correctAction === 'CALL' && selectedAction === 'FOLD')
+          (correctActionBase === 'RAISE' && selectedActionBase === 'CALL') ||
+          (correctActionBase === 'CALL' && selectedActionBase === 'FOLD')
         ) {
           evaluationLevel = 'acceptable';
         } else {
@@ -518,35 +540,17 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         }
       }
       
-      // 頻度情報がない場合の頻度計算（評価レベルに基づく調整）
-      if (evaluationLevel === 'perfect') {
-        // 大正解の場合は状況に応じた頻度（パーセント形式）
-        if (actionType === 'FOLD') actionFrequency = 95;   // フォールドの大正解
-        else if (actionType === 'CALL') actionFrequency = 75;  // コールの大正解  
-        else if (actionType === 'RAISE') actionFrequency = 65;  // レイズの大正解
-        else if (actionType === 'ALL') actionFrequency = 90;   // オールインの大正解
-        else actionFrequency = 80;  // その他
-      } else if (evaluationLevel === 'optimal') {
-        // 正解の場合は中程度の頻度（パーセント形式）
-        if (actionType === 'FOLD') actionFrequency = 60;   // フォールド正解
-        else if (actionType === 'CALL') actionFrequency = 50;  // コール正解
-        else if (actionType === 'RAISE') actionFrequency = 40;  // レイズ正解
-        else if (actionType === 'ALL') actionFrequency = 55;   // オールイン正解
-        else actionFrequency = 45;  // その他
-      } else if (evaluationLevel === 'acceptable') {
-        // 許容範囲の場合は低めの頻度（パーセント形式）
-        if (actionType === 'FOLD') actionFrequency = 30;
-        else if (actionType === 'CALL') actionFrequency = 25;
-        else if (actionType === 'RAISE') actionFrequency = 20;
-        else if (actionType === 'ALL') actionFrequency = 15;
-        else actionFrequency = 20;
-      } else if (evaluationLevel === 'suboptimal') {
-        // 不正解の場合は極めて低い頻度（パーセント形式）
-        if (actionType === 'FOLD') actionFrequency = 5;
-        else if (actionType === 'CALL') actionFrequency = 10;
-        else if (actionType === 'RAISE') actionFrequency = 5;
-        else if (actionType === 'ALL') actionFrequency = 2;
-        else actionFrequency = 5;
+      // 頻度情報がない場合のデフォルト頻度設定
+      if (actionFrequency === 0) {
+        if (evaluationLevel === 'perfect') {
+          actionFrequency = 90;
+        } else if (evaluationLevel === 'optimal') {
+          actionFrequency = 60;
+        } else if (evaluationLevel === 'acceptable') {
+          actionFrequency = 30;
+        } else {
+          actionFrequency = 5;
+        }
       }
     }
     
@@ -1002,7 +1006,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   // ポットサイズの取得
   const potSizeFormatted = getPotSize();
   
-  // 選択したアクションと正解アクションの基本部分
+  // 選択したアクションと正解アクションの基本部分（頻度を除去）
   const selectedActionBase = selectedAction ? selectedAction.split(' ')[0] : '';
   const correctActionBase = currentSpot.correctAction ? currentSpot.correctAction.split(' ')[0] : '';
 

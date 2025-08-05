@@ -1,4 +1,9 @@
 {
-  "/trainer/mtt/page": "app/trainer/mtt/page.js",
-  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
+  "/page": "app/page.js",
+  "/api/admin/auth/route": "app/api/admin/auth/route.js",
+  "/subscription/page": "app/subscription/page.js",
+  "/mypage/page": "app/mypage/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js"
 }

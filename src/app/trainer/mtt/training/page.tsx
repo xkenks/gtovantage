@@ -324,7 +324,10 @@ const simulateMTTGTOData = (
         (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
         (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
       )),
-      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      vsopenKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vsopen_')) : [],
+      currentRangeData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : null,
+      fallbackRangeData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : null
     });
     
     // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
@@ -2642,63 +2645,7 @@ function MTTTrainingPage() {
     }
   }, [customRanges]);
   
-  // カスタムレンジのデバッグ用ヘルパー関数
-  const debugCustomRange = (position: string, handType: string) => {
-    console.log('🎯 デバッグ: カスタムレンジ状態:', {
-      hasCustomRanges: !!customRanges,
-      customRangesKeys: customRanges ? Object.keys(customRanges) : [],
-      customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
-      position,
-      handType,
-      hasPositionRange: !!(customRanges && customRanges[position]),
-      positionRangeKeys: customRanges && customRanges[position] ? Object.keys(customRanges[position]) : [],
-      hasHandType: !!(customRanges && customRanges[position] && customRanges[position][handType]),
-      handTypeData: customRanges && customRanges[position] && customRanges[position][handType] ? customRanges[position][handType] : null
-    });
-    
-    // vs3betのレンジキーも確認
-    const vs3betKeys = customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')) : [];
-    console.log('🎯 vs3betレンジキー:', {
-      vs3betKeys,
-      vs3betCount: vs3betKeys.length,
-      sampleVs3betKey: vs3betKeys[0] || null,
-      sampleVs3betData: vs3betKeys[0] && customRanges ? Object.keys(customRanges[vs3betKeys[0]]) : []
-    });
-    
-    // ローカルストレージの状態も確認
-    const localRanges = localStorage.getItem('mtt-custom-ranges');
-    if (localRanges) {
-      try {
-        const parsedLocalRanges = JSON.parse(localRanges);
-        const localVs3betKeys = Object.keys(parsedLocalRanges).filter(key => key.startsWith('vs3bet_'));
-        console.log('🎯 ローカルストレージvs3betレンジ:', {
-          localVs3betKeys,
-          localVs3betCount: localVs3betKeys.length,
-          localSampleKey: localVs3betKeys[0] || null,
-          localSampleData: localVs3betKeys[0] ? Object.keys(parsedLocalRanges[localVs3betKeys[0]]) : []
-        });
-      } catch (e) {
-        console.log('ローカルストレージ解析エラー:', e);
-      }
-    }
-    
-    const positionRange = customRanges[position];
-    if (!positionRange) {
-      console.log(`🔍 ${position}ポジションのカスタムレンジが存在しません`);
-      return null;
-    }
-    
-    const handInfo = positionRange[handType];
-    console.log(`🔍 ${position}ポジション、${handType}ハンドの情報:`, {
-      handInfo,
-      hasMixedFrequencies: !!handInfo?.mixedFrequencies,
-      mixedFrequencies: handInfo?.mixedFrequencies,
-      action: handInfo?.action,
-      frequency: handInfo?.frequency
-    });
-    
-    return handInfo;
-  };
+
   
   // レンジエディターのハンドラー関数
   const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
@@ -3259,39 +3206,10 @@ function MTTTrainingPage() {
   return (
     <AuthGuard>
       <div className="relative">
-      {/* 管理者ログインボタン（未ログイン時のみ表示、PC版のみ） */}
-      {!isAdmin && !isMobile && (
-        <button
-          className="absolute top-4 right-4 z-50 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg font-bold"
-          onClick={() => setShowAdminLogin(true)}
-        >
-          管理者ログイン
-        </button>
-      )}
+
       
       {/* 管理者ログアウトボタン（ログイン時のみ表示、PC版のみ） */}
-      {isAdmin && user && !isMobile && (
-        <div className="absolute top-4 right-4 z-50 bg-green-800 rounded-lg shadow-lg p-3 border border-green-600">
-          <div className="flex items-center gap-3">
-            <div className="text-green-300 text-sm">
-              <div className="flex items-center gap-1">
-                <span className="text-green-400">🔒</span>
-                <span className="font-semibold">{user.username}</span>
-              </div>
-              <div className="text-xs text-green-200">管理者でログイン中</div>
-            </div>
-            <button
-              onClick={() => {
-                logout();
-                alert('ログアウトしました');
-              }}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors duration-200"
-            >
-              ログアウト
-            </button>
-          </div>
-        </div>
-      )}
+
       
       {/* 管理者ログインモーダル */}
       {showAdminLogin && (
@@ -3339,38 +3257,7 @@ function MTTTrainingPage() {
                    actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
                 </span>
               </div>
-              <button
-                onClick={() => {
-                  const handType = normalizeHandType(hand);
-                  debugCustomRange(position, handType);
-                  
-                  // 現在のシナリオ情報も出力
-                  console.log('🎯 現在のシナリオ情報:', {
-                    hand,
-                    handType,
-                    position,
-                    stackSize,
-                    actionType,
-                    hasCustomRanges: !!customRanges,
-                    customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
-                    vs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')) : [],
-                    vs3betCount: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')).length : 0,
-                    currentRangeKey: `vs3bet_${position}_vs_BTN_${stackSize}`,
-                    hasCurrentRange: !!(customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`]),
-                    currentRangeData: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
-                      Object.keys(customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`]) : [],
-                    hasCurrentHand: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
-                      !!(customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`][handType]) : false,
-                    currentHandData: customRanges && customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`] ? 
-                      customRanges[`vs3bet_${position}_vs_BTN_${stackSize}`][handType] : null
-                  });
-                  
-
-                }}
-                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-medium"
-              >
-                🐛 デバッグ
-              </button>
+              
               <Link 
                 href={`/trainer/mtt?${new URLSearchParams({
                   stack: stackSize,
@@ -3378,17 +3265,77 @@ function MTTTrainingPage() {
                   action: actionType,
                   ...(customHands.length > 0 ? { hands: encodeURIComponent(customHands.join(',')) } : {})
                 }).toString()}`} 
-                className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
               >
-                ← 戻る
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                戻る
               </Link>
+              
+              {/* 管理者ログインボタン（未ログイン時のみ表示） */}
+              {!isAdmin && (
+                <button
+                  onClick={() => setShowAdminLogin(true)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 ml-4"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  管理者ログイン
+                </button>
+              )}
+              
+              {/* 管理者ログイン情報 - 一番右側に配置 */}
+              {isAdmin && (
+                <div className="flex items-center gap-3 bg-green-600/20 px-3 py-2 rounded-lg border border-green-500/30 ml-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <div className="text-sm">
+                    <div className="text-green-400 font-medium">gto-admin</div>
+                    <div className="text-green-300 text-xs">管理者でログイン中</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('admin-token');
+                      window.location.reload();
+                    }}
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
+                  >
+                    ログアウト
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
           {/* モバイル版ヘッダー */}
           <div className="mb-1 md:hidden">
-            <div className="flex justify-start py-0">
+            <div className="flex justify-between items-center py-2">
+              <h1 className="text-xl font-bold">MTTプリフロップトレーニング</h1>
               
+              {/* モバイル版管理者ログイン情報 */}
+              {isAdmin && (
+                <div className="flex items-center gap-2 bg-green-600/20 px-2 py-1 rounded border border-green-500/30">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <div className="text-xs">
+                    <div className="text-green-400 font-medium">gto-admin</div>
+                    <div className="text-green-300 text-xs">管理者</div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('admin-token');
+                      window.location.reload();
+                    }}
+                    className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
+                  >
+                    ログアウト
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
@@ -3588,9 +3535,9 @@ function MTTTrainingPage() {
                   <h3 className="text-lg font-semibold text-white mb-1">vs オープンレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでのヒーローポジションとオープンレイザーの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-green-300 mt-1">💡 オープンに対してFOLD/CALL/RAISE/ALL INの頻度を設定します</p>
-                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length > 0 && (
                     <div className="text-xs text-green-400 mt-1">
-                      {stackSize}カスタムvsオープンレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                      {stackSize}カスタムvsオープンレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length}レンジ
                     </div>
                   )}
                 </div>
@@ -3612,7 +3559,7 @@ function MTTTrainingPage() {
                         <div className="flex flex-wrap gap-1">
                           {validOpeners.map(opener => {
                             const rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
-                            // 15BBの場合は既存レンジキーも確認
+                            // 15BBの場合は既存レンジキーも確認（他のスタックサイズは専用キーのみ）
                             const fallbackRangeKey = stackSize === '15BB' ? `vsopen_${heroPos}_vs_${opener}` : null;
                             const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
                             
@@ -3665,9 +3612,9 @@ function MTTTrainingPage() {
                   <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでのオープンレイザーと3ベッターの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-orange-300 mt-1">💡 3ベットに対してFOLD/CALL/RAISE(4bet)/ALL INの頻度を設定します</p>
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
                     <div className="text-xs text-orange-400 mt-1">
-                      {stackSize}カスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                      {stackSize}カスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length}レンジ
                     </div>
                   )}
                 </div>
@@ -3740,9 +3687,9 @@ function MTTTrainingPage() {
                   <h3 className="text-lg font-semibold text-white mb-1">vs 4ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
                   <p className="text-sm text-gray-300">現在の{stackSize}スタックでの3ベッターと4ベッターの組み合わせでレンジを設定できます</p>
                   <p className="text-xs text-red-300 mt-1">💡 4ベットに対してFOLD/CALL/ALL IN(5bet)の頻度を設定します</p>
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
                     <div className="text-xs text-red-400 mt-1">
-                      {stackSize}カスタムvs4ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}レンジ
+                      {stackSize}カスタムvs4ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).length}レンジ
                     </div>
                   )}
                 </div>
@@ -3841,7 +3788,7 @@ function MTTTrainingPage() {
             
             {/* 右側 - コントロールパネル */}
             <div className="w-full lg:w-2/5">
-              <div className={`w-full ${isMobile ? '' : 'bg-gray-800 rounded-xl'} ${isMobile ? 'p-2' : 'p-4'}`}>
+              <div className={`w-full ${isMobile ? '' : 'bg-gray-800 rounded-xl'} ${isMobile ? 'p-2' : 'p-4'} ${!isMobile ? 'h-[550px] flex flex-col' : ''}`}>
                 {/* タイトル - PC版のみ表示 */}
                 {!isMobile && (
                 <h2 className="text-xl font-bold mb-4">
@@ -3923,7 +3870,7 @@ function MTTTrainingPage() {
                 )}
                 
                 {/* 結果情報エリア - 常に同じ高さで表示、空の場合は空白のプレースホルダー */}
-                <div className={`${isMobile ? 'pt-1' : 'pt-4'} ${isMobile ? 'h-auto' : 'h-[340px] overflow-y-auto border-t border-gray-700'}`}>
+                <div className={`${isMobile ? 'pt-1' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
                   {/* 結果がない場合のプレースホルダー */}
                   {!showResults && (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
@@ -4119,28 +4066,7 @@ function MTTTrainingPage() {
                             </div>
                           )}
                       
-                      {/* vs openの場合はオープンレイザーの情報を表示 */}
-                      {actionType === 'vsopen' && gtoData.openRaiserPosition && (
-                        <div className={`${isMobile ? 'bg-gray-700/10' : 'bg-gray-700/30'} p-3 rounded mb-4`}>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-400">オープンレイザー:</span>
-                            <span className="font-medium">{gtoData.openRaiserPosition}</span>
-                          </div>
-                          <div className="flex justify-between text-sm mt-1">
-                            <span className="text-gray-400">レイズサイズ:</span>
-                            <span className="font-medium">{gtoData.openRaiseSize}BB</span>
-                          </div>
-                          <div className="flex justify-between text-sm mt-1">
-                            <span className="text-gray-400">現在のポット:</span>
-                            <span className="font-medium">{spot?.potSize}BB</span>
-                          </div>
-                          <div className="flex justify-between text-sm mt-1">
-                            <span className="text-gray-400">エフェクティブスタック:</span>
-                            <span className="font-medium">{stackSize}</span>
-                            <span className="text-xs text-gray-500 ml-2">(ヒーローと相手の中で小さい方のスタック)</span>
-                          </div>
-                        </div>
-                      )}
+
                       
 
                       
@@ -4256,38 +4182,38 @@ function MTTTrainingPage() {
           <h3 className="text-lg font-semibold text-yellow-300 mb-2">🔍 レンジ読み込み状況デバッグ ({stackSize})</h3>
           <div className="text-xs space-y-1">
             <div>カスタムレンジ総数: {Object.keys(customRanges).length}</div>
-            <div>vsオープンレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
-            <div>vs3ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
-            <div>vs4ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length}</div>
+            <div>vsオープンレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length}</div>
+            <div>vs3ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length}</div>
+            <div>vs4ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).length}</div>
             <div>{stackSize}スタック固有レンジ数: {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB' && !key.startsWith('vsopen_') && !key.startsWith('vs3bet_') && !key.startsWith('vs4bet_'))).length}</div>
-            {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+                          {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length > 0 && (
               <div className="mt-2">
                 <div className="text-yellow-300 mb-1">設定済み{stackSize}vsオープンレンジ:</div>
                 <div className="max-h-32 overflow-y-auto">
-                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).slice(0, 10).map(key => (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).slice(0, 10).map(key => (
                     <div key={key} className="text-xs text-gray-300">• {key}</div>
                   ))}
-                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 10 && (
-                    <div className="text-xs text-gray-400">...他{Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length - 10}レンジ</div>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length > 10 && (
+                    <div className="text-xs text-gray-400">...他{Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length - 10}レンジ</div>
                   )}
                 </div>
                               </div>
               )}
-            {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+            {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
               <div className="mt-2">
                 <div className="text-yellow-300 mb-1">設定済み{stackSize}vs3ベットレンジ:</div>
                 <div className="max-h-20 overflow-y-auto">
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs3bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).map(key => (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).map(key => (
                     <div key={key} className="text-xs text-gray-300">• {key}</div>
                   ))}
                 </div>
               </div>
             )}
-            {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).length > 0 && (
+            {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
               <div className="mt-2">
                 <div className="text-yellow-300 mb-1">設定済み{stackSize}vs4ベットレンジ:</div>
                 <div className="max-h-20 overflow-y-auto">
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && (key.endsWith(`_${stackSize}`) || (stackSize === '15BB' && key.includes('vs4bet_') && !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB')))).map(key => (
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).map(key => (
                     <div key={key} className="text-xs text-gray-300">• {key}</div>
                   ))}
                 </div>

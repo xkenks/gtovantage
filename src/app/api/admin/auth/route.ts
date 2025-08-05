@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 // 管理者認証情報（本番環境では環境変数を使用）
 const ADMIN_CREDENTIALS = {
   username: 'gto-admin',
-  password: 'mtt-ranges-2024!secure'
+  password: 'admin123'
 };
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024';

@@ -8,8 +8,8 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onClose }: AdminLoginProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('gto-admin');
+  const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAdmin();
@@ -19,7 +19,11 @@ export function AdminLogin({ onClose }: AdminLoginProps) {
     setIsLoading(true);
     setError('');
 
+    console.log('管理者ログイン試行:', { username, password });
+
     const success = await login(username, password);
+
+    console.log('ログイン結果:', success);
 
     if (success) {
       onClose();

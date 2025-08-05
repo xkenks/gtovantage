@@ -6,7 +6,7 @@ import { FaChalkboardTeacher, FaClipboardList, FaGraduationCap, FaUsers, FaTroph
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
-  const { user, isAuthenticated, hasActiveSubscription } = useAuth();
+  const { user, isAuthenticated, hasActiveSubscription, practiceCount } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       {/* Hero Section */}
@@ -52,9 +52,13 @@ export default function Home() {
             <p className="text-base md:text-xl lg:text-2xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto leading-relaxed px-2">
               {isAuthenticated ? (
                 <>
-                  今日の練習回数: {user?.practiceCount || 0}回
-                  <br className="hidden sm:block" />
-                  プランアップグレードでより多くの練習が可能です。
+                  今日の練習回数: {practiceCount}回
+                  {!hasActiveSubscription && (
+                    <>
+                      <br className="hidden sm:block" />
+                      プランアップグレードでより多くの練習が可能です。
+                    </>
+                  )}
                 </>
               ) : (
                 <>
@@ -122,57 +126,100 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Service Appeal Section */}
       <section className="py-12 md:py-20 bg-black bg-opacity-40">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
-              なぜ<span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">GTO Vantage</span>なのか？
+              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">GTO Vantage</span>の魅力
             </h2>
             <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
-              ポーカーの世界で勝ち続けるために必要な、科学的アプローチと実践的なツールを提供します。
+              最新のGTO Solver技術と圧倒的なコスパで、あなたのポーカースキルを次のレベルへ
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            <div className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30 p-4 md:p-8 rounded-xl text-center hover:border-blue-400/50 transition-all duration-300">
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-                <FaBrain className="text-lg md:text-2xl text-white" />
+          <div className="max-w-7xl mx-auto">
+            {/* Main Features Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
+              {/* Feature 1: Cost Performance */}
+              <div className="bg-gradient-to-br from-green-900/50 to-emerald-900/50 border border-green-500/30 p-6 md:p-8 rounded-xl hover:border-green-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaCrown className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">圧倒的なコスパ</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  高品質なGTOトレーニングを手頃な価格で提供。他のGTOツールと比較して、圧倒的なコストパフォーマンスを実現しています。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-green-800/30 px-4 py-2 rounded-full">
+                    <span className="text-green-400 font-bold text-lg">980円〜</span>
+                    <span className="text-gray-300 text-sm">従来の1/10の価格</span>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">科学的アプローチ</h3>
-              <p className="text-sm md:text-base text-gray-300">
-                ゲーム理論に基づいた最適戦略で、感情に左右されない意思決定を実現
-              </p>
+
+              {/* Feature 2: GTO Solver */}
+              <div className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30 p-6 md:p-8 rounded-xl hover:border-blue-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaBrain className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">最新GTO Solver技術</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  最新のゲーム理論最適化エンジンを搭載。感情に左右されない、科学的な意思決定をサポートします。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-blue-800/30 px-4 py-2 rounded-full">
+                    <span className="text-blue-400 font-semibold">感情排除</span>
+                    <span className="text-gray-300 text-sm">科学的アプローチ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 3: Practical Training */}
+              <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-6 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaChartLine className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">実践的トレーニング</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  実際のゲーム状況を再現したシナリオで、実戦で使えるスキルを習得。理論と実践の両方をバランスよく学習できます。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-purple-800/30 px-4 py-2 rounded-full">
+                    <span className="text-purple-400 font-semibold">実戦対応</span>
+                    <span className="text-gray-300 text-sm">500+のシナリオ</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-4 md:p-8 rounded-xl text-center hover:border-purple-400/50 transition-all duration-300">
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-                <FaChartLine className="text-lg md:text-2xl text-white" />
+
+            {/* Bottom Stats Section */}
+            <div className="bg-gradient-to-br from-gray-900/50 to-blue-900/30 border border-gray-600/30 p-6 md:p-8 rounded-xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
+                <div className="text-center md:text-left">
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-4">最新GTO Solver技術で実現</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    感情に左右されない意思決定をサポートする最新のゲーム理論最適化エンジン。
+                    科学的アプローチでポーカースキルを向上させます。
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-800/30 p-4 rounded-lg text-center">
+                    <div className="text-blue-400 font-bold text-2xl mb-1">500+</div>
+                    <div className="text-gray-300 text-sm">GTOシナリオ</div>
+                  </div>
+                  <div className="bg-purple-800/30 p-4 rounded-lg text-center">
+                    <div className="text-purple-400 font-bold text-2xl mb-1">最新</div>
+                    <div className="text-gray-300 text-sm">GTO Solver</div>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">実践的トレーニング</h3>
-              <p className="text-sm md:text-base text-gray-300">
-                実際のゲーム状況を再現したシナリオで、実戦で使えるスキルを習得
-              </p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-pink-900/50 to-red-900/50 border border-pink-500/30 p-4 md:p-8 rounded-xl text-center hover:border-pink-400/50 transition-all duration-300">
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-                <FaGraduationCap className="text-lg md:text-2xl text-white" />
-              </div>
-              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">段階的学習</h3>
-              <p className="text-sm md:text-base text-gray-300">
-                初心者から上級者まで、レベルに応じた学習カリキュラムを提供
-              </p>
-            </div>
-            
-            <div className="bg-gradient-to-br from-red-900/50 to-orange-900/50 border border-red-500/30 p-4 md:p-8 rounded-xl text-center hover:border-red-400/50 transition-all duration-300">
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-                <FaUsers className="text-lg md:text-2xl text-white" />
-              </div>
-              <h3 className="text-lg md:text-xl font-bold text-white mb-3 md:mb-4">コミュニティ</h3>
-              <p className="text-sm md:text-base text-gray-300">
-                同じ目標を持つ仲間と共に、ポーカースキルを向上させる環境
-              </p>
             </div>
           </div>
         </div>

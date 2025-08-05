@@ -55,8 +55,9 @@ const dummyUser: User = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態をtrueに設定
+  const [practiceCount, setPracticeCount] = useState(0);
 
-  // クライアントサイドでのみローカルストレージからログイン状態を復元
+  // クライアントサイドでのみローカルストレージからログイン状態と練習回数を復元
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedLoginState = localStorage.getItem('isLoggedIn');
@@ -75,6 +76,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoggedIn(true);
       } else {
         setIsLoggedIn(false);
+      }
+
+      // 今日の練習回数を復元
+      const today = new Date().toDateString();
+      const savedDate = localStorage.getItem('practiceDate');
+      const savedCount = localStorage.getItem('practiceCount');
+      
+      if (savedDate === today && savedCount) {
+        setPracticeCount(parseInt(savedCount, 10));
+      } else {
+        // 日付が変わった場合は練習回数をリセット
+        setPracticeCount(0);
+        localStorage.setItem('practiceDate', today);
+        localStorage.setItem('practiceCount', '0');
       }
     }
   }, []);
@@ -104,7 +119,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const incrementPracticeCount = () => {
-    // 何もしない
+    const newCount = practiceCount + 1;
+    setPracticeCount(newCount);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('practiceCount', newCount.toString());
+    }
   };
 
   const value: AuthContextType = {
@@ -118,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isMasterUser: isLoggedIn,
     hasActiveSubscription: isLoggedIn,
     canPractice: isLoggedIn,
-    practiceCount: 0,
+    practiceCount: practiceCount,
     maxPracticeCount: Infinity,
     incrementPracticeCount,
     canUseStackSize: () => true,
