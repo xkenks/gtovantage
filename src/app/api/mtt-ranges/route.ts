@@ -3,8 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
-// データ保存先のパス
-const DATA_DIR = path.join(process.cwd(), 'data');
+// グローバルキャッシュ（メモリ内）
+let globalRangeCache: SystemRangeData | null = null;
+let cacheLastUpdated: string | null = null;
+
+// データ保存先のパス（Vercel環境では/tmpを使用）
+const DATA_DIR = process.env.NODE_ENV === 'production' 
+  ? '/tmp' 
+  : path.join(process.cwd(), 'data');
 const RANGES_FILE = path.join(DATA_DIR, 'mtt-ranges.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024';
 
@@ -62,8 +68,24 @@ function verifyAdminToken(request: NextRequest): boolean {
 
 // システム全体のMTTレンジデータを取得（全プレイヤーアクセス可能）
 export async function GET(request: NextRequest) {
+  console.log('🎯 GET /api/mtt-ranges 開始');
+  
   try {
+    // キャッシュが有効な場合はキャッシュから返す
+    if (globalRangeCache && cacheLastUpdated) {
+      console.log('🎯 キャッシュからデータを返却:', {
+        lastUpdated: cacheLastUpdated,
+        totalPositions: globalRangeCache.metadata.totalPositions,
+        totalHands: globalRangeCache.metadata.totalHands,
+        hasRanges: !!globalRangeCache.ranges,
+        rangesCount: globalRangeCache.ranges ? Object.keys(globalRangeCache.ranges).length : 0
+      });
+      return NextResponse.json(globalRangeCache);
+    }
+
+    // ファイルから読み込み
     if (!fs.existsSync(RANGES_FILE)) {
+      console.log('🎯 ファイルが存在しないため、空のデータを返却');
       // ファイルが存在しない場合は空のデータを返す
       const emptyData: SystemRangeData = {
         version: '1.0.0',
@@ -79,8 +101,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(emptyData);
     }
 
+    console.log('🎯 ファイルからデータを読み込み開始');
     const data = fs.readFileSync(RANGES_FILE, 'utf8');
     const rangeData: SystemRangeData = JSON.parse(data);
+    
+    // キャッシュを更新
+    globalRangeCache = rangeData;
+    cacheLastUpdated = rangeData.lastUpdated;
+    
+    console.log('🎯 ファイルからデータを読み込み、キャッシュを更新:', {
+      lastUpdated: cacheLastUpdated,
+      totalPositions: rangeData.metadata.totalPositions,
+      totalHands: rangeData.metadata.totalHands,
+      hasRanges: !!rangeData.ranges,
+      rangesCount: rangeData.ranges ? Object.keys(rangeData.ranges).length : 0,
+      fileSize: data.length
+    });
     
     return NextResponse.json(rangeData);
   } catch (error) {
@@ -145,20 +181,66 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // ファイルに保存
-    fs.writeFileSync(RANGES_FILE, JSON.stringify(systemData, null, 2));
+    // Vercel環境ではファイル保存ができないため、メモリキャッシュを更新
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🎯 Vercel環境: メモリキャッシュを更新');
+      
+      // グローバルキャッシュを更新
+      globalRangeCache = systemData;
+      cacheLastUpdated = systemData.lastUpdated;
+      
+      console.log(`🔒 管理者がMTTレンジデータを保存（メモリキャッシュ更新）: ${totalPositions}ポジション, ${totalHands}ハンド`);
+      console.log('🎯 キャッシュ更新詳細:', {
+        hasCache: !!globalRangeCache,
+        lastUpdated: cacheLastUpdated,
+        hasRanges: !!globalRangeCache.ranges,
+        rangesCount: globalRangeCache.ranges ? Object.keys(globalRangeCache.ranges).length : 0,
+        rangesKeys: globalRangeCache.ranges ? Object.keys(globalRangeCache.ranges).slice(0, 5) : []
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'システム全体にレンジデータを保存しました（メモリキャッシュ更新）',
+        metadata: systemData.metadata,
+        note: 'メモリキャッシュが更新されました。他のユーザーは「システム読み込み」で最新データを取得できます。'
+      });
+    }
+
+    // 開発環境でのファイル保存
+    console.log('🎯 ファイル保存開始:', {
+      dataDir: DATA_DIR,
+      rangesFile: RANGES_FILE,
+      dataDirExists: fs.existsSync(DATA_DIR),
+      rangesFileExists: fs.existsSync(RANGES_FILE),
+      systemDataSize: JSON.stringify(systemData).length
+    });
+    
+    try {
+      fs.writeFileSync(RANGES_FILE, JSON.stringify(systemData, null, 2));
+      console.log('✅ ファイル保存成功');
+      
+      // キャッシュも更新
+      globalRangeCache = systemData;
+      cacheLastUpdated = systemData.lastUpdated;
+      console.log('✅ メモリキャッシュも更新');
+      
+    } catch (writeError) {
+      console.error('❌ ファイル書き込みエラー:', writeError);
+      throw new Error(`ファイル書き込みに失敗: ${writeError}`);
+    }
 
     console.log(`🔒 管理者がMTTレンジデータを保存: ${totalPositions}ポジション, ${totalHands}ハンド`);
 
     return NextResponse.json({
       success: true,
-      message: 'システム全体にレンジデータを保存しました',
+      message: 'システム全体にレンジデータを保存しました（ファイル + キャッシュ更新）',
       metadata: systemData.metadata
     });
   } catch (error) {
     console.error('MTTレンジデータの保存エラー:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'データの保存に失敗しました' },
+      { error: `データの保存に失敗しました: ${errorMessage}` },
       { status: 500 }
     );
   }
@@ -179,16 +261,63 @@ export async function DELETE(request: NextRequest) {
       fs.unlinkSync(RANGES_FILE);
     }
 
-    console.log('🔒 管理者がシステム全体のレンジデータを削除しました');
+    // キャッシュもクリア
+    globalRangeCache = null;
+    cacheLastUpdated = null;
+    console.log('🔒 管理者がシステム全体のレンジデータを削除しました（ファイル + キャッシュ）');
 
     return NextResponse.json({
       success: true,
-      message: 'システム全体のレンジデータを削除しました'
+      message: 'システム全体のレンジデータを削除しました（ファイル + キャッシュ）'
     });
   } catch (error) {
     console.error('MTTレンジデータの削除エラー:', error);
     return NextResponse.json(
       { error: 'データの削除に失敗しました' },
+      { status: 500 }
+    );
+  }
+}
+
+// キャッシュの状態を確認するエンドポイント（管理者のみ）
+export async function PATCH(request: NextRequest) {
+  // 管理者認証チェック
+  if (!verifyAdminToken(request)) {
+    return NextResponse.json(
+      { error: '管理者権限が必要です' },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === 'clear-cache') {
+      globalRangeCache = null;
+      cacheLastUpdated = null;
+      console.log('🔒 管理者がキャッシュをクリアしました');
+
+      return NextResponse.json({
+        success: true,
+        message: 'キャッシュをクリアしました'
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'キャッシュの状態',
+      cache: {
+        hasCache: !!globalRangeCache,
+        lastUpdated: cacheLastUpdated,
+        totalPositions: globalRangeCache?.metadata.totalPositions || 0,
+        totalHands: globalRangeCache?.metadata.totalHands || 0
+      }
+    });
+  } catch (error) {
+    console.error('キャッシュ操作エラー:', error);
+    return NextResponse.json(
+      { error: 'キャッシュ操作に失敗しました' },
       { status: 500 }
     );
   }

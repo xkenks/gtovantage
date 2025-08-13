@@ -5,7 +5,7 @@ import { FaTimes } from 'react-icons/fa';
 
 // ポーカーハンドの情報を表す型
 export interface HandInfo {
-  action: 'RAISE' | 'ALL_IN' | 'CALL' | 'FOLD' | '3BET' | '3BB' | 'MIXED' | 'RFI' | 'MIN';
+  action: 'RAISE' | 'ALL_IN' | 'CALL' | 'FOLD' | '3BET' | '3BB' | 'MIXED' | 'MIN' | 'NONE';
   frequency: number;
   // 混合戦略用の頻度分布
   mixedFrequencies?: {
@@ -138,119 +138,119 @@ export const btnOpenRaiseRange: Record<string, HandInfo> = {
   'T2s': { action: 'ALL_IN', frequency: 100 },
   
   'T9o': { action: 'ALL_IN', frequency: 100 },
-  'T8o': { action: 'RFI', frequency: 100 },
-  'T7o': { action: 'RFI', frequency: 100 },
-  'T6o': { action: 'RFI', frequency: 100 },
-  'T5o': { action: 'RFI', frequency: 100 },
+  'T8o': { action: 'RAISE', frequency: 100 },
+  'T7o': { action: 'RAISE', frequency: 100 },
+  'T6o': { action: 'RAISE', frequency: 100 },
+  'T5o': { action: 'RAISE', frequency: 100 },
   'T4o': { action: 'FOLD', frequency: 0 },
   'T3o': { action: 'FOLD', frequency: 0 },
   'T2o': { action: 'FOLD', frequency: 0 },
   
-  '98s': { action: 'RFI', frequency: 100 },
-  '97s': { action: 'RFI', frequency: 100 },
-  '96s': { action: 'RFI', frequency: 100 },
-  '95s': { action: 'RFI', frequency: 100 },
-  '94s': { action: 'RFI', frequency: 100 },
-  '93s': { action: 'RFI', frequency: 100 },
-  '92s': { action: 'RFI', frequency: 100 },
+  '98s': { action: 'RAISE', frequency: 100 },
+  '97s': { action: 'RAISE', frequency: 100 },
+  '96s': { action: 'RAISE', frequency: 100 },
+  '95s': { action: 'RAISE', frequency: 100 },
+  '94s': { action: 'RAISE', frequency: 100 },
+  '93s': { action: 'RAISE', frequency: 100 },
+  '92s': { action: 'RAISE', frequency: 100 },
   
-  '98o': { action: 'RFI', frequency: 100 },
-  '97o': { action: 'RFI', frequency: 100 },
-  '96o': { action: 'RFI', frequency: 100 },
-  '95o': { action: 'RFI', frequency: 100 },
+  '98o': { action: 'RAISE', frequency: 100 },
+  '97o': { action: 'RAISE', frequency: 100 },
+  '96o': { action: 'RAISE', frequency: 100 },
+  '95o': { action: 'RAISE', frequency: 100 },
   '94o': { action: 'FOLD', frequency: 0 },
   '93o': { action: 'FOLD', frequency: 0 },
   '92o': { action: 'FOLD', frequency: 0 },
   
-  '87s': { action: 'RFI', frequency: 100 },
-  '86s': { action: 'RFI', frequency: 100 },
-  '85s': { action: 'RFI', frequency: 100 },
-  '84s': { action: 'RFI', frequency: 100 },
-  '83s': { action: 'RFI', frequency: 100 },
-  '82s': { action: 'RFI', frequency: 100 },
+  '87s': { action: 'RAISE', frequency: 100 },
+  '86s': { action: 'RAISE', frequency: 100 },
+  '85s': { action: 'RAISE', frequency: 100 },
+  '84s': { action: 'RAISE', frequency: 100 },
+  '83s': { action: 'RAISE', frequency: 100 },
+  '82s': { action: 'RAISE', frequency: 100 },
   
-  '87o': { action: 'RFI', frequency: 100 },
-  '86o': { action: 'RFI', frequency: 100 },
-  '85o': { action: 'RFI', frequency: 100 },
+  '87o': { action: 'RAISE', frequency: 100 },
+  '86o': { action: 'RAISE', frequency: 100 },
+  '85o': { action: 'RAISE', frequency: 100 },
   '84o': { action: 'FOLD', frequency: 0 },
   '83o': { action: 'FOLD', frequency: 0 },
   '82o': { action: 'FOLD', frequency: 0 },
   
-  '76s': { action: 'RFI', frequency: 100 },
-  '75s': { action: 'RFI', frequency: 100 },
-  '74s': { action: 'RFI', frequency: 100 },
-  '73s': { action: 'RFI', frequency: 100 },
-  '72s': { action: 'RFI', frequency: 100 },
+  '76s': { action: 'RAISE', frequency: 100 },
+  '75s': { action: 'RAISE', frequency: 100 },
+  '74s': { action: 'RAISE', frequency: 100 },
+  '73s': { action: 'RAISE', frequency: 100 },
+  '72s': { action: 'RAISE', frequency: 100 },
   
-  '76o': { action: 'RFI', frequency: 100 },
-  '75o': { action: 'RFI', frequency: 100 },
+  '76o': { action: 'RAISE', frequency: 100 },
+  '75o': { action: 'RAISE', frequency: 100 },
   '74o': { action: 'FOLD', frequency: 0 },
   '73o': { action: 'FOLD', frequency: 0 },
   '72o': { action: 'FOLD', frequency: 0 },
   
-  '65s': { action: 'RFI', frequency: 100 },
-  '64s': { action: 'RFI', frequency: 100 },
-  '63s': { action: 'RFI', frequency: 100 },
-  '62s': { action: 'RFI', frequency: 100 },
+  '65s': { action: 'RAISE', frequency: 100 },
+  '64s': { action: 'RAISE', frequency: 100 },
+  '63s': { action: 'RAISE', frequency: 100 },
+  '62s': { action: 'RAISE', frequency: 100 },
   
-  '65o': { action: 'RFI', frequency: 100 },
+  '65o': { action: 'RAISE', frequency: 100 },
   '64o': { action: 'FOLD', frequency: 0 },
   '63o': { action: 'FOLD', frequency: 0 },
   '62o': { action: 'FOLD', frequency: 0 },
   
-  '54s': { action: 'RFI', frequency: 100 },
-  '53s': { action: 'RFI', frequency: 100 },
-  '52s': { action: 'RFI', frequency: 100 },
+  '54s': { action: 'RAISE', frequency: 100 },
+  '53s': { action: 'RAISE', frequency: 100 },
+  '52s': { action: 'RAISE', frequency: 100 },
   
-  '54o': { action: 'RFI', frequency: 100 },
+  '54o': { action: 'RAISE', frequency: 100 },
   '53o': { action: 'FOLD', frequency: 0 },
   '52o': { action: 'FOLD', frequency: 0 },
   
-  '43s': { action: 'RFI', frequency: 100 },
-  '42s': { action: 'RFI', frequency: 100 },
+  '43s': { action: 'RAISE', frequency: 100 },
+  '42s': { action: 'RAISE', frequency: 100 },
   
   '43o': { action: 'FOLD', frequency: 0 },
   '42o': { action: 'FOLD', frequency: 0 },
   
-  '32s': { action: 'RFI', frequency: 100 },
+  '32s': { action: 'RAISE', frequency: 100 },
   '32o': { action: 'FOLD', frequency: 0 }
 };
 
 // UTGポジションからのオープンレンジ（100BB）
 export const utgOpenRaiseRange: Record<string, HandInfo> = {
   // プレミアムペア
-  'AA': { action: 'RFI', frequency: 100 },
-  'KK': { action: 'RFI', frequency: 100 },
-  'QQ': { action: 'RFI', frequency: 100 },
-  'JJ': { action: 'RFI', frequency: 100 },
-  'TT': { action: 'RFI', frequency: 100 },
-  '99': { action: 'RFI', frequency: 100 },
-  '88': { action: 'RFI', frequency: 100 },
-  '77': { action: 'RFI', frequency: 100 },
-  '66': { action: 'RFI', frequency: 100 },
-  '55': { action: 'RFI', frequency: 100 },
+  'AA': { action: 'RAISE', frequency: 100 },
+  'KK': { action: 'RAISE', frequency: 100 },
+  'QQ': { action: 'RAISE', frequency: 100 },
+  'JJ': { action: 'RAISE', frequency: 100 },
+  'TT': { action: 'RAISE', frequency: 100 },
+  '99': { action: 'RAISE', frequency: 100 },
+  '88': { action: 'RAISE', frequency: 100 },
+  '77': { action: 'RAISE', frequency: 100 },
+  '66': { action: 'RAISE', frequency: 100 },
+  '55': { action: 'RAISE', frequency: 100 },
   '44': { action: 'FOLD', frequency: 0 },
   '33': { action: 'FOLD', frequency: 0 },
   '22': { action: 'FOLD', frequency: 0 },
   
   // エース系
-  'AKs': { action: 'RFI', frequency: 100 },
-  'AQs': { action: 'RFI', frequency: 100 },
-  'AJs': { action: 'RFI', frequency: 100 },
-  'ATs': { action: 'RFI', frequency: 100 },
+  'AKs': { action: 'RAISE', frequency: 100 },
+  'AQs': { action: 'RAISE', frequency: 100 },
+  'AJs': { action: 'RAISE', frequency: 100 },
+  'ATs': { action: 'RAISE', frequency: 100 },
   'A9s': { action: 'FOLD', frequency: 0 },
   'A8s': { action: 'FOLD', frequency: 0 },
   'A7s': { action: 'FOLD', frequency: 0 },
   'A6s': { action: 'FOLD', frequency: 0 },
-  'A5s': { action: 'RFI', frequency: 100 },
-  'A4s': { action: 'RFI', frequency: 100 },
+  'A5s': { action: 'RAISE', frequency: 100 },
+  'A4s': { action: 'RAISE', frequency: 100 },
   'A3s': { action: 'FOLD', frequency: 0 },
   'A2s': { action: 'FOLD', frequency: 0 },
   
-  'AKo': { action: 'RFI', frequency: 100 },
-  'AQo': { action: 'RFI', frequency: 100 },
-  'AJo': { action: 'RFI', frequency: 100 },
-  'ATo': { action: 'RFI', frequency: 100 },
+  'AKo': { action: 'RAISE', frequency: 100 },
+  'AQo': { action: 'RAISE', frequency: 100 },
+  'AJo': { action: 'RAISE', frequency: 100 },
+  'ATo': { action: 'RAISE', frequency: 100 },
   'A9o': { action: 'FOLD', frequency: 0 },
   'A8o': { action: 'FOLD', frequency: 0 },
   'A7o': { action: 'FOLD', frequency: 0 },
@@ -261,8 +261,8 @@ export const utgOpenRaiseRange: Record<string, HandInfo> = {
   'A2o': { action: 'FOLD', frequency: 0 },
   
   // 他のハンド
-  'KQs': { action: 'RFI', frequency: 100 },
-  'KJs': { action: 'RFI', frequency: 100 },
+  'KQs': { action: 'RAISE', frequency: 100 },
+  'KJs': { action: 'RAISE', frequency: 100 },
   'KTs': { action: 'FOLD', frequency: 0 },
   'K9s': { action: 'FOLD', frequency: 0 },
   'K8s': { action: 'FOLD', frequency: 0 },
@@ -273,7 +273,7 @@ export const utgOpenRaiseRange: Record<string, HandInfo> = {
   'K3s': { action: 'FOLD', frequency: 0 },
   'K2s': { action: 'FOLD', frequency: 0 },
   
-  'KQo': { action: 'RFI', frequency: 100 },
+  'KQo': { action: 'RAISE', frequency: 100 },
   'KJo': { action: 'FOLD', frequency: 0 },
   'KTo': { action: 'FOLD', frequency: 0 },
   'K9o': { action: 'FOLD', frequency: 0 },
@@ -285,7 +285,7 @@ export const utgOpenRaiseRange: Record<string, HandInfo> = {
   'K3o': { action: 'FOLD', frequency: 0 },
   'K2o': { action: 'FOLD', frequency: 0 },
   
-  'QJs': { action: 'RFI', frequency: 100 },
+  'QJs': { action: 'RAISE', frequency: 100 },
   'QTs': { action: 'FOLD', frequency: 0 },
   'Q9s': { action: 'FOLD', frequency: 0 },
   'Q8s': { action: 'FOLD', frequency: 0 },
@@ -307,7 +307,7 @@ export const utgOpenRaiseRange: Record<string, HandInfo> = {
   'Q3o': { action: 'FOLD', frequency: 0 },
   'Q2o': { action: 'FOLD', frequency: 0 },
   
-  'JTs': { action: 'RFI', frequency: 100 },
+  'JTs': { action: 'RAISE', frequency: 100 },
   'J9s': { action: 'FOLD', frequency: 0 },
   'J8s': { action: 'FOLD', frequency: 0 },
   'J7s': { action: 'FOLD', frequency: 0 },
@@ -803,7 +803,7 @@ const HandRangeGrid: React.FC<{
       const freq = { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 0 };
       switch (handInfo.action) {
         case 'MIN':
-        case 'RFI':
+        case 'RAISE':
         case '3BB':
           freq.MIN = handInfo.frequency;
           break;
@@ -1215,7 +1215,7 @@ export const HandRangeSelector: React.FC<{
         // オフスーツ
         hand = allHands[j] + allHands[i] + 'o';
       }
-      trainingRangeData[hand] = { action: 'RFI', frequency: 100 };
+      trainingRangeData[hand] = { action: 'RAISE', frequency: 100 };
     }
   }
   
@@ -1824,6 +1824,14 @@ export const MTTRangeEditor: React.FC<{
 
   // 混合戦略の背景色とスタイルを取得（頻度比率で色をミックス）
   const getHandBackgroundStyle = (hand: string) => {
+    // NONEアクションの特別処理
+    if (rangeData[hand]?.action === 'NONE') {
+      return { 
+        background: 'rgb(156, 163, 175)', // gray-400
+        border: '1px solid rgb(107, 114, 128)' // gray-500
+      };
+    }
+    
     const frequencies = getHandFrequencies(hand);
     const actions = [
       { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
@@ -1923,6 +1931,7 @@ export const MTTRangeEditor: React.FC<{
       case 'ALL_IN': return 'bg-red-500 hover:bg-red-600';
       case 'CALL': return 'bg-yellow-500 hover:bg-yellow-600';
       case 'FOLD': return 'bg-gray-600 hover:bg-gray-700';
+      case 'NONE': return 'bg-gray-400 hover:bg-gray-500';
       default: return 'bg-gray-800 hover:bg-gray-700';
     }
   };
@@ -1949,6 +1958,18 @@ export const MTTRangeEditor: React.FC<{
 
   // ハンドセルの表示テキストを取得（頻度情報付き）
   const getHandDisplayText = (hand: string) => {
+    // NONEアクションの特別処理
+    if (rangeData[hand]?.action === 'NONE') {
+      return (
+        <div className="text-center">
+          <div className="text-xs font-bold leading-tight text-gray-400">{hand}</div>
+          <div className="text-[7px] leading-none text-gray-500 font-semibold">
+            NONE
+          </div>
+        </div>
+      );
+    }
+    
     const frequencies = getHandFrequencies(hand);
     const activeActions = [
       { name: 'MIN', freq: frequencies.MIN, symbol: 'M', color: 'text-blue-200' },
@@ -2061,7 +2082,7 @@ export const MTTRangeEditor: React.FC<{
           // 新しいアクションを設定
           setRangeData(prev => ({
             ...prev,
-            [cell.hand]: { action: selectedAction as 'MIN' | 'ALL_IN' | 'CALL' | 'FOLD', frequency: 100 }
+            [cell.hand]: { action: selectedAction as 'MIN' | 'ALL_IN' | 'CALL' | 'FOLD' | 'NONE', frequency: 100 }
           }));
         }
       }
@@ -2101,7 +2122,7 @@ export const MTTRangeEditor: React.FC<{
                 toDelete.push(hand);
               } else {
                 // 新しいアクションを設定または異なるアクションで上書き
-                updates[hand] = { action: selectedAction as 'MIN' | 'ALL_IN' | 'CALL' | 'FOLD', frequency: 100 };
+                updates[hand] = { action: selectedAction as 'MIN' | 'ALL_IN' | 'CALL' | 'FOLD' | 'NONE', frequency: 100 };
               }
             }
           }
@@ -2127,7 +2148,7 @@ export const MTTRangeEditor: React.FC<{
   // 統計を計算（混合戦略対応）
   const getStats = () => {
     const total = 169; // 全ハンド数
-    const actions = { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 0 };
+    const actions = { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 0, NONE: 0 };
     
     grid.flat().forEach(cell => {
       const frequencies = getHandFrequencies(cell.hand);
@@ -2135,6 +2156,10 @@ export const MTTRangeEditor: React.FC<{
       actions.ALL_IN += (frequencies.ALL_IN || 0) / 100;
       actions.CALL += (frequencies.CALL || 0) / 100;
       actions.FOLD += (frequencies.FOLD || 0) / 100;
+      // NONEアクションの統計
+      if (rangeData[cell.hand]?.action === 'NONE') {
+        actions.NONE += 1;
+      }
     });
     
     return {
@@ -2144,7 +2169,8 @@ export const MTTRangeEditor: React.FC<{
         MIN: ((actions.MIN / total) * 100).toFixed(1),
         ALL_IN: ((actions.ALL_IN / total) * 100).toFixed(1),
         CALL: ((actions.CALL / total) * 100).toFixed(1),
-        FOLD: ((actions.FOLD / total) * 100).toFixed(1)
+        FOLD: ((actions.FOLD / total) * 100).toFixed(1),
+        NONE: ((actions.NONE / total) * 100).toFixed(1)
       }
     };
   };
@@ -2152,11 +2178,11 @@ export const MTTRangeEditor: React.FC<{
   const stats = getStats();
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-6xl w-full mx-4 max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-3 md:p-6 max-w-6xl w-full mx-2 md:mx-4 max-h-[98vh] md:max-h-[95vh] overflow-y-auto shadow-2xl border border-gray-700">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
+          <h2 className="text-base md:text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent leading-tight">
             {position.startsWith('vsopen_') ? (
               (() => {
                 const parts = position.split('_');
@@ -2168,33 +2194,35 @@ export const MTTRangeEditor: React.FC<{
           </h2>
           <button 
             onClick={onClose}
-            className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200"
+            className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200 self-end md:self-auto"
           >
             ✕
           </button>
         </div>
         
         {/* アクション選択 */}
-        <div className="mb-4 bg-gray-800 rounded-lg p-4 border border-gray-600">
-          <h3 className="text-sm font-semibold text-white mb-3">クイック設定（左クリック/ドラッグ）：</h3>
-          <div className="flex gap-3 flex-wrap">
+        <div className="mb-4 bg-gray-800 rounded-lg p-3 md:p-4 border border-gray-600">
+          <h3 className="text-xs md:text-sm font-semibold text-white mb-3">クイック設定（左クリック/ドラッグ）：</h3>
+          <div className="grid grid-cols-3 md:flex md:gap-3 md:flex-wrap gap-2">
             {[
-              { action: 'MIN', label: 'ミニマムレイズ', color: 'bg-blue-500' },
-              { action: 'ALL_IN', label: 'オールイン', color: 'bg-red-500' },
-              { action: 'CALL', label: 'コール', color: 'bg-yellow-500' },
-              { action: 'FOLD', label: 'フォールド', color: 'bg-gray-600' },
-              { action: 'CLEAR', label: '解除', color: 'bg-gray-700' }
-            ].map(({ action, label, color }) => (
+              { action: 'MIN', label: 'ミニマムレイズ', shortLabel: 'MIN', color: 'bg-blue-500' },
+              { action: 'ALL_IN', label: 'オールイン', shortLabel: 'ALL IN', color: 'bg-red-500' },
+              { action: 'CALL', label: 'コール', shortLabel: 'CALL', color: 'bg-yellow-500' },
+              { action: 'FOLD', label: 'フォールド', shortLabel: 'FOLD', color: 'bg-gray-600' },
+              { action: 'NONE', label: 'NONE', shortLabel: 'NONE', color: 'bg-gray-400' },
+              { action: 'CLEAR', label: '解除', shortLabel: 'CLEAR', color: 'bg-gray-700' }
+            ].map(({ action, label, shortLabel, color }) => (
               <button
                 key={action}
                 onClick={() => setSelectedAction(action as any)}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 border-2 ${
+                className={`px-2 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 border-2 ${
                   selectedAction === action 
                     ? `${color} text-white border-white shadow-lg scale-105` 
                     : `${color} text-white border-transparent opacity-70 hover:opacity-100`
                 }`}
               >
-                {label}
+                <span className="hidden md:inline">{label}</span>
+                <span className="md:hidden">{shortLabel}</span>
               </button>
             ))}
           </div>
@@ -2204,31 +2232,35 @@ export const MTTRangeEditor: React.FC<{
         </div>
 
         {/* 統計 */}
-        <div className="mb-4 bg-gray-800 rounded-lg p-4 border border-gray-600">
-          <h3 className="text-sm font-semibold text-white mb-3">統計（頻度考慮）:</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div className="bg-blue-500 bg-opacity-20 border border-blue-500 rounded p-2 text-center">
-              <div className="text-blue-300 font-semibold">MIN</div>
-              <div className="text-white">{stats.MIN.toFixed(1)}ハンド ({stats.percentage.MIN}%)</div>
+        <div className="mb-4 bg-gray-800 rounded-lg p-3 md:p-4 border border-gray-600">
+          <h3 className="text-xs md:text-sm font-semibold text-white mb-3">統計（頻度考慮）:</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 text-xs md:text-sm">
+            <div className="bg-blue-500 bg-opacity-20 border border-blue-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-blue-300 font-semibold text-xs">MIN</div>
+              <div className="text-white text-xs md:text-sm">{stats.MIN.toFixed(1)}ハンド ({stats.percentage.MIN}%)</div>
             </div>
-            <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded p-2 text-center">
-              <div className="text-red-300 font-semibold">ALL IN</div>
-              <div className="text-white">{stats.ALL_IN.toFixed(1)}ハンド ({stats.percentage.ALL_IN}%)</div>
+            <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-red-300 font-semibold text-xs">ALL IN</div>
+              <div className="text-white text-xs md:text-sm">{stats.ALL_IN.toFixed(1)}ハンド ({stats.percentage.ALL_IN}%)</div>
             </div>
-            <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded p-2 text-center">
-              <div className="text-yellow-300 font-semibold">CALL</div>
-              <div className="text-white">{stats.CALL.toFixed(1)}ハンド ({stats.percentage.CALL}%)</div>
+            <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-yellow-300 font-semibold text-xs">CALL</div>
+              <div className="text-white text-xs md:text-sm">{stats.CALL.toFixed(1)}ハンド ({stats.percentage.CALL}%)</div>
             </div>
-            <div className="bg-gray-600 bg-opacity-20 border border-gray-600 rounded p-2 text-center">
-              <div className="text-gray-300 font-semibold">FOLD</div>
-              <div className="text-white">{stats.FOLD.toFixed(1)}ハンド ({stats.percentage.FOLD}%)</div>
+            <div className="bg-gray-600 bg-opacity-20 border border-gray-600 rounded p-1.5 md:p-2 text-center">
+              <div className="text-gray-300 font-semibold text-xs">FOLD</div>
+              <div className="text-white text-xs md:text-sm">{stats.FOLD.toFixed(1)}ハンド ({stats.percentage.FOLD}%)</div>
+            </div>
+            <div className="bg-gray-400 bg-opacity-20 border border-gray-400 rounded p-1.5 md:p-2 text-center">
+              <div className="text-gray-300 font-semibold text-xs">NONE</div>
+              <div className="text-white text-xs md:text-sm">{stats.NONE.toFixed(1)}ハンド ({stats.percentage.NONE}%)</div>
             </div>
           </div>
         </div>
         
         {/* グリッド */}
         <div 
-          className="grid grid-cols-13 gap-1 mb-4 select-none"
+          className="grid grid-cols-13 gap-0.5 md:gap-1 mb-4 select-none overflow-x-auto"
           onMouseUp={handleMouseUp}
           onMouseLeave={() => {
             setIsDragging(false);
@@ -2241,9 +2273,9 @@ export const MTTRangeEditor: React.FC<{
                 key={`${rowIndex}-${colIndex}`}
                 className={`
                   ${getHandColor(cell.hand, rowIndex, colIndex)} 
-                  text-white text-xs font-bold py-1 px-1 text-center cursor-pointer 
+                  text-white text-[10px] md:text-xs font-bold py-0.5 md:py-1 px-0.5 md:px-1 text-center cursor-pointer 
                   rounded transition-all duration-200
-                  hover:shadow-md min-h-[2rem] flex items-center justify-center
+                  hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center
                 `}
                 style={getHandBackgroundStyle(cell.hand)}
                 onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
@@ -2258,11 +2290,11 @@ export const MTTRangeEditor: React.FC<{
         </div>
 
         {/* コントロールボタン */}
-        <div className="flex gap-3 justify-between">
-          <div className="flex gap-3">
+        <div className="flex flex-col md:flex-row gap-3 justify-between">
+          <div className="flex gap-2 md:gap-3">
             <button
               onClick={() => setRangeData({})}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-200"
+              className="px-3 md:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm md:text-base font-semibold rounded-lg transition-all duration-200"
             >
               全クリア
             </button>
@@ -2274,16 +2306,16 @@ export const MTTRangeEditor: React.FC<{
                 });
                 setRangeData(allFold);
               }}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-200"
+              className="px-3 md:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm md:text-base font-semibold rounded-lg transition-all duration-200"
             >
               全フォールド
             </button>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-2 md:gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all duration-200"
+              className="px-3 md:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm md:text-base font-semibold rounded-lg transition-all duration-200"
             >
               キャンセル
             </button>
@@ -2292,7 +2324,7 @@ export const MTTRangeEditor: React.FC<{
                 onSaveRange(position, rangeData);
                 onClose();
               }}
-              className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all duration-200 shadow-lg"
+              className="px-4 md:px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
             >
               保存 ✓
             </button>
@@ -2301,7 +2333,7 @@ export const MTTRangeEditor: React.FC<{
 
         {/* 使い方ガイド */}
         <div className="mt-4 bg-gray-800 rounded-lg p-3 border border-gray-600">
-          <h4 className="text-sm font-semibold text-white mb-2">使い方：</h4>
+          <h4 className="text-xs md:text-sm font-semibold text-white mb-2">使い方：</h4>
           <ul className="text-xs text-gray-400 space-y-1">
             <li>• <strong>左クリック/ドラッグ：</strong> 選択したアクションを設定</li>
             <li>• <strong>解除ボタン + クリック/ドラッグ：</strong> ハンドの設定を削除</li>
@@ -2321,6 +2353,12 @@ export const MTTRangeEditor: React.FC<{
             initialFrequencies={getHandFrequencies(editingHand)}
             onSave={handleFrequencySave}
             onClose={() => setShowFrequencyModal(false)}
+            onSetNone={() => {
+              setRangeData(prev => ({
+                ...prev,
+                [editingHand]: { action: 'NONE', frequency: 100 }
+              }));
+            }}
           />
         )}
       </div>
@@ -2334,7 +2372,8 @@ const FrequencyModal: React.FC<{
   initialFrequencies: { MIN: number; ALL_IN: number; CALL: number; FOLD: number };
   onSave: (frequencies: { MIN: number; ALL_IN: number; CALL: number; FOLD: number }) => void;
   onClose: () => void;
-}> = ({ hand, initialFrequencies, onSave, onClose }) => {
+  onSetNone?: () => void;
+}> = ({ hand, initialFrequencies, onSave, onClose, onSetNone }) => {
   const [frequencies, setFrequencies] = useState(initialFrequencies);
 
   // 頻度を更新する関数
@@ -2476,7 +2515,7 @@ const FrequencyModal: React.FC<{
           {/* クイック設定ボタン */}
           <div className="border-t border-gray-700 pt-4">
             <div className="text-sm text-gray-300 mb-3">クイック設定:</div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {/* 単一アクション100% */}
               <button
                 onClick={() => setFrequencies({ MIN: 100, ALL_IN: 0, CALL: 0, FOLD: 0 })}
@@ -2495,6 +2534,18 @@ const FrequencyModal: React.FC<{
                 className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-all duration-200"
               >
                 FOLD 100%
+              </button>
+              <button
+                onClick={() => {
+                  // NONEアクションを設定
+                  if (onSetNone) {
+                    onSetNone();
+                  }
+                  onClose();
+                }}
+                className="px-2 py-1 bg-gray-400 text-white rounded text-xs hover:bg-gray-500 transition-all duration-200"
+              >
+                NONE
               </button>
               
               {/* MIN+FOLD混合戦略 */}

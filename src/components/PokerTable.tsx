@@ -75,6 +75,7 @@ export interface Spot {
   // vs 3ベット用の追加情報
   threeBetSize?: number;      // 3ベットのサイズ
   threeBetterPosition?: string; // 3ベットしたプレイヤーのポジション
+  threeBetType?: string;      // 20BBの場合の3ベットタイプ（'raise' | 'allin'）
   
   // アクションタイプ (push_fold など)
   actionType?: string;
@@ -258,6 +259,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         stackSize: currentSpot.stackDepth,
         openRaiseSize: currentSpot.openRaiseSize,
         threeBetSize: currentSpot.threeBetSize,
+        threeBetterPosition: currentSpot.threeBetterPosition,
         originalPotSize: finalPotSize,
         _debug: (currentSpot as any)._debug
       });
@@ -333,7 +335,21 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // CPU用の3ベットサイズを取得
   const getCpu3betSize = (position: string) => {
-    // ポジションに基づいて3ベットサイズを決定
+    // 20BBのvs3betの場合は、ポジションに応じて正しい3ベットサイズを返す
+    if (currentSpot.stackDepth === '20BB' && currentSpot.actionType === 'vs3bet') {
+      let size: number;
+      if (position === 'SB') {
+        size = 5.5; // SBの3ベットは5.5BB
+      } else if (position === 'BB') {
+        size = 6; // BBの3ベットは6BB
+      } else {
+        size = 5; // その他のポジションは5BB
+      }
+      console.log(`🎯 getCpu3betSize: ${position} = ${size}BB (20BB vs3bet)`);
+      return size;
+    }
+    
+    // その他のケースでは従来のロジックを使用
     if (['BTN', 'CO'].includes(position)) {
       return 7; // ボタンやカットオフからは小さめの3ベット
     } else if (['SB', 'BB'].includes(position)) {
@@ -526,7 +542,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         
         if (correctActionBase === 'MIN' && selectedActionBase === 'RAISE') {
           evaluationLevel = 'perfect';
-        } else if (correctActionBase === 'RFI' && selectedActionBase === 'RAISE') {
+        } else if (correctActionBase === 'RAISE' && selectedActionBase === 'RAISE') {
           evaluationLevel = 'perfect';
         } else if (selectedActionBase === correctActionBase) {
           evaluationLevel = 'perfect';
@@ -652,7 +668,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     const baseStack = parseInt(stackSize);
     
     // 3ベッターの場合、3ベット額分のスタックを減らす（最優先で処理）
-    if (currentSpot.actionType === 'vs3bet' && position === currentSpot.threeBetterPosition && currentSpot.threeBetSize) {
+    if (currentSpot.actionType === 'vs3bet' && position === currentSpot.threeBetterPosition) {
       console.log(`🎯 getPositionStack: 3ベッター処理`, {
         position,
         actionType: currentSpot.actionType,
@@ -661,22 +677,68 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         stackDepth: currentSpot.stackDepth
       });
       
+            // 20BBのvs3betで3ベットタイプに応じて3ベットサイズを決定
+      let effectiveThreeBetSize: number;
+      if (currentSpot.stackDepth === '20BB' && currentSpot.actionType === 'vs3bet') {
+        // 3ベットタイプを確認（オールインかレイズか）
+        const currentThreeBetType = (window as any).currentThreeBetType;
+        console.log(`🎯 PokerTable 3ベットタイプ確認: ${currentThreeBetType}, position: ${position}`);
+        
+        if (currentThreeBetType === 'allin') {
+          // オールインの場合は20BB
+          effectiveThreeBetSize = 20;
+          console.log(`🎯 PokerTable オールイン: effectiveThreeBetSize = 20`);
+        } else {
+          // レイズの場合はポジションに応じて決定
+          if (position === 'SB') {
+            effectiveThreeBetSize = 5.5; // SBの3ベットは5.5BB
+          } else if (position === 'BB') {
+            effectiveThreeBetSize = 6; // BBの3ベットは6BB
+          } else {
+            effectiveThreeBetSize = 5; // その他のポジションは5BB
+          }
+          console.log(`🎯 PokerTable レイズ: effectiveThreeBetSize = ${effectiveThreeBetSize} (${position})`);
+        }
+      } else {
+        effectiveThreeBetSize = currentSpot.threeBetSize || 0;
+      }
+      console.log(`🎯 有効3ベットサイズ: ${effectiveThreeBetSize} (${position})`);
+      
       if (currentSpot.stackDepth === '15BB') {
         console.log(`🎯 15BB vs3ベット: ${position}のスタックを0に設定`);
         return '0';
+      } else if (currentSpot.stackDepth === '20BB') {
+        let stack: number;
+        
+        // SB・BBの場合はブラインドを戻してからレイズするため、スタックの減り方が異なる
+        if (position === 'SB') {
+          // SB: 20BB - 0.5BB(戻す) - 5.5BB(レイズ) = 14BB
+          stack = 20 - 0.5 - effectiveThreeBetSize;
+          console.log(`🎯 20BB vs3ベット SB: 20 - 0.5 - ${effectiveThreeBetSize} = ${stack}`);
+        } else if (position === 'BB') {
+          // BB: 20BB - 6BB(レイズ) = 14BB (ブラインドは既にテーブル上にあるため戻す必要なし)
+          stack = 20 - effectiveThreeBetSize;
+          console.log(`🎯 20BB vs3ベット BB: 20 - ${effectiveThreeBetSize} = ${stack}`);
+        } else {
+          // その他のポジション: 20BB - 5BB(レイズ) = 15BB
+          stack = 20 - effectiveThreeBetSize;
+          console.log(`🎯 20BB vs3ベット その他: 20 - ${effectiveThreeBetSize} = ${stack}`);
+        }
+        
+        return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
       } else if (currentSpot.stackDepth === '30BB') {
         let stack: number;
         
         // SB・BBの場合はブラインド分を考慮
         if (position === 'SB') {
-          stack = 29.5 - currentSpot.threeBetSize; // 30 - 0.5 - threeBetSize
-          console.log(`🎯 30BB vs3ベット SB: 29.5 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 29.5 - effectiveThreeBetSize; // 30 - 0.5 - threeBetSize
+          console.log(`🎯 30BB vs3ベット SB: 29.5 - ${effectiveThreeBetSize} = ${stack}`);
         } else if (position === 'BB') {
-          stack = 29 - currentSpot.threeBetSize; // 30 - 1 - threeBetSize
-          console.log(`🎯 30BB vs3ベット BB: 29 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 29 - effectiveThreeBetSize; // 30 - 1 - threeBetSize
+          console.log(`🎯 30BB vs3ベット BB: 29 - ${effectiveThreeBetSize} = ${stack}`);
         } else {
-          stack = 30 - currentSpot.threeBetSize; // その他のポジション
-          console.log(`🎯 30BB vs3ベット その他: 30 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 30 - effectiveThreeBetSize; // その他のポジション
+          console.log(`🎯 30BB vs3ベット その他: 30 - ${effectiveThreeBetSize} = ${stack}`);
         }
         
         return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
@@ -685,14 +747,14 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         
         // SB・BBの場合はブラインド分を考慮
         if (position === 'SB') {
-          stack = 39.5 - currentSpot.threeBetSize; // 40 - 0.5 - threeBetSize
-          console.log(`🎯 40BB vs3ベット SB: 39.5 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 39.5 - effectiveThreeBetSize; // 40 - 0.5 - threeBetSize
+          console.log(`🎯 40BB vs3ベット SB: 39.5 - ${effectiveThreeBetSize} = ${stack}`);
         } else if (position === 'BB') {
-          stack = 39 - currentSpot.threeBetSize; // 40 - 1 - threeBetSize
-          console.log(`🎯 40BB vs3ベット BB: 39 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 39 - effectiveThreeBetSize; // 40 - 1 - threeBetSize
+          console.log(`🎯 40BB vs3ベット BB: 39 - ${effectiveThreeBetSize} = ${stack}`);
         } else {
-          stack = 40 - currentSpot.threeBetSize; // その他のポジション
-          console.log(`🎯 40BB vs3ベット その他: 40 - ${currentSpot.threeBetSize} = ${stack}`);
+          stack = 40 - effectiveThreeBetSize; // その他のポジション
+          console.log(`🎯 40BB vs3ベット その他: 40 - ${effectiveThreeBetSize} = ${stack}`);
         }
         
         return stack <= 0 ? '0' : `${stack.toFixed(1)}`;
@@ -717,10 +779,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     }
     
     // ブラインドポジションはスタックが減る（3ベッターでない場合のみ）
-    if (position === 'SB') {
+    if (position === 'SB' && position !== currentSpot.threeBetterPosition) {
       const stack = baseStack - 0.5;
       return stack === 0 ? '0' : `${stack}`;
-    } else if (position === 'BB') {
+    } else if (position === 'BB' && position !== currentSpot.threeBetterPosition) {
       const stack = baseStack - 1;
       return stack === 0 ? '0' : `${stack}`;
     }
@@ -1061,6 +1123,12 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     // 基本のアクション
     let actions = [...availableActions];
+    
+    // CPUがオールインしている場合、RAISEとALL INを除外
+    if (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetType === 'allin') {
+      actions = actions.filter(action => action === 'FOLD' || action === 'CALL');
+      return actions;
+    }
     
     // エフェクティブスタックが15BB以下の場合、または特定のシナリオでオールインオプションを追加
     const showAllIn = 
@@ -1497,9 +1565,22 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               };
               
               // SBのブラインドチップ（0.5BB）を表示
-              // 3ベッターがSBの場合、またはBBがヒーローでSBがオープンレイザーの場合は非表示
+              // 以下の場合は非表示：
+              // 1. 3ベッターがSBの場合
+              // 2. BBがヒーローでSBがオープンレイザーの場合
+              // 3. vs3betでBBが3ベッターの場合（BBがオールインした場合）
               const shouldHideSBChipMobile = (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') || 
-                                            (currentSpot.threeBetterPosition === 'SB');
+                                            (currentSpot.threeBetterPosition === 'SB') ||
+                                            (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetterPosition === 'BB');
+              
+              console.log('🔍 モバイル版SBチップ表示条件:', {
+                sbPos: !!sbPos,
+                shouldHideSBChipMobile,
+                heroPosition: currentSpot.heroPosition,
+                openRaiserPos,
+                threeBetterPosition: currentSpot.threeBetterPosition,
+                actionType: currentSpot.actionType
+              });
               
               if (sbPos && !shouldHideSBChipMobile) {
                 const chipPos = getOptimalChipPosition(sbPos, 'SB');
@@ -1653,7 +1734,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           
           return (
                 <div
-              className="absolute z-50"
+              className="absolute z-[999]"
                   style={{ 
                 left: `${heroPos.x + 15}%`, // 右に15%オフセット
                 top: `${heroPos.y - 20}%`, // ヒーローポジションの20%上に表示
@@ -1841,25 +1922,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               transform: 'translate(-50%, -50%)'
             }}
           >
-            {/* アクション結果表示 - ヒーローポジションの場合のみポジションの上に表示 */}
-              {info.isHero && selectedAction && showResults && showActionResult && (
-              (() => {
-                const { element, evaluationLevel } = formatActionResult();
-                // 変形とアニメーションを追加するためのラッパー（背景色なし）
-                return (
-                  <div 
-                    className="absolute -top-10 left-1/2 z-[999]"
-                    style={{
-                      transform: actionResultTransform,
-                      opacity: actionResultOpacity,
-                      transition: 'transform 0.1s ease-out, opacity 0.1s ease-out'
-                    }}
-                  >
-                    {element}
-                  </div>
-                );
-              })()
-            )}
+
             
             
             {/* ポジション表示 - ヒーロー、オープンレイザー、3ベッターを強調表示 */}
@@ -1906,6 +1969,31 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             </div>
           );
         })}
+        
+        {/* アクション結果表示 - ヒーローポジションの上に独立して表示 */}
+        {(() => {
+          const heroPosition = Object.entries(tablePositions).find(([pos, info]) => info.isHero);
+          if (heroPosition && selectedAction && showResults && showActionResult) {
+            const [position, info] = heroPosition;
+            const { element, evaluationLevel } = formatActionResult();
+            return (
+              <div 
+                key="hero-action-result"
+                className="absolute z-[9999]"
+                style={{
+                  left: `${info.x + 7.5}%`,
+                  top: `${info.y - 10}%`,
+                  transform: `translate(-50%, -50%) ${actionResultTransform}`,
+                  opacity: actionResultOpacity,
+                  transition: 'transform 0.1s ease-out, opacity 0.1s ease-out'
+                }}
+              >
+                {element}
+              </div>
+            );
+          }
+          return null;
+        })()}
         
         {/* ブラインドチップおよびオープンレイザーのチップ表示 */}
         {(() => {

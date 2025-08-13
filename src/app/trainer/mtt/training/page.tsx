@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PokerTable, Spot } from '@/components/PokerTable';
 import Link from 'next/link';
 import { getMTTRange, MTTRangeEditor, HandInfo, HandRangeSelector, HAND_TEMPLATES } from '@/components/HandRange';
+import HandRangeViewer from '@/components/HandRangeViewer';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AdminLogin } from '@/components/AdminLogin';
 import { AuthGuard } from '@/components/AuthGuard';
@@ -219,7 +220,8 @@ const simulateMTTGTOData = (
   stackSize: string, 
   actionType: string,
   customRanges?: Record<string, Record<string, HandInfo>>,
-  openerPosition?: string
+  openerPosition?: string,
+  threeBetType?: string
 ) => {
   console.log('🎯 simulateMTTGTOData 開始:', {
     hand,
@@ -227,6 +229,7 @@ const simulateMTTGTOData = (
     stackSize,
     actionType,
     openerPosition,
+    threeBetType,
     hasCustomRanges: !!customRanges,
     customRangesKeys: customRanges ? Object.keys(customRanges) : [],
     customRangesCount: customRanges ? Object.keys(customRanges).length : 0
@@ -258,6 +261,14 @@ const simulateMTTGTOData = (
   
   // 15BBスタック専用の戦略（GTOレンジに基づく）
   const stackDepthBB = parseInt(stackSize.replace('BB', ''));
+  
+  // SBとBBのスタック調整
+  let adjustedStackDepthBB = stackDepthBB;
+  if (position === 'SB') {
+    adjustedStackDepthBB = stackDepthBB - 0.5; // SBは0.5BBを既にポットに置いている
+  } else if (position === 'BB') {
+    adjustedStackDepthBB = stackDepthBB - 1.0; // BBは1.0BBを既にポットに置いている
+  }
   
   // 変数を関数のスコープで宣言
   let frequencies: { [action: string]: number } = {
@@ -308,9 +319,18 @@ const simulateMTTGTOData = (
     }
     
     // カスタムレンジが設定されている場合はそれを使用
-    const rangeKey = `vsopen_${position}_vs_${openerPosition}_${stackSize}`;
-    // 15BBの場合は既存キーとの互換性も確認
-    const fallbackRangeKey = stackSize === '15BB' ? `vsopen_${position}_vs_${openerPosition}` : null;
+    // 15BBの場合は既存キーを優先し、新しいキーをフォールバックとして使用
+    let rangeKey: string;
+    let fallbackRangeKey: string | null = null;
+    
+    if (stackSize === '15BB') {
+      // 15BBの場合は既存のキー形式を優先
+      rangeKey = `vsopen_${position}_vs_${openerPosition}`;
+      fallbackRangeKey = `vsopen_${position}_vs_${openerPosition}_15BB`;
+    } else {
+      // その他のスタックサイズは新しいキー形式を使用
+      rangeKey = `vsopen_${position}_vs_${openerPosition}_${stackSize}`;
+    }
     
     console.log('🔍 vs オープン分析:', {
       rangeKey,
@@ -343,6 +363,12 @@ const simulateMTTGTOData = (
     }
     
     if (customHandData) {
+      console.log('✅ vs オープン カスタムレンジ使用:', {
+        usedRangeKey,
+        handType: normalizedHandType,
+        customHandData
+      });
+      
       // カスタムレンジから頻度データを取得
       let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
       let customPrimaryAction = 'FOLD';
@@ -443,6 +469,16 @@ const simulateMTTGTOData = (
       };
     }
     
+    // カスタムレンジがない場合のデバッグ情報
+    console.log('❌ vs オープン カスタムレンジ未発見:', {
+      rangeKey,
+      fallbackRangeKey,
+      handType: normalizedHandType,
+      hasCustomRanges: !!customRanges,
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      vsopenKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vsopen_')) : []
+    });
+    
     // カスタムレンジがない場合はデフォルト戦略を使用
     const vsOpenResult = getVsOpenStrategy(normalizedHandType, position, openerPosition, stackDepthBB);
     if (vsOpenResult) {
@@ -524,7 +560,21 @@ const simulateMTTGTOData = (
     const normalizedPosition = position === 'UTG+1' ? 'UTG1' : position;
     const normalizedThreeBetterPosition = threeBetterPosition === 'UTG+1' ? 'UTG1' : threeBetterPosition;
     
-    const rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${stackSize}`;
+    // 20BBの場合は3ベットタイプを使用（レイズまたはオールイン）
+    let rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${stackSize}`;
+    
+    if (stackSize === '20BB' && threeBetType) {
+      const typeSpecificRangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${threeBetType}_20BB`;
+      
+      // 20BBの場合は常にタイプ別レンジキーを使用
+      rangeKey = typeSpecificRangeKey;
+      console.log('🎯 20BB 3ベットタイプ別レンジ使用:', { 
+        threeBetType, 
+        typeSpecificRangeKey, 
+        handType: normalizedHandType 
+      });
+    }
+    
     // 15BBの場合は既存キーとの互換性も確認
     const fallbackRangeKey = stackSize === '15BB' ? `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}` : null;
     
@@ -592,6 +642,26 @@ const simulateMTTGTOData = (
       usedRangeKey = fallbackRangeKey;
       console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
+      // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
+      if (stackSize === '20BB' && threeBetType) {
+        console.log('🎯 20BB タイプ別レンジ未発見の詳細デバッグ:', {
+          threeBetType,
+          rangeKey,
+          normalizedHandType,
+          availableRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB')) : [],
+          matchingRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : [],
+          hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+          rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+          // 20BBのタイプ別レンジの詳細確認
+          has20BBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')).length : 0,
+          has20BBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')).length : 0,
+          twentyBBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')) : [],
+          twentyBBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')) : [],
+          // 現在のレンジキーに一致するレンジが存在するかチェック
+          exactMatchExists: customRanges ? Object.keys(customRanges).includes(rangeKey) : false,
+          partialMatches: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
+        });
+      }
       console.log('🎯 vs3bet カスタムレンジ未発見:', { 
         rangeKey, 
         fallbackRangeKey, 
@@ -783,7 +853,7 @@ const simulateMTTGTOData = (
       availableRangeKeys: customRanges ? Object.keys(customRanges) : []
     });
     
-    // 強力なハンドの場合は強制的に適切なアクションを設定
+    // 強力なハンドの場合は強制的に適切なアクションを設定（CPUオールイン対応）
     if (normalizedHandType === 'AA') {
       gtoAction = 'ALL IN';
       frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
@@ -805,9 +875,10 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (normalizedHandType === 'QQ') {
+      // QQは混合戦略（90%オールイン、10%フォールド）
       gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 90 };
-      console.log('🎯 QQハンド強制ALL IN設定:', { 
+      frequencies = { 'FOLD': 10, 'CALL': 0, 'RAISE': 0, 'ALL IN': 90 };
+      console.log('🎯 QQハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
         frequencies,
@@ -825,9 +896,10 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (normalizedHandType === 'JJ') {
+      // JJは混合戦略（70%コール、30%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL IN': 0 };
-      console.log('🎯 JJハンド強制CALL設定:', { 
+      frequencies = { 'FOLD': 0, 'CALL': 70, 'RAISE': 0, 'ALL IN': 30 };
+      console.log('🎯 JJハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
         frequencies,
@@ -835,9 +907,10 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (normalizedHandType === 'TT') {
+      // TTは混合戦略（60%コール、40%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL IN': 0 };
-      console.log('🎯 TTハンド強制CALL設定:', { 
+      frequencies = { 'FOLD': 0, 'CALL': 60, 'RAISE': 0, 'ALL IN': 40 };
+      console.log('🎯 TTハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
         frequencies,
@@ -845,9 +918,21 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (['AQs', 'AQo'].includes(normalizedHandType)) {
+      // AQは混合戦略（80%コール、20%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL IN': 0 };
-      console.log('🎯 AQハンド強制CALL設定:', { 
+      frequencies = { 'FOLD': 0, 'CALL': 80, 'RAISE': 0, 'ALL IN': 20 };
+      console.log('🎯 AQハンド混合戦略設定:', { 
+        handType: normalizedHandType, 
+        gtoAction, 
+        frequencies,
+        correctAction: gtoAction,
+        primaryFrequency: frequencies[gtoAction]
+      });
+    } else if (normalizedHandType === '99') {
+      // 99は混合戦略（50%コール、50%オールイン）
+      gtoAction = 'CALL';
+      frequencies = { 'FOLD': 0, 'CALL': 50, 'RAISE': 0, 'ALL IN': 50 };
+      console.log('🎯 99ハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
         frequencies,
@@ -1655,6 +1740,7 @@ function MTTTrainingPage() {
   const [isRangeEditorOpen, setIsRangeEditorOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<string>('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [lastRangeUpdate, setLastRangeUpdate] = useState<number>(0); // レンジ更新タイムスタンプ
   
   // vsオープン用レンジエディター関連のstate
   const [selectedVSOpenPosition, setSelectedVSOpenPosition] = useState<string>('BTN');
@@ -1668,6 +1754,42 @@ function MTTTrainingPage() {
   const [selectedTrainingHands, setSelectedTrainingHands] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // ハンドレンジ表示用のstate
+  const [showHandRange, setShowHandRange] = useState<boolean>(false);
+  const [showHandRangeViewer, setShowHandRangeViewer] = useState<boolean>(false);
+  
+  // 現在のスポットのレンジキーを取得する関数
+  const getCurrentSpotRangeKey = (): string | null => {
+    if (!spot) return null;
+    
+    const { actionType, heroPosition, stackDepth } = spot;
+    
+    if (actionType === 'open') {
+      // オープンレンジの場合
+      if (stackDepth === '15BB') {
+        return heroPosition || null; // 15BBの場合はポジション名のみ
+      } else {
+        return heroPosition && stackDepth ? `${heroPosition}_${stackDepth}` : null; // その他のスタックサイズ
+      }
+    } else if (actionType === 'vsopen' && spot.openRaiserPosition) {
+      // vsオープンレンジの場合
+      if (stackDepth === '15BB') {
+        return `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}`; // 15BBの場合は既存キー形式
+      } else {
+        return `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`; // その他のスタックサイズ
+      }
+    } else if (actionType === 'vs3bet' && spot.threeBetterPosition) {
+      // vs3ベットレンジの場合
+      if (stackDepth === '15BB') {
+        return `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`; // 15BBの場合は既存キー形式
+      } else {
+        return `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`; // その他のスタックサイズ
+      }
+    }
+    
+    return null;
+  };
 
   // ハンドタイプからカード配列を生成するヘルパー関数
   const generateHandFromType = (handType: string): string[] => {
@@ -1827,6 +1949,20 @@ function MTTTrainingPage() {
       }
     }
     
+    // 20BBの場合の3ベットタイプ決定
+    let threeBetType: string | undefined;
+    if (actionType === 'vs3bet' && stackSize === '20BB') {
+      threeBetType = Math.random() < 0.7 ? 'raise' : 'allin'; // 70%がレイズ、30%がオールイン
+      console.log('🎯 20BB 3ベットタイプ決定:', { 
+        threeBetType, 
+        probability: threeBetType === 'raise' ? '70%' : '30%',
+        handType: normalizeHandType(newHand)
+      });
+      
+      // 3ベットタイプをグローバルに保存（ポット計算で使用）
+      (window as any).currentThreeBetType = threeBetType;
+    }
+    
     console.log('🎯 シナリオ生成デバッグ:', {
       newHand,
       handType,
@@ -1835,14 +1971,26 @@ function MTTTrainingPage() {
       stackSize,
       actionType,
       openerPosition,
+      threeBetType,
       hasCustomRanges: !!customRanges,
       customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
       customRangesKeys: customRanges ? Object.keys(customRanges) : [],
-      // カスタムレンジの詳細確認
-      vs3betRangeKey: `vs3bet_${position}_vs_${openerPosition}_${stackSize}`,
-      hasVs3betRange: !!(customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`]),
-      vs3betRangeData: customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`] ? 
-        Object.keys(customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`]) : []
+      // 20BBのレンジ詳細確認
+      ...(stackSize === '20BB' && {
+        has20BBRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB')).length : 0,
+        has20BBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')).length : 0,
+        has20BBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')).length : 0,
+        twentyBBRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB')) : [],
+        twentyBBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')) : [],
+        twentyBBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')) : []
+      }),
+      // カスタムレンジの詳細確認（20BB以外の場合）
+      ...(stackSize !== '20BB' && {
+        vs3betRangeKey: `vs3bet_${position}_vs_${openerPosition}_${stackSize}`,
+        hasVs3betRange: !!(customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`]),
+        vs3betRangeData: customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`] ? 
+          Object.keys(customRanges[`vs3bet_${position}_vs_${openerPosition}_${stackSize}`]) : []
+      })
     });
     
     // MTT特有のGTOデータをシミュレート（簡略化）
@@ -1853,7 +2001,8 @@ function MTTTrainingPage() {
       stackSize, 
       actionType as string,
       customRanges,
-      openerPosition
+      openerPosition,
+      threeBetType
     );
     console.log('🎯 setGtoData直前:', {
       newHand,
@@ -1869,13 +2018,123 @@ function MTTTrainingPage() {
     // レイズ推奨サイズを取得
     const recommendedBetSize = data.recommendedBetSize;
     
-    // ポットサイズの計算 - Ante 1BBを含む正確な計算
+    // ポットサイズの計算 - Ante 1BBを含む正確な計算（ポット調整対応）
     let potSize = 1.5;     // デフォルト（SB + BB）
     let openRaiseSize = actionType === 'vs4bet' ? 30 : 2.0; // 4ベットの場合は30BB、それ以外は2.0BB
     let threeBetSize = 6.3; // デフォルトの3ベットサイズ
     
-    // 30BBスタック固有のサイジング
-    if (stackSize === '30BB') {
+    // ポット調整係数（SBとBBの位置に応じて調整）
+    let potAdjustment = 0;
+    if (position === 'SB') {
+      potAdjustment = -0.5; // SBは0.5BBを既にポットに置いている
+    } else if (position === 'BB') {
+      potAdjustment = -1.0; // BBは1.0BBを既にポットに置いている
+    }
+    
+    // 20BBスタック固有のサイジング
+    if (stackSize === '20BB') {
+      if (actionType === 'openraise') {
+        openRaiseSize = 2.1;
+        potSize = 1.5 + 1; // SB + BB + Ante
+      } else if (actionType === 'vsopen') {
+        openRaiseSize = 2.1;
+        potSize = openRaiseSize + 1.5 + 1; // オープンレイズ + ブラインド + Ante
+              } else if (actionType === 'vs3bet') {
+          openRaiseSize = 2.1;
+          
+          // 3ベットタイプに応じて3ベットサイズを決定
+          const currentThreeBetType = (window as any).currentThreeBetType;
+          console.log('🎯 20BB vs3bet 3ベットタイプ確認:', { currentThreeBetType, openerPosition });
+          
+          if (currentThreeBetType === 'allin') {
+            // オールインの場合は20BB
+            threeBetSize = 20;
+            console.log('🎯 20BB vs3bet オールイン設定:', { threeBetSize: 20 });
+          } else {
+            // レイズの場合はポジションに応じて決定
+            if (openerPosition === 'SB') {
+              threeBetSize = 5.5; // SBの3ベットは5.5BB
+            } else if (openerPosition === 'BB') {
+              threeBetSize = 6; // BBの3ベットは6BB
+            } else {
+              threeBetSize = 5; // その他のポジションは5BB
+            }
+            console.log('🎯 20BB vs3bet レイズ設定:', { threeBetSize, openerPosition });
+          }
+          console.log(`🎯 20BB vs3bet threeBetSize設定: ${threeBetSize} (${openerPosition})`);
+          // 3ベッターのポジションに応じてポットサイズを計算（ポット調整対応）
+          if (openerPosition === 'SB') {
+            // SBが3ベッターの場合：SBの0.5BBは引っ込めて、3ベット額だけ追加
+            // ポットにはBBの1BBが含まれる
+            potSize = openRaiseSize + threeBetSize + 1 + 1; // オープン + 3ベット + BB + Ante
+          } else if (openerPosition === 'BB') {
+            // BBが3ベッターの場合：BBの1BBは既にテーブル上にあるため、3ベット額だけ追加
+            // ポットにはSBの0.5BBが含まれる
+            potSize = openRaiseSize + threeBetSize + 0.5 + 1; // オープン + 3ベット + SB + Ante
+          } else {
+            // その他のポジションの場合：通常の計算
+            potSize = openRaiseSize + threeBetSize + 0.5 + 1 + 1; // オープン + 3ベット + SB + BB + Ante
+          }
+          
+          // 3ベットタイプに応じてポットサイズを調整
+          if (currentThreeBetType === 'allin') {
+            console.log('🎯 20BB vs3bet オールインポット調整:', { 
+              originalPotSize: potSize, 
+              threeBetSize, 
+              actionType: 'allin' 
+            });
+          }
+          
+          // ポット調整を適用
+          potSize += potAdjustment;
+          potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+          console.log(`🎯 20BB vs3ベットポット計算:`, {
+            openerPosition,
+            openRaiseSize,
+            threeBetSize,
+            sbInPot: openerPosition === 'SB' ? 0 : 0.5,
+            bbInPot: openerPosition === 'BB' ? 0 : 1,
+            ante: 1,
+            total: potSize
+          });
+          console.log(`🎯 20BB vs3ベット最終ポットサイズ: ${potSize}BB (Ante含む)`);
+          
+          // ポットサイズの詳細計算をログ出力
+          const expectedPot = openerPosition === 'SB' ? 
+            openRaiseSize + threeBetSize + 1 + 1 : // 2.1 + 5.5 + 1 + 1 = 9.6
+            openerPosition === 'BB' ? 
+              openRaiseSize + threeBetSize + 0.5 + 1 : // 2.1 + 6 + 0.5 + 1 = 9.6
+              openRaiseSize + threeBetSize + 0.5 + 1 + 1; // 2.1 + 5 + 0.5 + 1 + 1 = 9.6
+          console.log(`🎯 20BB vs3ベット期待ポットサイズ: ${expectedPot}BB (計算: ${openRaiseSize} + ${threeBetSize} + ${openerPosition === 'SB' ? '1' : openerPosition === 'BB' ? '0.5' : '0.5+1'} + 1)`);
+      } else if (actionType === 'vs4bet') {
+        console.log(`🎯 20BB vs4ベット計算開始:`, { stackSize, position, actionType });
+        // vs4ベットの正確なポット計算（ポット調整対応）
+        if (position === 'SB') {
+          // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+          potSize = 5 + 20 + 1; // 3ベット(5BB) + 4ベット(20BB) + Ante(1BB)
+        } else if (position === 'BB') {
+          // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
+          potSize = 5 + 20 + 0.5 + 1; // 3ベット(5BB) + 4ベット(20BB) + SB(0.5BB) + Ante(1BB)
+        } else {
+          // ヒーローがその他のポジションの場合
+          potSize = 5 + 20 + 0.5 + 1 + 1; // 3ベット(5BB) + 4ベット(20BB) + SB(0.5BB) + BB(1BB) + Ante(1BB)
+        }
+        
+        // ポット調整を適用
+        potSize += potAdjustment;
+        potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
+        console.log(`🎯 20BB vs4ベットポット計算:`, {
+          stackSize,
+          heroPosition: position,
+          threeBetChip: 5,
+          fourBetChip: 20,
+          smallBlindChip: position === 'SB' ? 0 : 0.5,
+          ante: 1,
+          total: potSize
+        });
+      }
+    } else if (stackSize === '30BB') {
+      // 30BBスタック固有のサイジング
       if (actionType === 'openraise') {
         openRaiseSize = 2.1;
         potSize = 1.5 + 1; // SB + BB + Ante
@@ -1892,7 +2151,7 @@ function MTTTrainingPage() {
         } else {
           threeBetSize = 6.3; // UTG+1・LJ・HJ・CO・BTN
         }
-        // 3ベッターのポジションに応じてポットサイズを計算
+        // 3ベッターのポジションに応じてポットサイズを計算（ポット調整対応）
         if (openerPosition === 'SB') {
           // SBが3ベッターの場合：SBの0.5BBは引っ込めて、3ベット額だけ追加
           potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
@@ -1903,6 +2162,9 @@ function MTTTrainingPage() {
           // その他のポジションの場合：通常の計算
           potSize = openRaiseSize + threeBetSize + 0.5 + 1; // オープン + 3ベット + SB残り + Ante
         }
+        
+        // ポット調整を適用
+        potSize += potAdjustment;
         potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
         console.log(`🎯 30BB vs3ベットポット計算:`, {
           openerPosition,
@@ -1915,24 +2177,25 @@ function MTTTrainingPage() {
         });
       } else if (actionType === 'vs4bet') {
         console.log(`🎯 vs4ベット計算開始:`, { stackSize, position, actionType });
-        // vs4ベットの正確なポット計算
-        // テーブル上のチップ + Ante(1BB) - ヒーローのブラインド
-                  if (position === 'SB') {
-            // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
-            // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
-            potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+        // vs4ベットの正確なポット計算（ポット調整対応）
+        if (position === 'SB') {
+          // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
+          // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
+          potSize = 6.3 + 30 + 1; // 3ベット + 4ベット + Ante
         } else if (position === 'BB') {
           console.log(`🎯 BBの場合の計算:`, { stackSize, position });
           // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
           // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + Ante(1BB) = 37.8BB
-          // BBのブラインド分は引っ込めているので除外
-          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
-          console.log(`🎯 BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+          potSize = 6.3 + 30 + 0.5 + 1; // 3ベット + 4ベット + SB + Ante
+          console.log(`🎯 BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1', result: potSize });
         } else {
           // ヒーローがその他のポジションの場合
           // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + BB(1BB) + Ante(1BB) = 38.8BB
           potSize = 6.3 + 30 + 0.5 + 1 + 1;
         }
+        
+        // ポット調整を適用
+        potSize += potAdjustment;
         potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
         console.log(`🎯 ${stackSize} vs4ベットポット計算:`, {
           stackSize,
@@ -1962,7 +2225,7 @@ function MTTTrainingPage() {
         } else {
           threeBetSize = 6.3; // UTG+1・LJ・HJ・CO・BTN
         }
-        // 3ベッターのポジションに応じてポットサイズを計算
+        // 3ベッターのポジションに応じてポットサイズを計算（ポット調整対応）
         if (openerPosition === 'SB') {
           // SBが3ベッターの場合：SBの0.5BBは引っ込めて、3ベット額だけ追加
           potSize = openRaiseSize + threeBetSize + 1; // オープン + 3ベット + Ante
@@ -1974,6 +2237,9 @@ function MTTTrainingPage() {
           // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2.1BB) + 3ベット(6.3BB) = 10.9BB
           potSize = 0.5 + 1 + 1 + openRaiseSize + threeBetSize;
         }
+        
+        // ポット調整を適用
+        potSize += potAdjustment;
         potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
         console.log(`🎯 40BB vs3ベットポット計算:`, {
           openerPosition,
@@ -1986,24 +2252,25 @@ function MTTTrainingPage() {
         });
       } else if (actionType === 'vs4bet') {
         console.log(`🎯 40BB vs4ベット計算開始:`, { stackSize, position, actionType });
-        // vs4ベットの正確なポット計算
-        // テーブル上のチップ + Ante(1BB) - ヒーローのブラインド
+        // vs4ベットの正確なポット計算（ポット調整対応）
         if (position === 'SB') {
           // ヒーローがSBの場合、SB(0.5BB)を引っ込めて3ベット
           // 3ベット(6.3BB) + 4ベット(30BB) + Ante(1BB) = 37.3BB
-          potSize = 6.3 + 30 + 1 + 1; // Ante(1BB)を追加
+          potSize = 6.3 + 30 + 1; // 3ベット + 4ベット + Ante
         } else if (position === 'BB') {
           console.log(`🎯 40BB BBの場合の計算:`, { stackSize, position });
           // ヒーローがBBの場合、BB(1BB)を引っ込めて3ベット
           // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + Ante(1BB) = 37.8BB
-          // BBのブラインド分は引っ込めているので除外
-          potSize = 6.3 + 30 + 0.5 + 1 - 1 + 1; // BBのブラインド分(1BB)を除外 + Ante(1BB)を追加
-          console.log(`🎯 40BB BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1 - 1', result: potSize });
+          potSize = 6.3 + 30 + 0.5 + 1; // 3ベット + 4ベット + SB + Ante
+          console.log(`🎯 40BB BB計算結果:`, { calculation: '6.3 + 30 + 0.5 + 1', result: potSize });
         } else {
           // ヒーローがその他のポジションの場合
           // 3ベット(6.3BB) + 4ベット(30BB) + SB(0.5BB) + BB(1BB) + Ante(1BB) = 38.8BB
           potSize = 6.3 + 30 + 0.5 + 1 + 1;
         }
+        
+        // ポット調整を適用
+        potSize += potAdjustment;
         potSize = Math.round(potSize * 10) / 10; // 小数点第1位で丸め処理
         console.log(`🎯 ${stackSize} vs4ベットポット計算:`, {
           stackSize,
@@ -2029,26 +2296,29 @@ function MTTTrainingPage() {
       } else if (actionType === 'openraise') {
         potSize = 1.5 + 1; // SB + BB + Ante
       } else if (actionType === 'vs3bet') {
-        // 15BBのvs3ベットの正確な計算
-        if (stackSize === '15BB') {
-          // 15BBのvs3ベットの正確な計算
-          // 3ベッターのポジションに応じてポット計算を調整
-          if (openerPosition === 'SB') {
-            // 3ベッターがSBの場合、SB(0.5BB)を引っ込めて3ベット
-            // BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19BB
-            potSize = 1 + 1 + 2 + 15;
-            console.log(`🎯 vs3bet 15BB SB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '1 + 1 + 2 + 15', potSize });
-          } else if (openerPosition === 'BB') {
-            // 3ベッターがBBの場合、BB(1BB)を引っ込めて3ベット
-            // SB(0.5BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 18.5BB
-            potSize = 0.5 + 1 + 2 + 15;
-            console.log(`🎯 vs3bet 15BB BB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 2 + 15', potSize });
-          } else {
-            // 3ベッターがその他のポジションの場合
-            // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19.5BB
-            potSize = 0.5 + 1 + 1 + 2 + 15;
-            console.log(`🎯 vs3bet 15BB その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2 + 15', potSize });
-          }
+                  // 15BBのvs3ベットの正確な計算（ポット調整対応）
+          if (stackSize === '15BB') {
+            // 15BBのvs3ベットの正確な計算
+            // 3ベッターのポジションに応じてポット計算を調整
+            if (openerPosition === 'SB') {
+              // 3ベッターがSBの場合、SB(0.5BB)を引っ込めて3ベット
+              // BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19BB
+              potSize = 1 + 1 + 2 + 15;
+              console.log(`🎯 vs3bet 15BB SB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '1 + 1 + 2 + 15', potSize });
+            } else if (openerPosition === 'BB') {
+              // 3ベッターがBBの場合、BB(1BB)を引っ込めて3ベット
+              // SB(0.5BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 18.5BB
+              potSize = 0.5 + 1 + 2 + 15;
+              console.log(`🎯 vs3bet 15BB BB 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 2 + 15', potSize });
+            } else {
+              // 3ベッターがその他のポジションの場合
+              // SB(0.5BB) + BB(1BB) + Ante(1BB) + ヒーローのオープンレイズ(2BB) + 3ベット(15BB) = 19.5BB
+              potSize = 0.5 + 1 + 1 + 2 + 15;
+              console.log(`🎯 vs3bet 15BB その他 3ベッター計算:`, { stackSize, threeBetterPosition: openerPosition, calculation: '0.5 + 1 + 1 + 2 + 15', potSize });
+            }
+            
+            // ポット調整を適用
+            potSize += potAdjustment;
         } else if (stackSize === '40BB') {
           // 40BBのvs3ベットの正確な計算
           // 3ベッターのポジションに応じてポット計算を調整
@@ -2177,9 +2447,11 @@ function MTTTrainingPage() {
               : `vs ${openerPosition || 'UTG'}のオープン(2.5BB)`
         ) : 
         actionType === 'vs3bet' ? (
-          stackSize === '30BB' && openerPosition
-            ? `vs ${openerPosition}の3ベット(${threeBetSize}BB)`
-            : 'vs 3ベット'
+          stackSize === '20BB' && openerPosition && (window as any).currentThreeBetType
+            ? `vs ${openerPosition}の3ベット(${(window as any).currentThreeBetType === 'allin' ? 'オールイン' : `${threeBetSize}BB`})`
+            : stackSize === '30BB' && openerPosition
+              ? `vs ${openerPosition}の3ベット(${threeBetSize}BB)`
+              : 'vs 3ベット'
         ) : 
         actionType === 'vs4bet' ? 'vs 4ベット' : 
         actionType === 'vs5bet' ? 'vs 5ベット' : 
@@ -2213,9 +2485,32 @@ function MTTTrainingPage() {
                          actionType === 'vs4bet' ? openerPosition : openerPosition, // vs4betでは4ベッターがopenRaiserPosition
       openRaiseSize: openRaiseSize, // 計算されたオープンサイズを使用
       // vs3bet用の追加情報
-      threeBetSize: (actionType === 'vs3bet' || actionType === 'vs4bet') ? (actionType === 'vs3bet' && stackSize === '15BB' ? 15 : threeBetSize) : undefined,
+      threeBetSize: (() => {
+        if (actionType === 'vs3bet' || actionType === 'vs4bet') {
+          if (actionType === 'vs3bet' && stackSize === '15BB') {
+            console.log(`🎯 15BB 3ベットサイズ設定: 15`);
+            return 15;
+          } else if (actionType === 'vs3bet' && stackSize === '20BB') {
+            const currentThreeBetType = (window as any).currentThreeBetType;
+            if (currentThreeBetType === 'allin') {
+              console.log(`🎯 20BB 3ベットサイズ設定: オールイン`);
+              return 20;
+            } else {
+              console.log(`🎯 20BB 3ベットサイズ設定: 5`);
+              return 5;
+            }
+          } else {
+            console.log(`🎯 その他 3ベットサイズ設定: ${threeBetSize}`);
+            return threeBetSize;
+          }
+        }
+        console.log(`🎯 3ベットサイズ設定なし: undefined`);
+        return undefined;
+      })(),
       threeBetterPosition: actionType === 'vs3bet' ? openerPosition : 
                           actionType === 'vs4bet' ? position : undefined, // vs4betではヒーローが3ベッター
+      // 20BBの場合の3ベットタイプ情報を追加
+      threeBetType: actionType === 'vs3bet' && stackSize === '20BB' ? (window as any).currentThreeBetType : undefined,
       // 各ポジションのスタック情報を作成（根本的に確実な方法）
       positions: (() => {
         const stackValue = parseInt(stackSize);
@@ -2225,6 +2520,41 @@ function MTTTrainingPage() {
         if (actionType === 'vs3bet' && openerPosition) {
           if (stackSize === '15BB') {
             threeBetterStack = 0;
+          } else if (stackSize === '20BB') {
+            // 3ベッターのポジションに応じて3ベットサイズを決定
+            const currentThreeBetType = (window as any).currentThreeBetType;
+            let threeBetAmount: number;
+            
+            if (currentThreeBetType === 'allin') {
+              threeBetAmount = 20; // オールインの場合は20BB
+              // オールインの場合はスタックが0になる
+              threeBetterStack = 0;
+              console.log(`🎯 20BB オールイン 3ベッター: スタック = 0 (オールイン完了)`);
+            } else {
+              if (openerPosition === 'SB') {
+                threeBetAmount = 5.5; // SBの3ベットは5.5BB
+              } else if (openerPosition === 'BB') {
+                threeBetAmount = 6; // BBの3ベットは6BB
+              } else {
+                threeBetAmount = 5; // その他のポジションは5BB
+              }
+              
+              console.log(`🎯 20BB 3ベッタースタック計算開始: threeBetAmount=${threeBetAmount} (${openerPosition})`);
+              // SB・BBの場合はブラインドを戻してからレイズするため、スタックの減り方が異なる
+              if (openerPosition === 'SB') {
+                // SB: 20BB - 0.5BB(戻す) - 5.5BB(レイズ) = 14BB
+                threeBetterStack = 20 - 0.5 - threeBetAmount;
+                console.log(`🎯 20BB SB 3ベッター: 20 - 0.5 - ${threeBetAmount} = ${threeBetterStack}`);
+              } else if (openerPosition === 'BB') {
+                // BB: 20BB - 6BB(レイズ) = 14BB (ブラインドは既にテーブル上にあるため戻す必要なし)
+                threeBetterStack = 20 - threeBetAmount;
+                console.log(`🎯 20BB BB 3ベッター: 20 - ${threeBetAmount} = ${threeBetterStack}`);
+              } else {
+                // その他のポジション: 20BB - 5BB(レイズ) = 15BB
+                threeBetterStack = 20 - threeBetAmount;
+                console.log(`🎯 20BB その他 3ベッター: 20 - ${threeBetAmount} = ${threeBetterStack}`);
+              }
+            }
           } else if (stackSize === '30BB') {
             // SB・BBの場合はブラインド分を考慮
             if (openerPosition === 'SB') {
@@ -2257,12 +2587,66 @@ function MTTTrainingPage() {
           }
         };
         
-        console.log(`🎯 根本的実装: actionType=${actionType}, openerPosition=${openerPosition}, threeBetterStack=${threeBetterStack}, threeBetSize=${threeBetSize}`);
+        console.log(`🎯 根本的実装: actionType=${actionType}, openerPosition=${openerPosition}, threeBetterStack=${threeBetterStack}, threeBetSize=${threeBetSize}, stackSize=${stackSize}`);
         console.log(`🎯 ${openerPosition}のスタック: ${positions[openerPosition as keyof typeof positions]?.stack || 'N/A'}`);
+        console.log(`🎯 20BB vs3bet デバッグ: stackSize=${stackSize}, actionType=${actionType}, threeBetSize=${threeBetSize}, threeBetterStack=${threeBetterStack}`);
+        console.log(`🎯 20BB vs3bet 詳細デバッグ:`, {
+          stackSize,
+          actionType,
+          threeBetSize,
+          threeBetterStack,
+          openerPosition,
+          stackValue,
+          condition: actionType === 'vs3bet' && openerPosition,
+          stackCondition: stackSize === '20BB'
+        });
         
         return positions;
       })()
     };
+    
+    // 20BBのvs3betで3ベットタイプに応じてthreeBetSizeとポットサイズを強制的に設定
+    if (actionType === 'vs3bet' && stackSize === '20BB') {
+      const currentThreeBetType = (window as any).currentThreeBetType;
+      console.log(`🎯 20BB vs3bet 強制設定開始: threeBetType=${currentThreeBetType}, openerPosition=${openerPosition}`);
+      
+      if (currentThreeBetType === 'allin') {
+        // オールインの場合
+        newSpot.threeBetSize = 20;
+        console.log(`🎯 強制設定: newSpot.threeBetSize = 20 (オールイン)`);
+        
+        // ポットサイズも強制的に設定（オールイン）
+        if (openerPosition === 'SB') {
+          newSpot.potSize = 2.1 + 20 + 1 + 1; // 24.1BB (オープン + オールイン + BB + Ante)
+        } else if (openerPosition === 'BB') {
+          newSpot.potSize = 2.1 + 20 + 0.5 + 1; // 23.6BB (オープン + オールイン + SB + Ante)
+        } else {
+          newSpot.potSize = 2.1 + 20 + 0.5 + 1 + 1; // 24.6BB (オープン + オールイン + SB + BB + Ante)
+        }
+      } else {
+        // レイズの場合
+        if (openerPosition === 'SB') {
+          newSpot.threeBetSize = 5.5;
+        } else if (openerPosition === 'BB') {
+          newSpot.threeBetSize = 6;
+        } else {
+          newSpot.threeBetSize = 5;
+        }
+        console.log(`🎯 強制設定: newSpot.threeBetSize = ${newSpot.threeBetSize} (${openerPosition})`);
+        
+        // ポットサイズも強制的に設定
+        if (openerPosition === 'SB') {
+          newSpot.potSize = 2.1 + 5.5 + 1 + 1; // 9.6BB (オープン + 3ベット + BB + Ante)
+        } else if (openerPosition === 'BB') {
+          newSpot.potSize = 2.1 + 6 + 0.5 + 1; // 9.6BB (オープン + 3ベット + SB + Ante)
+        } else {
+          newSpot.potSize = 2.1 + 5 + 0.5 + 1 + 1; // 9.6BB (オープン + 3ベット + SB + BB + Ante)
+        }
+      }
+      
+      newSpot.potSize = Math.round(newSpot.potSize * 10) / 10;
+      console.log(`🎯 強制設定: newSpot.potSize = ${newSpot.potSize}BB (Ante含む, ${openerPosition}, ${currentThreeBetType})`);
+    }
     
     // 強制的にUIを更新
     const finalSpot = {
@@ -2299,6 +2683,10 @@ function MTTTrainingPage() {
     });
     
     setSpot(finalSpot);
+    
+    // ハンドレンジ表示をリセット
+    setShowHandRange(false);
+    setShowHandRangeViewer(false);
   };
 
   useEffect(() => {
@@ -2314,11 +2702,21 @@ function MTTTrainingPage() {
   
   // 初期化（依存関係も簡略化）
   useEffect(() => {
+    console.log('🔄 初期化 useEffect 実行:', {
+      isInitialized,
+      position,
+      stackSize,
+      actionType,
+      customHandsString,
+      lastRangeUpdate,
+      customRangesCount: Object.keys(customRanges).length
+    });
+    
     if (!isInitialized) {
       generateNewScenario();
       setIsInitialized(true);
     }
-  }, [position, stackSize, actionType, customHandsString, isInitialized]);
+  }, [position, stackSize, actionType, customHandsString, isInitialized, lastRangeUpdate]); // lastRangeUpdateを追加
   
   // 新しいアプローチ: spot変更後にスタックを監視・修正
   useEffect(() => {
@@ -2336,6 +2734,24 @@ function MTTTrainingPage() {
       let expectedStack: number;
       if (spot.stackDepth === '15BB') {
         expectedStack = 0;
+      } else if (spot.stackDepth === '20BB') {
+        // 20BBの場合、3ベットタイプに応じて計算
+        const currentThreeBetType = (window as any).currentThreeBetType;
+        if (currentThreeBetType === 'allin') {
+          // オールインの場合はスタックが0になる
+          expectedStack = 0;
+          console.log(`🔍 20BB オールイン: expectedStack = 0`);
+        } else {
+          // レイズの場合
+          if (spot.threeBetterPosition === 'SB') {
+            expectedStack = 19.5 - (spot.threeBetSize || 0); // 20 - 0.5 - threeBetSize
+          } else if (spot.threeBetterPosition === 'BB') {
+            expectedStack = 19 - (spot.threeBetSize || 0); // 20 - 1 - threeBetSize
+          } else {
+            expectedStack = 20 - (spot.threeBetSize || 0); // その他のポジション
+          }
+          console.log(`🔍 20BB レイズ: expectedStack = ${expectedStack}`);
+        }
       } else if (spot.stackDepth === '30BB') {
         if (spot.threeBetterPosition === 'SB') {
           expectedStack = 29.5 - (spot.threeBetSize || 0); // 30 - 0.5 - threeBetSize
@@ -2378,28 +2794,90 @@ function MTTTrainingPage() {
     }
   }, [spot]);
   
-  // カスタムレンジをlocalStorageから読み込み
+  // カスタムレンジをlocalStorageから読み込み（リアルタイム更新対応）
   useEffect(() => {
+    console.log('🔄 カスタムレンジ読み込み useEffect 実行:', { lastRangeUpdate });
+    
     const savedRanges = localStorage.getItem('mtt-custom-ranges');
     if (savedRanges) {
       try {
         const parsedRanges = JSON.parse(savedRanges);
-        console.log('📂 localStorageからカスタムレンジを読み込み:', parsedRanges);
+        console.log('📂 localStorageからカスタムレンジを読み込み:', {
+          rangeCount: Object.keys(parsedRanges).length,
+          rangeKeys: Object.keys(parsedRanges).slice(0, 5),
+          lastRangeUpdate
+        });
         setCustomRanges(parsedRanges);
       } catch (error) {
         console.error('カスタムレンジの読み込みに失敗しました:', error);
       }
-      } else {
+    } else {
       console.log('📂 localStorageにカスタムレンジが見つかりません');
     }
+  }, [lastRangeUpdate]); // lastRangeUpdateを依存配列に追加
+  
+  // StorageEventリスナーを追加（他のタブでの変更を検知）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mtt-custom-ranges' && e.newValue) {
+        console.log('🔄 他のタブでカスタムレンジが更新されました');
+        try {
+          const parsedRanges = JSON.parse(e.newValue);
+          setCustomRanges(parsedRanges);
+          // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+          setLastRangeUpdate(Date.now());
+          console.log('✅ 他のタブからの変更を反映しました');
+        } catch (error) {
+          console.error('他のタブからのレンジ更新の反映に失敗:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
   // システム全体からレンジデータを自動読み込み（エンタープライズ機能）
   useEffect(() => {
     const loadSystemRanges = async () => {
+      // 新しい端末での初回アクセスかどうかをチェック
+      const isFirstVisit = !localStorage.getItem('mtt-ranges-timestamp');
+      if (isFirstVisit) {
+        console.log('🎯 新しい端末での初回アクセスを検出');
+      }
       console.log('🎯 カスタムレンジ読み込み開始');
+      
+      // 保存中でない場合のみ処理を実行
+      if (!isSaving) {
+        const localRanges = localStorage.getItem('mtt-custom-ranges');
+        const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
+        
+        // ローカルデータがある場合は一時的に設定（後でAPIと比較）
+        if (localRanges) {
+          try {
+            const parsedRanges = JSON.parse(localRanges);
+            if (Object.keys(parsedRanges).length > 0) {
+              setCustomRanges(parsedRanges);
+              console.log('🎯 ローカルストレージのデータを一時設定:', {
+                rangeKeys: Object.keys(parsedRanges),
+                rangeCount: Object.keys(parsedRanges).length,
+                vsopenKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_')),
+                vs3betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs3bet_')),
+                vs4betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs4bet_')),
+                sampleVsopenRange: Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_'))[0] ? 
+                  Object.keys(parsedRanges[Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_'))[0]]) : null
+              });
+              // ローカルデータがあってもAPIとの同期を続行
+            }
+          } catch (e) {
+            console.log('ローカルストレージ解析エラー:', e);
+          }
+        }
+      }
+      
       try {
-        // まずAPIからの読み込みを試行
+        // APIからの読み込みを試行（常に実行）
+        console.log('🎯 システムAPIからの読み込みを試行');
         const response = await fetch('/api/mtt-ranges');
         if (response.ok) {
           const systemData = await response.json();
@@ -2409,16 +2887,28 @@ function MTTTrainingPage() {
             const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
             let shouldUpdate = false;
             
-            if (!localRanges) {
+            console.log('🎯 システムAPIデータ確認:', {
+              systemRangeCount: Object.keys(systemData.ranges).length,
+              systemLastUpdated: systemData.lastUpdated,
+              localRangeCount: localRanges ? Object.keys(JSON.parse(localRanges)).length : 0,
+              localTimestamp: localTimestamp
+            });
+            
+            if (!localRanges || isFirstVisit) {
               shouldUpdate = true;
+              console.log('🎯 ローカルデータがないか初回アクセスのため更新');
             } else {
               // タイムスタンプベースで更新チェック
               if (!localTimestamp || (systemData.lastUpdated && systemData.lastUpdated > localTimestamp)) {
                 shouldUpdate = true;
+                console.log('🎯 タイムスタンプが新しいため更新');
               }
               // 数量ベースのフォールバック
               else if (Object.keys(systemData.ranges).length > Object.keys(JSON.parse(localRanges)).length) {
                 shouldUpdate = true;
+                console.log('🎯 システムデータの方が多いため更新');
+              } else {
+                console.log('🎯 システムデータは最新です');
               }
             }
             
@@ -2449,30 +2939,15 @@ function MTTTrainingPage() {
             } else {
               console.log('📋 システムレンジは最新です');
             }
+          } else {
+            console.log('❌ システムAPIにレンジデータがありません');
           }
+        } else {
+          console.log('❌ システムAPIからの読み込みに失敗:', response.status, response.statusText);
         }
         
-        // ローカルストレージのデータを優先チェック（保存中でない場合のみ）
-        if (!isSaving) {
-          const localRanges = localStorage.getItem('mtt-custom-ranges');
-          const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
-          
-          if (localRanges) {
-            try {
-              const parsedRanges = JSON.parse(localRanges);
-              if (Object.keys(parsedRanges).length > 0) {
-                setCustomRanges(parsedRanges);
-                console.log('🎯 ローカルストレージのデータを優先使用:', {
-                  rangeKeys: Object.keys(parsedRanges),
-                  rangeCount: Object.keys(parsedRanges).length
-                });
-                return; // ローカルデータがある場合は終了
-              }
-            } catch (e) {
-              console.log('ローカルストレージ解析エラー:', e);
-            }
-          }
-        }
+        // API読み込みが失敗した場合の処理
+        console.log('❌ APIからの読み込みに失敗しました。ローカルデータまたはファイルデータを使用します。');
         
         // APIからの読み込みが失敗した場合、データファイルから直接読み込み
         console.log('ローカルデータがないため、データファイルから読み込みます...');
@@ -2644,12 +3119,75 @@ function MTTTrainingPage() {
       });
     }
   }, [customRanges]);
+
+  // ストレージイベントリスナーを追加（他のタブでの変更を検知）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mtt-custom-ranges' && e.newValue) {
+        try {
+          const parsedRanges = JSON.parse(e.newValue);
+          console.log('📂 他のタブからカスタムレンジ更新を検知:', parsedRanges);
+          setCustomRanges(parsedRanges);
+          setLastRangeUpdate(Date.now());
+        } catch (error) {
+          console.error('ストレージ変更の解析に失敗しました:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // 自動バックアップ機能（1時間ごと）
+  useEffect(() => {
+    const autoBackup = () => {
+      const currentRanges = localStorage.getItem('mtt-custom-ranges');
+      if (currentRanges && Object.keys(JSON.parse(currentRanges)).length > 0) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const backupKey = `mtt-custom-ranges-auto-backup-${timestamp}`;
+          localStorage.setItem(backupKey, currentRanges);
+          
+          // 古い自動バックアップを削除（最新の5個のみ保持）
+          const autoBackupKeys = Object.keys(localStorage).filter(key => 
+            key.startsWith('mtt-custom-ranges-auto-backup-')
+          ).sort().reverse();
+          
+          if (autoBackupKeys.length > 5) {
+            autoBackupKeys.slice(5).forEach(key => {
+              localStorage.removeItem(key);
+              console.log('🗑️ 古い自動バックアップを削除:', key);
+            });
+          }
+          
+          console.log('💾 自動バックアップを作成:', backupKey);
+        } catch (error) {
+          console.error('自動バックアップ作成に失敗:', error);
+        }
+      }
+    };
+
+    // 初回バックアップ
+    autoBackup();
+    
+    // 1時間ごとにバックアップ
+    const interval = setInterval(autoBackup, 60 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
 
   
   // レンジエディターのハンドラー関数
   const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
-    console.log('🎯 保存開始:', { position, rangeDataKeys: Object.keys(rangeData), rangeDataSize: Object.keys(rangeData).length });
+    console.log('🎯 保存開始:', { 
+      position, 
+      rangeDataKeys: Object.keys(rangeData), 
+      rangeDataSize: Object.keys(rangeData).length,
+      is20BB: position.includes('20BB'),
+      threeBetType: position.includes('raise') ? 'raise' : position.includes('allin') ? 'allin' : 'none'
+    });
     
     setIsSaving(true);
     
@@ -2669,6 +3207,12 @@ function MTTTrainingPage() {
       const baseVsOpenKey = position.replace('_15BB', '');
       newCustomRanges[baseVsOpenKey] = rangeData; // 既存のvsオープンレンジキーも更新
       console.log('15BB互換性: 既存vsオープンレンジキーも更新', { baseVsOpenKey, position });
+    }
+    // vsオープンレンジで15BBの既存キー形式の場合、新しいキー形式も更新
+    else if (position.includes('vsopen_') && !position.includes('_15BB') && stackSize === '15BB') {
+      const newVsOpenKey = `${position}_15BB`;
+      newCustomRanges[newVsOpenKey] = rangeData; // 新しいvsオープンレンジキーも更新
+      console.log('15BB互換性: 新しいvsオープンレンジキーも更新', { newVsOpenKey, position });
     }
     // vs3ベットレンジで15BBの場合の互換性も保つ (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
     else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
@@ -2692,6 +3236,9 @@ function MTTTrainingPage() {
     
     setCustomRanges(newCustomRanges);
     
+    // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+    setLastRangeUpdate(Date.now());
+    
     // localStorageに保存
     try {
       localStorage.setItem('mtt-custom-ranges', JSON.stringify(newCustomRanges));
@@ -2702,7 +3249,15 @@ function MTTTrainingPage() {
         rangeKeys: Object.keys(newCustomRanges),
         savedRangeKeys: Object.keys(rangeData),
         localStorageSize: JSON.stringify(newCustomRanges).length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        // 20BBのレンジが正しく保存されているかを確認
+        has20BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')).length,
+        twentyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')),
+        // 20BBのタイプ別レンジの詳細確認
+        has20BBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')).length,
+        has20BBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')).length,
+        twentyBBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')),
+        twentyBBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin'))
       });
       
       // 保存完了後、少し待ってからフラグをリセット
@@ -2779,6 +3334,8 @@ function MTTTrainingPage() {
         if (typeof importedRanges === 'object' && importedRanges !== null) {
           setCustomRanges(importedRanges);
           localStorage.setItem('mtt-custom-ranges', JSON.stringify(importedRanges));
+          // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+          setLastRangeUpdate(Date.now());
           alert('レンジを正常にインポートしました。');
         } else {
           throw new Error('無効なファイル形式です。');
@@ -2796,10 +3353,59 @@ function MTTTrainingPage() {
 
   // カスタムレンジを完全にクリア
   const handleClearAllRanges = () => {
-    if (confirm('全てのカスタムレンジを削除しますか？この操作は取り消せません。')) {
+    if (confirm('全てのカスタムレンジを削除しますか？この操作は取り消せません。\n\n⚠️ 注意: この操作は元に戻せません。')) {
+      // 削除前にバックアップを作成
+      const currentRanges = localStorage.getItem('mtt-custom-ranges');
+      if (currentRanges) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          localStorage.setItem(`mtt-custom-ranges-backup-${timestamp}`, currentRanges);
+          console.log('🎯 削除前にバックアップを作成:', `mtt-custom-ranges-backup-${timestamp}`);
+        } catch (error) {
+          console.error('バックアップ作成に失敗:', error);
+        }
+      }
+      
       setCustomRanges({});
       localStorage.removeItem('mtt-custom-ranges');
-      alert('全てのカスタムレンジを削除しました。');
+      // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+      setLastRangeUpdate(Date.now());
+      alert('全てのカスタムレンジを削除しました。\n\n💾 バックアップが自動的に作成されました。');
+    }
+  };
+
+  // バックアップから復元
+  const handleRestoreFromBackup = () => {
+    // 利用可能なバックアップを検索
+    const backupKeys = Object.keys(localStorage).filter(key => 
+      key.startsWith('mtt-custom-ranges-backup-')
+    ).sort().reverse(); // 最新のバックアップを最初に
+
+    if (backupKeys.length === 0) {
+      alert('❌ 利用可能なバックアップが見つかりません。');
+      return;
+    }
+
+    // 最新のバックアップを取得
+    const latestBackupKey = backupKeys[0];
+    const backupData = localStorage.getItem(latestBackupKey);
+    
+    if (!backupData) {
+      alert('❌ バックアップデータの読み込みに失敗しました。');
+      return;
+    }
+
+    try {
+      const parsedRanges = JSON.parse(backupData);
+      setCustomRanges(parsedRanges);
+      localStorage.setItem('mtt-custom-ranges', backupData);
+      setLastRangeUpdate(Date.now());
+      
+      const rangeCount = Object.keys(parsedRanges).length;
+      alert(`✅ バックアップから復元しました！\n\n📊 復元されたレンジ数: ${rangeCount}\n📅 バックアップ日時: ${latestBackupKey.replace('mtt-custom-ranges-backup-', '')}`);
+    } catch (error) {
+      console.error('バックアップ復元エラー:', error);
+      alert('❌ バックアップの復元に失敗しました。');
     }
   };
 
@@ -2875,24 +3481,71 @@ function MTTTrainingPage() {
     }
 
     try {
+      console.log('🎯 システム読み込み開始（強制同期）');
+      
       const response = await fetch('/api/mtt-ranges', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
+      console.log('🎯 システム読み込みレスポンス:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
       if (response.ok) {
         const systemData = await response.json();
         
+        console.log('🎯 システムデータ詳細:', {
+          hasRanges: !!systemData.ranges,
+          rangesType: typeof systemData.ranges,
+          rangesKeys: systemData.ranges ? Object.keys(systemData.ranges) : [],
+          rangesCount: systemData.ranges ? Object.keys(systemData.ranges).length : 0,
+          metadata: systemData.metadata,
+          lastUpdated: systemData.lastUpdated,
+          version: systemData.version
+        });
+        
         if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
           if (confirm(`システムデータを読み込みますか？\n${systemData.metadata.totalPositions}ポジション、${systemData.metadata.totalHands}ハンドが存在します。\n現在のローカルデータは上書きされます。`)) {
-            // ローカルストレージを上書きせずに、メモリのみに読み込み
+            // 強制的にローカルストレージをクリアしてからシステムデータを読み込み
+            localStorage.removeItem('mtt-custom-ranges');
+            localStorage.removeItem('mtt-ranges-timestamp');
+            
+            // システムデータをメモリとローカルストレージの両方に保存
             setCustomRanges(systemData.ranges);
-            console.log('🎯 システムデータをメモリに読み込み（ローカルストレージは保持）:', {
-              systemRangeKeys: Object.keys(systemData.ranges),
+            localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+            localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
+            
+            // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+            setLastRangeUpdate(Date.now());
+            
+            console.log('🎯 システムデータ読み込み後のlastRangeUpdate更新:', {
+              newTimestamp: Date.now(),
               systemRangeCount: Object.keys(systemData.ranges).length
             });
-            alert('✅ システムデータを正常に読み込みました！（ローカルデータは保持されます）');
+            
+            console.log('🎯 システムデータを読み込み完了:', {
+              systemRangeKeys: Object.keys(systemData.ranges),
+              systemRangeCount: Object.keys(systemData.ranges).length,
+              localStorageUpdated: true,
+              lastRangeUpdate: Date.now()
+            });
+            
+            // デバッグ用：読み込み後の状態確認
+            setTimeout(() => {
+              const currentRanges = localStorage.getItem('mtt-custom-ranges');
+              console.log('🎯 読み込み後1秒の状態確認:', {
+                localStorageRanges: currentRanges ? '存在' : 'なし',
+                customRangesState: Object.keys(customRanges).length,
+                lastRangeUpdate: lastRangeUpdate
+              });
+            }, 1000);
+            
+            alert('✅ システムデータを正常に読み込みました！\n\n💾 ローカルストレージにも保存されました。');
           }
         } else {
           alert('❌ システムに保存されたレンジデータが見つかりません。');
@@ -2956,6 +3609,14 @@ function MTTTrainingPage() {
         console.log('15BB互換性: 既存vsオープンレンジキーを使用', { baseVsOpenKey, targetPosition });
       }
     }
+    // vsオープンレンジで15BBの既存キー形式の場合、新しいキー形式も確認
+    else if (position.startsWith('vsopen_') && !position.includes('_15BB') && stackSize === '15BB') {
+      const newVsOpenKey = `${position}_15BB`;
+      if (customRanges[newVsOpenKey] && !customRanges[position]) {
+        targetPosition = newVsOpenKey;
+        console.log('15BB互換性: 新しいvsオープンレンジキーを使用', { newVsOpenKey, targetPosition });
+      }
+    }
     // vs3ベットレンジでの15BB互換性も確認 (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
     else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
       const baseVs3BetKey = position.replace('_15BB', '');
@@ -3013,6 +3674,18 @@ function MTTTrainingPage() {
     // アクションの基本部分を抽出して比較（例：'RAISE 2.5' → 'RAISE'）
     const selectedBase = action.split(' ')[0];
     const correctBase = gtoData?.correctAction?.split(' ')[0] || '';
+    
+    // NONEアクションの特別処理
+    if (correctBase === 'NONE') {
+      console.log('🎯 NONEアクション検出:', {
+        selectedAction: action,
+        correctAction: correctBase,
+        message: 'このハンドはアクションが設定されていません'
+      });
+      setShowResults(true);
+      setIsCorrect(false); // NONEの場合は不正解として扱う
+      return;
+    }
     
     // MINをRAISEに変換して比較
     const normalizedCorrectBase = correctBase === 'MIN' ? 'RAISE' : correctBase;
@@ -3315,6 +3988,19 @@ function MTTTrainingPage() {
             <div className="flex justify-between items-center py-2">
               <h1 className="text-xl font-bold">MTTプリフロップトレーニング</h1>
               
+              {/* モバイル版管理者ログインボタン（未ログイン時のみ表示） */}
+              {!isAdmin && (
+                <button
+                  onClick={() => setShowAdminLogin(true)}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200 flex items-center gap-1"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  管理
+                </button>
+              )}
+              
               {/* モバイル版管理者ログイン情報 */}
               {isAdmin && (
                 <div className="flex items-center gap-2 bg-green-600/20 px-2 py-1 rounded border border-green-500/30">
@@ -3343,11 +4029,11 @@ function MTTTrainingPage() {
 
           {/* レンジエディターアクセス - 管理者限定 */}
           {isAdmin && (
-            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg p-4 mb-4 border border-purple-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">レンジをカスタマイズ <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
-                  <p className="text-sm text-gray-300">各ポジションの{stackSize}オープンレイズレンジを設定できます</p>
+            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg p-3 md:p-4 mb-4 border border-purple-700/50">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-base md:text-lg font-semibold text-white mb-1">レンジをカスタマイズ <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
+                  <p className="text-xs md:text-sm text-gray-300">各ポジションの{stackSize}オープンレイズレンジを設定できます</p>
                   <p className="text-xs text-blue-300 mt-1">💡 ハンド形式: K9s, ATo, QQ など（9Ks → K9s に自動変換されます）</p>
                   {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || !key.includes('_')).length > 0 && (
                     <div className="text-xs text-green-400 mt-1">
@@ -3355,7 +4041,7 @@ function MTTTrainingPage() {
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-1 md:gap-2 flex-wrap">
                   {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(pos => {
                     // スタックサイズ固有のレンジキーを使用
                     const rangeKey = `${pos}_${stackSize}`;
@@ -3365,7 +4051,7 @@ function MTTTrainingPage() {
                       <button
                         key={pos}
                         onClick={() => handleOpenRangeEditor(rangeKey)}
-                        className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                        className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-200 ${
                           hasCustomRange
                             ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400' 
                             : 'bg-purple-600 hover:bg-purple-700 text-white border-2 border-transparent'
@@ -3382,19 +4068,19 @@ function MTTTrainingPage() {
               
               {/* データ管理セクション */}
               <div className="mt-4 pt-4 border-t border-purple-600/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-white mb-1">💾 データ永続保存</h4>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <h4 className="text-xs md:text-sm font-semibold text-white mb-1">💾 データ永続保存</h4>
                     <p className="text-xs text-gray-400">
                       レンジデータをファイルで保存・復元できます（ブラウザに依存しない永続保存）
                     </p>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-1 md:gap-2 flex-wrap">
                     {/* エクスポートボタン */}
                     <button
                       onClick={handleExportRanges}
                       disabled={Object.keys(customRanges).length === 0}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
+                      className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
                         Object.keys(customRanges).length > 0
                           ? 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-500'
                           : 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500'
@@ -3403,15 +4089,17 @@ function MTTTrainingPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m3 3V10" />
                       </svg>
-                      エクスポート
+                      <span className="hidden md:inline">エクスポート</span>
+                      <span className="md:hidden">出力</span>
                     </button>
                     
                     {/* インポートボタン */}
-                    <label className="px-3 py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 cursor-pointer transition-all duration-200 flex items-center gap-1">
+                    <label className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 cursor-pointer transition-all duration-200 flex items-center gap-1">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
-                      インポート
+                      <span className="hidden md:inline">インポート</span>
+                      <span className="md:hidden">入力</span>
                       <input
                         type="file"
                         accept=".json"
@@ -3420,11 +4108,23 @@ function MTTTrainingPage() {
                       />
                     </label>
                     
+                    {/* バックアップ復元ボタン */}
+                    <button
+                      onClick={handleRestoreFromBackup}
+                      className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 transition-all duration-200 flex items-center gap-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span className="hidden md:inline">バックアップ復元</span>
+                      <span className="md:hidden">復元</span>
+                    </button>
+                    
                     {/* クリアボタン */}
                     <button
                       onClick={handleClearAllRanges}
                       disabled={Object.keys(customRanges).length === 0}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
+                      className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
                         Object.keys(customRanges).length > 0
                           ? 'bg-red-600 hover:bg-red-700 text-white border border-red-500'
                           : 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500'
@@ -3433,7 +4133,8 @@ function MTTTrainingPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      全削除
+                      <span className="hidden md:inline">全削除</span>
+                      <span className="md:hidden">削除</span>
                     </button>
                   </div>
                 </div>
@@ -3441,21 +4142,21 @@ function MTTTrainingPage() {
                 {/* システム全体保存セクション（管理者のみ） */}
                 {isAdmin && (
                   <div className="mt-4 pt-3 border-t border-red-600/30 bg-red-900/10 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-semibold text-red-300 mb-1 flex items-center">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="text-xs md:text-sm font-semibold text-red-300 mb-1 flex items-center">
                           🔒 管理者専用システム管理
                         </h4>
                         <p className="text-xs text-gray-400">
                           重要なシステム - 全てのweb・環境で共有される永続データ保存
                         </p>
                       </div>
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-1 md:gap-2 flex-wrap">
                         {/* システム保存ボタン */}
                         <button
                           onClick={handleSaveToSystem}
                           disabled={Object.keys(customRanges).length === 0}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
+                          className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
                             Object.keys(customRanges).length > 0
                               ? 'bg-red-600 hover:bg-red-700 text-white border border-red-500'
                               : 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500'
@@ -3464,18 +4165,20 @@ function MTTTrainingPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                           </svg>
-                          システム保存
+                          <span className="hidden md:inline">システム保存</span>
+                          <span className="md:hidden">保存</span>
                         </button>
                         
                         {/* システム読み込みボタン */}
                         <button
                           onClick={handleLoadFromSystem}
-                          className="px-3 py-2 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white border border-orange-500 transition-all duration-200 flex items-center gap-1"
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white border border-orange-500 transition-all duration-200 flex items-center gap-1"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                           </svg>
-                          システム読み込み
+                          <span className="hidden md:inline">システム読み込み</span>
+                          <span className="md:hidden">読み込み</span>
                         </button>
                         
                         {/* 強制データファイル読み込みボタン */}
@@ -3499,23 +4202,25 @@ function MTTTrainingPage() {
                                 alert(`❌ データファイルの読み込みに失敗しました: ${error.message}`);
                               });
                           }}
-                          className="px-3 py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 transition-all duration-200 flex items-center gap-1"
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 transition-all duration-200 flex items-center gap-1"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          データファイル読み込み
+                          <span className="hidden md:inline">データファイル読み込み</span>
+                          <span className="md:hidden">ファイル読み込み</span>
                         </button>
                         
                         {/* システム削除ボタン */}
                         <button
                           onClick={handleClearSystemRanges}
-                          className="px-3 py-2 rounded-lg text-xs font-medium bg-red-800 hover:bg-red-900 text-white border border-red-700 transition-all duration-200 flex items-center gap-1"
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-red-800 hover:bg-red-900 text-white border border-red-700 transition-all duration-200 flex items-center gap-1"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                          システム削除
+                          <span className="hidden md:inline">システム削除</span>
+                          <span className="md:hidden">削除</span>
                         </button>
                       </div>
                     </div>
@@ -3558,9 +4263,19 @@ function MTTTrainingPage() {
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {validOpeners.map(opener => {
-                            const rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
-                            // 15BBの場合は既存レンジキーも確認（他のスタックサイズは専用キーのみ）
-                            const fallbackRangeKey = stackSize === '15BB' ? `vsopen_${heroPos}_vs_${opener}` : null;
+                            // 15BBの場合は既存キーを優先し、新しいキーをフォールバックとして使用
+                            let rangeKey: string;
+                            let fallbackRangeKey: string | null = null;
+                            
+                            if (stackSize === '15BB') {
+                              // 15BBの場合は既存のキー形式を優先
+                              rangeKey = `vsopen_${heroPos}_vs_${opener}`;
+                              fallbackRangeKey = `vsopen_${heroPos}_vs_${opener}_15BB`;
+                            } else {
+                              // その他のスタックサイズは新しいキー形式を使用
+                              rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
+                            }
+                            
                             const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
                             
                             // BTNのオープンレンジがレイズなしの場合（15BBなど）の特別表示
@@ -3605,80 +4320,7 @@ function MTTTrainingPage() {
             </div>
           )}
 
-          {isAdmin && actionType === 'vs3bet' && (
-            <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
-                  <p className="text-sm text-gray-300">現在の{stackSize}スタックでのオープンレイザーと3ベッターの組み合わせでレンジを設定できます</p>
-                  <p className="text-xs text-orange-300 mt-1">💡 3ベットに対してFOLD/CALL/RAISE(4bet)/ALL INの頻度を設定します</p>
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
-                    <div className="text-xs text-orange-400 mt-1">
-                      {stackSize}カスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length}レンジ
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでのオープンレイザー別vs3ベットレンジ設定：</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
-                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
-                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
-                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
-                      return POSITION_ORDER.slice(openRaiserIndex + 1);
-                    };
-                    
-                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
-                    if (validThreeBetters.length === 0) return null;
-                    
-                    return (
-                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
-                        <div className="text-sm font-semibold text-orange-400 mb-2">{openRaiserPos} (オープンレイザー)</div>
-                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {validThreeBetters.map(threeBetter => {
-                            const rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_${stackSize}`;
-                            // 15BBの場合は既存レンジキーも確認
-                            const fallbackRangeKey = stackSize === '15BB' ? `vs3bet_${openRaiserPos}_vs_${threeBetter}` : null;
-                            const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
-                            
-                            return (
-                              <button
-                                key={threeBetter}
-                                onClick={() => handleOpenRangeEditor(rangeKey)}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                                  hasCustomRange
-                                    ? 'bg-orange-600 hover:bg-orange-700 text-white border-2 border-orange-400'
-                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
-                                }`}
-                                title={`${openRaiserPos} vs ${threeBetter}の${stackSize}スタックvs3ベットレンジ設定`}
-                              >
-                                {threeBetter}
-                                {hasCustomRange && ' ✓'}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* vs 3ベットレンジの説明 */}
-                <div className="mt-4 p-3 bg-orange-900/20 border border-orange-600/30 rounded text-xs">
-                  <div className="text-orange-400 font-semibold mb-1">💡 vs 3ベットレンジの特徴 ({stackSize}スタック固有)</div>
-                  <div className="text-gray-300">
-                    • <strong>スタック依存:</strong> {stackSize}スタック専用のレンジ設定<br/>
-                    • <strong>ポジション依存:</strong> オープンレイザーが後のポジションからの3ベットに対する反応戦略<br/>
-                    • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、RAISE（4ベット）、ALL IN（オールイン）<br/>
-                    • <strong>混合戦略:</strong> 右クリックで詳細な頻度設定（例：CALL 70%, FOLD 30%）
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {isAdmin && actionType === 'vs4bet' && (
             <div className="bg-gradient-to-r from-red-900/30 to-pink-900/30 rounded-lg p-4 mb-4 border border-red-700/50">
@@ -3755,6 +4397,176 @@ function MTTTrainingPage() {
             </div>
           )}
 
+          {/* vs 3ベットレンジをカスタマイズ（20BB以外） */}
+          {isAdmin && actionType === 'vs3bet' && stackSize !== '20BB' && (
+            <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">vs 3ベットレンジをカスタマイズ ({stackSize}) <span className="text-xs bg-red-600 px-2 py-1 rounded">管理者限定</span></h3>
+                  <p className="text-sm text-gray-300">現在の{stackSize}スタックでのオープンレイザーと3ベッターの組み合わせでレンジを設定できます</p>
+                  <p className="text-xs text-orange-300 mt-1">💡 3ベットに対してFOLD/CALL/RAISE(4bet)/ALL INの頻度を設定します</p>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
+                    <div className="text-xs text-orange-400 mt-1">
+                      {stackSize}カスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length}レンジ
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでのオープンレイザー別vs3ベットレンジ設定：</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
+                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
+                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
+                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
+                      return POSITION_ORDER.slice(openRaiserIndex + 1);
+                    };
+                    
+                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
+                    if (validThreeBetters.length === 0) return null;
+                    
+                    return (
+                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+                        <div className="text-sm font-semibold text-orange-400 mb-2">{openRaiserPos} (オープンレイザー)</div>
+                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {validThreeBetters.map(threeBetter => {
+                            const rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_${stackSize}`;
+                            // 15BBの場合は既存レンジキーも確認
+                            const fallbackRangeKey = stackSize === '15BB' ? `vs3bet_${openRaiserPos}_vs_${threeBetter}` : null;
+                            const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
+                            
+                            return (
+                              <button
+                                key={threeBetter}
+                                onClick={() => handleOpenRangeEditor(rangeKey)}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                  hasCustomRange
+                                    ? 'bg-orange-600 hover:bg-orange-700 text-white border-2 border-orange-400'
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                }`}
+                                title={`${openRaiserPos} vs ${threeBetter}の${stackSize}スタックvs3ベットレンジ設定`}
+                              >
+                                {threeBetter}
+                                {hasCustomRange && ' ✓'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* vs 3ベットレンジの説明 */}
+                <div className="mt-4 p-3 bg-orange-900/20 border border-orange-600/30 rounded text-xs">
+                  <div className="text-orange-400 font-semibold mb-1">💡 vs 3ベットレンジの特徴 ({stackSize}スタック固有)</div>
+                  <div className="text-gray-300">
+                    • <strong>スタック依存:</strong> {stackSize}スタック専用のレンジ設定<br/>
+                    • <strong>ポジション依存:</strong> オープンレイザーが後のポジションからの3ベットに対する反応戦略<br/>
+                    • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、RAISE（4ベット）、ALL IN（オールイン）<br/>
+                    • <strong>混合戦略:</strong> 右クリックで詳細な頻度設定（例：CALL 70%, FOLD 30%）
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 20BB専用: 3ベットタイプ別レンジカスタマイズ */}
+          {isAdmin && stackSize === '20BB' && actionType === 'vs3bet' && (
+            <div className="bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-lg p-4 mb-4 border border-purple-700/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">20BB専用: 3ベットタイプ別レンジカスタマイズ <span className="text-xs bg-purple-600 px-2 py-1 rounded">管理者限定</span></h3>
+                  <p className="text-sm text-gray-300">20BBスタックでの3ベットレイズ（5bb）と3ベットオールイン（20bb）を区別してレンジを設定できます</p>
+                  <p className="text-xs text-purple-300 mt-1">💡 例：UTGオープン→LJが3ベットレイズ(5bb)、UTGオープン→LJが3ベットオールイン(20bb)の2種類</p>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.includes('_raise_20BB') || key.includes('_allin_20BB'))).length > 0 && (
+                    <div className="text-xs text-purple-400 mt-1">
+                      20BB 3ベットタイプ別レンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.includes('_raise_20BB') || key.includes('_allin_20BB'))).length}レンジ
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">20BBスタックでのオープンレイザー別3ベットタイプ別レンジ設定：</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
+                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
+                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
+                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
+                      return POSITION_ORDER.slice(openRaiserIndex + 1);
+                    };
+                    
+                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
+                    if (validThreeBetters.length === 0) return null;
+                    
+                    return (
+                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+                        <div className="text-sm font-semibold text-purple-400 mb-2">{openRaiserPos} (オープンレイザー)</div>
+                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応（タイプ別）:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {validThreeBetters.map(threeBetter => {
+                            // 3ベットタイプ別のレンジキー
+                            const raiseRangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_raise_20BB`;
+                            const allinRangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_allin_20BB`;
+                            const hasRaiseRange = customRanges[raiseRangeKey];
+                            const hasAllinRange = customRanges[allinRangeKey];
+                            
+                            return (
+                              <div key={threeBetter} className="flex flex-col gap-1">
+                                <div className="text-xs text-gray-400 text-center">{threeBetter}</div>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleOpenRangeEditor(raiseRangeKey)}
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                      hasRaiseRange
+                                        ? 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-400'
+                                        : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                    }`}
+                                    title={`${openRaiserPos} vs ${threeBetter}の20BBスタックvs3ベットレイズ(5bb)レンジ設定`}
+                                  >
+                                    レイズ(5bb)
+                                    {hasRaiseRange && ' ✓'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenRangeEditor(allinRangeKey)}
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                      hasAllinRange
+                                        ? 'bg-red-600 hover:bg-red-700 text-white border-2 border-red-400'
+                                        : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                    }`}
+                                    title={`${openRaiserPos} vs ${threeBetter}の20BBスタックvs3ベットオールイン(20bb)レンジ設定`}
+                                  >
+                                    オールイン(20bb)
+                                    {hasAllinRange && ' ✓'}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* 20BB 3ベットタイプ別レンジの説明 */}
+                <div className="mt-4 p-3 bg-purple-900/20 border border-purple-600/30 rounded text-xs">
+                  <div className="text-purple-400 font-semibold mb-1">💡 20BB 3ベットタイプ別レンジの特徴</div>
+                  <div className="text-gray-300">
+                    • <strong>20BB専用:</strong> 20BBスタックでのみ有効な詳細設定<br/>
+                    • <strong>3ベットタイプ別:</strong> 3ベットレイズ（5bb）と3ベットオールイン（20bb）を区別<br/>
+                    • <strong>独立した設定:</strong> 他のレンジ設定とは独立して動作<br/>
+                    • <strong>優先順位:</strong> タイプ別レンジが設定されている場合は優先、未設定の場合はデフォルトレンジを使用<br/>
+                    • <strong>アクション選択:</strong> FOLD（フォールド）、CALL（コール）、RAISE（4ベット）、ALL IN（オールイン）
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           
           {/* メインコンテンツ - 2カラムレイアウト（大きな画面のみ） */}
           <div className={`flex flex-col lg:flex-row ${isMobile ? 'gap-2' : 'gap-4'}`}>
@@ -3772,7 +4584,14 @@ function MTTTrainingPage() {
                   isCorrect={isCorrect}
                   showResults={showResults}
                   onActionSelect={handleActionSelect}
-                  availableActions={['FOLD', 'CALL', 'RAISE', 'ALL IN']}
+                  availableActions={(() => {
+                    // CPUがオールインしている場合、ヒーローのアクションをFOLD/CALLのみに制限
+                    if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
+                      return ['FOLD', 'CALL'];
+                    }
+                    // その他の場合は全てのアクションを許可
+                    return ['FOLD', 'CALL', 'RAISE', 'ALL IN'];
+                  })()}
                   onNextSpot={handleNextSpot}
                   onRepeatSpot={handleRepeatSpot}
                   stackSize={stackSize.replace('BB', '')} // BBを除去して数値のみを渡す
@@ -3815,7 +4634,14 @@ function MTTTrainingPage() {
                 {!isMobile && (
                 <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
-                    <div className="grid grid-cols-4 gap-2 w-full">
+                    <div className={`grid gap-2 w-full ${(() => {
+                      // CPUがオールインしている場合、2列のグリッドに変更
+                      if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
+                        return 'grid-cols-2';
+                      }
+                      // その他の場合は4列のグリッド
+                      return 'grid-cols-4';
+                    })()}`}>
                       <button
                         className="py-3 rounded-lg font-bold text-lg shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
                         onClick={() => handleActionSelect('FOLD')}
@@ -3828,14 +4654,18 @@ function MTTTrainingPage() {
                       >
                         CALL
                       </button>
-                      <button
-                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
-                        onClick={() => handleActionSelect('RAISE')}
-                      >
-                        RAISE
-                      </button>
-                      {/* ALL INボタン - エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
-                      {parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL IN'] > 0) ? (
+                      {/* RAISEボタン - CPUがオールインしていない場合のみ表示 */}
+                      {!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin' ? (
+                        <button
+                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
+                          onClick={() => handleActionSelect('RAISE')}
+                        >
+                          RAISE
+                        </button>
+                      ) : null}
+                      {/* ALL INボタン - CPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
+                      {(!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                       (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL IN'] > 0)) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('ALL IN')}
@@ -3984,8 +4814,36 @@ function MTTTrainingPage() {
                           <div className="text-lg font-bold">{selectedAction}</div>
                               {gtoData.frequencies && selectedAction && (
                                 (() => {
-                                  const selectedActionBase = selectedAction.split(' ')[0];
-                                  const frequency = gtoData.frequencies[selectedActionBase] || 0;
+                                  // アクションの形式を正しく変換
+                                  const actionVariants = {
+                                    'ALL IN': ['ALL IN', 'ALL_IN'],
+                                    'RAISE': ['RAISE', 'MIN'],
+                                    'CALL': ['CALL'],
+                                    'FOLD': ['FOLD']
+                                  };
+                                  
+                                  const variants = actionVariants[selectedAction as keyof typeof actionVariants] || [selectedAction];
+                                  let frequency = 0;
+                                  let foundKey = '';
+                                  
+                                  // 利用可能な変形を試す
+                                  for (const variant of variants) {
+                                    if (gtoData.frequencies[variant] !== undefined) {
+                                      frequency = gtoData.frequencies[variant];
+                                      foundKey = variant;
+                                      break;
+                                    }
+                                  }
+                                  
+                                  // デバッグ情報を追加
+                                  console.log('🎯 正解頻度計算デバッグ:', {
+                                    selectedAction,
+                                    variants,
+                                    foundKey,
+                                    frequency,
+                                    gtoDataFrequencies: gtoData.frequencies,
+                                    allKeys: Object.keys(gtoData.frequencies)
+                                  });
                                   
                                   return (
                                     <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
@@ -4030,9 +4888,18 @@ function MTTTrainingPage() {
                                 return null;
                               })()}
                               <div className="grid grid-cols-2 gap-2 text-sm">
-                                {Object.entries(gtoData.frequencies)
-                                  .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL IN'].includes(action))
-                                  .map(([action, frequency]) => (
+                                {gtoData.correctAction === 'NONE' ? (
+                                  <div className="col-span-2 p-4 bg-yellow-600/30 border border-yellow-500 rounded text-center">
+                                    <div className="text-yellow-300 font-bold mb-2">⚠️ アクション未設定</div>
+                                    <div className="text-gray-300 text-sm">
+                                      このハンドはアクションが設定されていません。<br/>
+                                      注意してください。
+                                    </div>
+                                  </div>
+                                ) : (
+                                  Object.entries(gtoData.frequencies)
+                                    .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL IN'].includes(action))
+                                    .map(([action, frequency]) => (
                                   <div 
                                     key={action} 
                                     className={`flex justify-between p-2 rounded ${
@@ -4059,9 +4926,26 @@ function MTTTrainingPage() {
                                       {Number(frequency)}%
                                     </span>
                                   </div>
-                                ))}
+                                ))
+                                )}
                               </div>
                               
+                              {/* ハンドレンジを表示ボタン */}
+                              <div className="mt-4 pt-4 border-t border-gray-600">
+                                <button
+                                  onClick={() => setShowHandRangeViewer(true)}
+                                  className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-600 hover:from-purple-500 hover:via-purple-600 hover:to-purple-500 text-white rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 md:gap-3 shadow-lg hover:shadow-xl border border-purple-500/30 hover:border-purple-400/50 transform hover:scale-105"
+                                >
+                                  <div className="w-5 h-5 md:w-6 md:h-6 bg-white/20 rounded-lg flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-sm md:text-base">ハンドレンジを表示</span>
+                                </button>
+                              </div>
+                              
+
 
                             </div>
                           )}
@@ -4176,13 +5060,84 @@ function MTTTrainingPage() {
         />
       )}
 
+      {/* ハンドレンジビューアー */}
+      {showHandRangeViewer && (() => {
+        const rangeKey = getCurrentSpotRangeKey();
+        const rangeData = rangeKey ? customRanges[rangeKey] : null;
+        
+        if (!rangeKey) {
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">エラー</h2>
+                  <button
+                    onClick={() => setShowHandRangeViewer(false)}
+                    className="text-gray-400 hover:text-white text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="text-gray-300 mb-4">
+                  このスポットのレンジキーを特定できませんでした。
+                </div>
+                <button
+                  onClick={() => setShowHandRangeViewer(false)}
+                  className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          );
+        }
+        
+        if (!rangeData) {
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-white">レンジ未設定</h2>
+                  <button
+                    onClick={() => setShowHandRangeViewer(false)}
+                    className="text-gray-400 hover:text-white text-2xl"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="text-gray-300 mb-4">
+                  <div className="mb-2">レンジキー: <code className="bg-gray-700 px-2 py-1 rounded">{rangeKey}</code></div>
+                  <div>このスポットのカスタムレンジは設定されていません。</div>
+                </div>
+                <button
+                  onClick={() => setShowHandRangeViewer(false)}
+                  className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          );
+        }
+        
+        return (
+          <HandRangeViewer
+            rangeData={rangeData}
+            title={`現在のスポットのハンドレンジ`}
+            onClose={() => setShowHandRangeViewer(false)}
+            position={position}
+            stackSize={stackSize}
+          />
+        );
+      })()}
+
       {/* レンジの読み込み状況デバッグ表示 */}
       {isAdmin && (
         <div className="bg-yellow-900/20 rounded-lg p-4 mb-4 border border-yellow-700/50">
           <h3 className="text-lg font-semibold text-yellow-300 mb-2">🔍 レンジ読み込み状況デバッグ ({stackSize})</h3>
           <div className="text-xs space-y-1">
             <div>カスタムレンジ総数: {Object.keys(customRanges).length}</div>
-            <div>vsオープンレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length}</div>
+                        <div>vsオープンレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vsopen_') && key.endsWith(`_${stackSize}`)).length}</div>
             <div>vs3ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length}</div>
             <div>vs4ベットレンジ数: {Object.keys(customRanges).filter(key => key.startsWith('vs4bet_') && key.endsWith(`_${stackSize}`)).length}</div>
             <div>{stackSize}スタック固有レンジ数: {Object.keys(customRanges).filter(key => key.endsWith(`_${stackSize}`) || (!key.includes('_') && stackSize === '15BB' && !key.startsWith('vsopen_') && !key.startsWith('vs3bet_') && !key.startsWith('vs4bet_'))).length}</div>
@@ -4198,7 +5153,7 @@ function MTTTrainingPage() {
                   )}
                 </div>
                               </div>
-              )}
+                              )}
             {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.endsWith(`_${stackSize}`)).length > 0 && (
               <div className="mt-2">
                 <div className="text-yellow-300 mb-1">設定済み{stackSize}vs3ベットレンジ:</div>

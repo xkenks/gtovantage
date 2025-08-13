@@ -404,7 +404,7 @@ export default function MTTTrainerPage() {
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
     { id: 'vsopen', label: 'vs オープン' },
-    { id: 'vs3bet', label: 'vs 3ベット' },
+    { id: 'vs3bet', label: 'vs 3ベット', disabled: position === 'BB' },
     { id: 'vs4bet', label: 'vs 4ベット', disabled: stackSize === '15BB' || stackSize === '10BB' },
     { id: 'random', label: 'ランダム' },
   ];
@@ -485,7 +485,7 @@ export default function MTTTrainerPage() {
         }
       }
     }
-  }, [stackSize, isInitialLoad]);
+  }, [stackSize, position, isInitialLoad]);
   
   useEffect(() => {
     if (!isInitialLoad) {
