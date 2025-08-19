@@ -393,6 +393,7 @@ export default function MTTTrainerPage() {
   const [stackSize, setStackSize] = useState('75BB');
   const [position, setPosition] = useState('BTN');
   const [actionType, setActionType] = useState('openraise');
+  const [opponentPosition, setOpponentPosition] = useState<string>('random');
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
   const [showHandSelector, setShowHandSelector] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
@@ -401,6 +402,27 @@ export default function MTTTrainerPage() {
   const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB', '10BB'];
   const stackSizes = getAllowedStackSizes();
   const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  
+  // アクション別の有効な相手ポジションを計算
+  const getValidOpponentPositions = (heroPos: string, action: string): string[] => {
+    const heroIndex = positions.indexOf(heroPos);
+    if (action === 'vsopen') {
+      // vsオープン: オープンレイザーはヒーローより前
+      return heroIndex > 0 ? positions.slice(0, heroIndex) : [];
+    }
+    if (action === 'vs3bet') {
+      // vs3ベット: 3ベッターはヒーローより後
+      return heroIndex < positions.length - 1 ? positions.slice(heroIndex + 1) : [];
+    }
+    if (action === 'vs4bet') {
+      // vs4ベット: 4ベッターはヒーローより前（通常オリジナルオープンレイザー）
+      return heroIndex > 0 ? positions.slice(0, heroIndex) : [];
+    }
+    return [];
+  };
+  
+  const validOpponentPositions = getValidOpponentPositions(position, actionType);
+  
   const actionTypes = [
     { id: 'openraise', label: 'オープンレイズ' },
     { id: 'vsopen', label: 'vs オープン' },
@@ -429,6 +451,9 @@ export default function MTTTrainerPage() {
         if (settings.actionType && actionTypes.some(a => a.id === settings.actionType)) {
           setActionType(settings.actionType);
         }
+        if (settings.opponentPosition) {
+          setOpponentPosition(settings.opponentPosition);
+        }
         if (settings.selectedHands && Array.isArray(settings.selectedHands)) {
           setSelectedHands(settings.selectedHands);
         }
@@ -454,6 +479,7 @@ export default function MTTTrainerPage() {
         stackSize,
         position,
         actionType,
+        opponentPosition,
         selectedHands,
         lastUpdated: new Date().toISOString()
       };
@@ -472,6 +498,13 @@ export default function MTTTrainerPage() {
 
   // 設定変更時に自動保存（初回読み込み時は除外）
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // アクションタイプ変更時に相手ポジションをリセット
+  useEffect(() => {
+    if (!isInitialLoad) {
+      setOpponentPosition('random');
+    }
+  }, [actionType, isInitialLoad]);
   
   // スタックサイズ変更時にアクションタイプをチェック
   useEffect(() => {
@@ -510,11 +543,19 @@ export default function MTTTrainerPage() {
   };
   
   const handleStartTraining = () => {
-    let url = `/trainer/mtt/training?stack=${stackSize}&position=${position}&action=${actionType}`;
-    if (selectedHands.length > 0) {
-      url += `&hands=${encodeURIComponent(selectedHands.join(','))}`;
-    }
-    router.push(url);
+    const params = new URLSearchParams({
+      stack: stackSize,
+      position: position,
+      action: actionType,
+      ...(opponentPosition !== 'random' && {
+        ...(actionType === 'vsopen' && { opener: opponentPosition }),
+        ...(actionType === 'vs3bet' && { threebetter: opponentPosition }),
+        ...(actionType === 'vs4bet' && { fourbetter: opponentPosition })
+      }),
+      ...(selectedHands.length > 0 ? { hands: encodeURIComponent(selectedHands.join(',')) } : {})
+    });
+    
+    router.push(`/trainer/mtt/training?${params.toString()}`);
   };
 
   // 設定をリセットする関数
@@ -609,6 +650,45 @@ export default function MTTTrainerPage() {
               ))}
             </div>
           </div>
+          
+          {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
+            <div className="mb-4 md:mb-6">
+              <h3 className="text-base md:text-lg font-medium mb-2">相手のポジション</h3>
+              <div className="flex flex-wrap gap-1 md:gap-2">
+                <button 
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                    opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700'
+                  } transition-colors hover:bg-blue-500`}
+                  onClick={() => setOpponentPosition('random')}
+                >
+                  ランダム
+                </button>
+                {positions.map(pos => {
+                  const isValid = validOpponentPositions.includes(pos);
+                  return (
+                    <button 
+                      key={pos}
+                      className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                        opponentPosition === pos ? 'bg-blue-600' : 
+                        isValid ? 'bg-gray-700' : 'bg-gray-500'
+                      } transition-colors ${
+                        isValid ? 'hover:bg-blue-500' : 'cursor-not-allowed opacity-50'
+                      }`}
+                      onClick={() => isValid && setOpponentPosition(pos)}
+                      disabled={!isValid}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+              </div>
+              {validOpponentPositions.length === 0 && (
+                <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
+                  ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="mb-4 md:mb-6">
             <h3 className="text-base md:text-lg font-medium mb-2">アクションタイプ</h3>

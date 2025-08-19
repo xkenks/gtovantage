@@ -4700,7 +4700,7 @@ function MTTTrainingPage() {
                 )}
                 
                 {/* 結果情報エリア - 常に同じ高さで表示、空の場合は空白のプレースホルダー */}
-                <div className={`${isMobile ? 'pt-1' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
+                <div className={`${isMobile ? 'pt-0' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
                   {/* 結果がない場合のプレースホルダー */}
                   {!showResults && (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
@@ -4763,101 +4763,9 @@ function MTTTrainingPage() {
                         </div>
                       )}
 
-                      {/* 通常の結果表示（エラーでない場合のみ） */}
+                                            {/* 通常の結果表示（エラーでない場合のみ） */}
                       {!gtoData.isInvalidCombination && (
                         <>
-                      {/* 結果サマリー */}
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
-                          <h4 className="text-gray-400 text-xs mb-1">最適なアクション</h4>
-                          <div className="text-lg font-bold text-green-400">
-                            {(() => {
-                              // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                              const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                              const frequency = gtoData.frequencies?.[actionKey] || 0;
-                              const displayText = frequency === 100 ? actionKey : `${actionKey} ${frequency}%`;
-                              
-                              console.log('🎯 最適アクション表示（統一版）:', {
-                                gtoDataCorrectAction: gtoData.correctAction,
-                                actionKey,
-                                frequency,
-                                displayText,
-                                gtoDataFrequencies: gtoData.frequencies,
-                                timestamp: Date.now()
-                              });
-                              
-                              return displayText;
-                            })()}
-                          </div>
-                              {gtoData.frequencies && (
-                                <div className="text-xs text-green-300 mt-1">
-                                  推奨頻度: {(() => {
-                                    // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                                    const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                                    const frequency = gtoData.frequencies[actionKey] || 0;
-                                    
-                                    console.log('🎯 推奨頻度表示（統一版）:', {
-                                      gtoDataCorrectAction: gtoData.correctAction,
-                                      actionKey,
-                                      frequency,
-                                      gtoDataFrequencies: gtoData.frequencies,
-                                      timestamp: Date.now()
-                                    });
-                                    
-                                    return frequency;
-                                  })()}%
-                        </div>
-                              )}
-                        </div>
-                        <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
-                          <h4 className="text-gray-400 text-xs mb-1">あなたの選択</h4>
-                          <div className="text-lg font-bold">{selectedAction}</div>
-                              {gtoData.frequencies && selectedAction && (
-                                (() => {
-                                  // アクションの形式を正しく変換
-                                  const actionVariants = {
-                                    'ALL IN': ['ALL IN', 'ALL_IN'],
-                                    'RAISE': ['RAISE', 'MIN'],
-                                    'CALL': ['CALL'],
-                                    'FOLD': ['FOLD']
-                                  };
-                                  
-                                  const variants = actionVariants[selectedAction as keyof typeof actionVariants] || [selectedAction];
-                                  let frequency = 0;
-                                  let foundKey = '';
-                                  
-                                  // 利用可能な変形を試す
-                                  for (const variant of variants) {
-                                    if (gtoData.frequencies[variant] !== undefined) {
-                                      frequency = gtoData.frequencies[variant];
-                                      foundKey = variant;
-                                      break;
-                                    }
-                                  }
-                                  
-                                  // デバッグ情報を追加
-                                  console.log('🎯 正解頻度計算デバッグ:', {
-                                    selectedAction,
-                                    variants,
-                                    foundKey,
-                                    frequency,
-                                    gtoDataFrequencies: gtoData.frequencies,
-                                    allKeys: Object.keys(gtoData.frequencies)
-                                  });
-                                  
-                                  return (
-                                    <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
-                                      正解頻度: {frequency}%
-                                      {frequency === 0 && ' (推奨されません)'}
-                                    </div>
-                                  );
-                                })()
-                              )}
-                        </div>
-                      </div>
-
-
-
                           {/* 頻度詳細情報 */}
                           {gtoData.frequencies && (
                             <div className={`${isMobile ? 'bg-gray-700/10' : 'bg-gray-700/30'} p-4 rounded mb-4`}>
@@ -4944,17 +4852,98 @@ function MTTTrainingPage() {
                                   <span className="text-sm md:text-base">ハンドレンジを表示</span>
                                 </button>
                               </div>
-                              
-
-
                             </div>
                           )}
-                      
 
-                      
-
-                      
-
+                          {/* 結果サマリー */}
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
+                              <h4 className="text-gray-400 text-xs mb-1">最適なアクション</h4>
+                              <div className="text-lg font-bold text-green-400">
+                                {(() => {
+                                  // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
+                                  const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                  const frequency = gtoData.frequencies?.[actionKey] || 0;
+                                  const displayText = frequency === 100 ? actionKey : `${actionKey} ${frequency}%`;
+                                  
+                                  console.log('🎯 最適アクション表示（統一版）:', {
+                                    gtoDataCorrectAction: gtoData.correctAction,
+                                    actionKey,
+                                    frequency,
+                                    displayText,
+                                    gtoDataFrequencies: gtoData.frequencies,
+                                    timestamp: Date.now()
+                                  });
+                                  
+                                  return displayText;
+                                })()}
+                              </div>
+                                  {gtoData.frequencies && (
+                                    <div className="text-xs text-green-300 mt-1">
+                                      推奨頻度: {(() => {
+                                        // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
+                                        const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                        const frequency = gtoData.frequencies[actionKey] || 0;
+                                        
+                                        console.log('🎯 推奨頻度表示（統一版）:', {
+                                          gtoDataCorrectAction: gtoData.correctAction,
+                                          actionKey,
+                                          frequency,
+                                          gtoDataFrequencies: gtoData.frequencies,
+                                          timestamp: Date.now()
+                                        });
+                                        
+                                        return frequency;
+                                      })()}%
+                            </div>
+                                  )}
+                            </div>
+                            <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
+                              <h4 className="text-gray-400 text-xs mb-1">あなたの選択</h4>
+                              <div className="text-lg font-bold">{selectedAction}</div>
+                                  {gtoData.frequencies && selectedAction && (
+                                    (() => {
+                                      // アクションの形式を正しく変換
+                                      const actionVariants = {
+                                        'ALL IN': ['ALL IN', 'ALL_IN'],
+                                        'RAISE': ['RAISE', 'MIN'],
+                                        'CALL': ['CALL'],
+                                        'FOLD': ['FOLD']
+                                      };
+                                      
+                                      const variants = actionVariants[selectedAction as keyof typeof actionVariants] || [selectedAction];
+                                      let frequency = 0;
+                                      let foundKey = '';
+                                      
+                                      // 利用可能な変形を試す
+                                      for (const variant of variants) {
+                                        if (gtoData.frequencies[variant] !== undefined) {
+                                          frequency = gtoData.frequencies[variant];
+                                          foundKey = variant;
+                                          break;
+                                        }
+                                      }
+                                      
+                                      // デバッグ情報を追加
+                                      console.log('🎯 正解頻度計算デバッグ:', {
+                                        selectedAction,
+                                        variants,
+                                        foundKey,
+                                        frequency,
+                                        gtoDataFrequencies: gtoData.frequencies,
+                                        allKeys: Object.keys(gtoData.frequencies)
+                                      });
+                                      
+                                      return (
+                                        <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
+                                          正解頻度: {frequency}%
+                                          {frequency === 0 && ' (推奨されません)'}
+                                        </div>
+                                      );
+                                    })()
+                                  )}
+                            </div>
+                          </div>
                         </>
                       )}
                     </div>

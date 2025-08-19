@@ -9,6 +9,8 @@ interface HandRangeViewerProps {
   onClose: () => void;
   position?: string;
   stackSize?: string;
+  opponentPosition?: string;
+  actionType?: string;
 }
 
 const HandRangeViewer: React.FC<HandRangeViewerProps> = ({ 
@@ -16,7 +18,9 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   title, 
   onClose, 
   position, 
-  stackSize 
+  stackSize,
+  opponentPosition,
+  actionType
 }) => {
   // 頻度データを取得する関数
   const getHandFrequencies = (hand: string) => {
@@ -63,10 +67,10 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   const getHandStyle = (hand: string) => {
     const frequencies = getHandFrequencies(hand);
     const actions = [
-      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
-      { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
-      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
+      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD },
+      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
+      { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN }
     ];
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
@@ -105,7 +109,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
     };
   };
 
-  // アクション別の統計を計算
+  // アクション別の統計を計算（頻度考慮）
   const calculateStats = () => {
     const stats = {
       MIN: { count: 0, percentage: 0 },
@@ -115,49 +119,73 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
       NONE: { count: 0, percentage: 0 }
     };
 
-    const totalHands = Object.keys(rangeData).length;
+    let totalWeightedPercentage = 0;
     
-    Object.values(rangeData).forEach(handInfo => {
-      if (handInfo.action === 'MIXED' && handInfo.mixedFrequencies) {
-        const freq = handInfo.mixedFrequencies;
-        const maxFreq = Math.max(freq.MIN || 0, freq.ALL_IN || 0, freq.CALL || 0, freq.FOLD || 0);
-        
-        if (maxFreq === (freq.MIN || 0)) {
-          stats.MIN.count += 1;
-        } else if (maxFreq === (freq.ALL_IN || 0)) {
-          stats.ALL_IN.count += 1;
-        } else if (maxFreq === (freq.CALL || 0)) {
-          stats.CALL.count += 1;
+    // 全169ハンドを対象とする（HandRangeと統一）
+    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    for (let i = 0; i < 13; i++) {
+      for (let j = 0; j < 13; j++) {
+        let hand = '';
+        if (i === j) {
+          hand = ranks[i] + ranks[j];
+        } else if (i < j) {
+          hand = ranks[i] + ranks[j] + 's';
         } else {
-          stats.FOLD.count += 1;
+          hand = ranks[j] + ranks[i] + 'o';
         }
-      } else {
-        switch (handInfo.action) {
-          case 'MIN':
-          case 'RAISE':
-          case '3BB':
-            stats.MIN.count += 1;
-            break;
-          case 'ALL_IN':
-            stats.ALL_IN.count += 1;
-            break;
-          case 'CALL':
-            stats.CALL.count += 1;
-            break;
-          case 'FOLD':
-            stats.FOLD.count += 1;
-            break;
-          case 'NONE':
-            stats.NONE.count += 1;
-            break;
+        
+        const handInfo = rangeData[hand];
+        
+        if (handInfo?.action === 'MIXED' && handInfo.mixedFrequencies) {
+          // 混合戦略の場合、各アクションの頻度をパーセンテージとして加算
+          const freq = handInfo.mixedFrequencies;
+          stats.MIN.percentage += (freq.MIN || 0);
+          stats.ALL_IN.percentage += (freq.ALL_IN || 0);
+          stats.CALL.percentage += (freq.CALL || 0);
+          stats.FOLD.percentage += (freq.FOLD || 0);
+          totalWeightedPercentage += 100; // 各ハンドは100%としてカウント
+        } else if (handInfo) {
+          // 単一アクションの場合
+          const frequency = handInfo.frequency || 100;
+          
+          switch (handInfo.action) {
+            case 'MIN':
+            case 'RAISE':
+            case '3BB':
+              stats.MIN.count += 1;
+              stats.MIN.percentage += frequency;
+              break;
+            case 'ALL_IN':
+              stats.ALL_IN.count += 1;
+              stats.ALL_IN.percentage += frequency;
+              break;
+            case 'CALL':
+              stats.CALL.count += 1;
+              stats.CALL.percentage += frequency;
+              break;
+            case 'FOLD':
+              stats.FOLD.count += 1;
+              stats.FOLD.percentage += frequency;
+              break;
+            case 'NONE':
+              stats.NONE.count += 1;
+              stats.NONE.percentage += frequency;
+              break;
+          }
+          totalWeightedPercentage += 100;
+        } else {
+          // 設定されていないハンドはFOLDとして扱う（HandRangeと統一）
+          stats.FOLD.count += 1;
+          stats.FOLD.percentage += 100;
+          totalWeightedPercentage += 100;
         }
       }
-    });
+    }
 
-    // パーセンテージを計算
+    // パーセンテージを正規化
     Object.keys(stats).forEach(key => {
-      stats[key as keyof typeof stats].percentage = totalHands > 0 ? 
-        Math.round((stats[key as keyof typeof stats].count / totalHands) * 1000) / 10 : 0;
+      stats[key as keyof typeof stats].percentage = totalWeightedPercentage > 0 ? 
+        Math.round((stats[key as keyof typeof stats].percentage / totalWeightedPercentage) * 1000) / 10 : 0;
     });
 
     return stats;
@@ -212,6 +240,17 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                     <span className="bg-green-600/20 px-2 md:px-3 py-1 rounded-full border border-green-500/30 text-green-300 text-xs md:text-sm font-medium">
                       {stackSize}
                     </span>
+                    {actionType && actionType !== 'open' && (
+                      <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30 text-purple-300 text-xs md:text-sm font-medium">
+                        {actionType === 'vsopen' ? 'vsオープン' : 
+                         actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
+                      </span>
+                    )}
+                    {opponentPosition && actionType && actionType !== 'open' && (
+                      <span className="bg-orange-600/20 px-2 md:px-3 py-1 rounded-full border border-orange-500/30 text-orange-300 text-xs md:text-sm font-medium">
+                        vs {opponentPosition}
+                      </span>
+                    )}
                     <span className="text-gray-400 text-xs md:text-sm">
                       総ハンド数: <span className="text-white font-semibold">{Object.keys(rangeData).length}</span>
                     </span>
@@ -234,20 +273,20 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
         <div className="p-4 md:p-6 bg-gray-800 border-b border-gray-700">
           <h3 className="text-white font-bold mb-3 md:mb-4 text-base md:text-lg">統計(頻度考慮):</h3>
           <div className="flex gap-2 md:gap-3 flex-wrap">
-            <div className="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              MIN: {stats.MIN.count}ハンド ({stats.MIN.percentage}%)
-            </div>
-            <div className="bg-red-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              ALL IN: {stats.ALL_IN.count}ハンド ({stats.ALL_IN.percentage}%)
-            </div>
             <div className="bg-yellow-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              CALL: {stats.CALL.count}ハンド ({stats.CALL.percentage}%)
+              CALL: {stats.CALL.percentage}%
             </div>
             <div className="bg-gray-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              FOLD: {stats.FOLD.count}ハンド ({stats.FOLD.percentage}%)
+              FOLD: {stats.FOLD.percentage}%
+            </div>
+            <div className="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+              RAISE: {stats.MIN.percentage}%
+            </div>
+            <div className="bg-red-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+              ALL IN: {stats.ALL_IN.percentage}%
             </div>
             <div className="bg-gray-700 text-gray-300 px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              NONE: {stats.NONE.count}ハンド ({stats.NONE.percentage}%)
+              NONE: {stats.NONE.percentage}%
             </div>
           </div>
         </div>
@@ -274,20 +313,20 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-300 flex-wrap">
               <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-full"></div>
-                <span>MIN/RAISE</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-red-600 rounded-full"></div>
-                <span>ALL IN</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
                 <div className="w-2 h-2 md:w-3 md:h-3 bg-yellow-600 rounded-full"></div>
                 <span>CALL</span>
               </div>
               <div className="flex items-center gap-1 md:gap-2">
                 <div className="w-2 h-2 md:w-3 md:h-3 bg-gray-600 rounded-full"></div>
                 <span>FOLD</span>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-full"></div>
+                <span>RAISE</span>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-red-600 rounded-full"></div>
+                <span>ALL IN</span>
               </div>
             </div>
             <button
