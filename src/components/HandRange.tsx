@@ -1069,7 +1069,7 @@ const HandRangeGrid: React.FC<{
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 shadow-2xl border border-gray-700">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -1224,13 +1224,7 @@ export const HandRangeSelector: React.FC<{
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
-    console.log('🔄 HandRangeSelector useEffect:', { 
-      selectedHands, 
-      selectedHandsLength: selectedHands.length,
-      hasOnSelectHands: !!onSelectHands 
-    });
     if (onSelectHands) {
-      console.log('🔄 HandRangeSelector: onSelectHands呼び出し（useEffect）');
       onSelectHands(selectedHands);
     }
   }, [selectedHands, onSelectHands]);
@@ -1310,7 +1304,7 @@ export const HandRangeSelector: React.FC<{
 
         
         {/* ハンドレンジグリッド */}
-        <div className="flex-1 mb-4">
+        <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
             <div className="grid grid-cols-13 gap-1">
               {generateHandGrid()}
@@ -1322,12 +1316,7 @@ export const HandRangeSelector: React.FC<{
         <div className="mt-auto">
           <button
             onClick={() => {
-              console.log('🔄 HandRangeSelector: 選択完了ボタンクリック:', {
-                selectedHands,
-                selectedHandsLength: selectedHands.length
-              });
               onSelectHands(selectedHands);
-              console.log('🔄 HandRangeSelector: onSelectHands呼び出し（選択完了ボタン）');
               onClose();
             }}
             className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all duration-200 shadow-lg"

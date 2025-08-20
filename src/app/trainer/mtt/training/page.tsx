@@ -1723,6 +1723,9 @@ function MTTTrainingPage() {
   const customHandsString = searchParams.get('hands') || '';
   const customHands = customHandsString ? decodeURIComponent(customHandsString).split(',').filter(hand => hand.trim() !== '') : [];
   
+  // URLから相手のポジション情報を取得
+  const opponentPosition = searchParams.get('opener') || searchParams.get('threebetter') || searchParams.get('fourbetter') || null;
+  
   // ステート
   const [hand, setHand] = useState<string[]>([]);
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
@@ -3971,6 +3974,12 @@ function MTTTrainingPage() {
                  actionType === 'vsopen' ? 'vsオープン' :
                  actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
               </span>
+              {/* 相手のポジション情報を表示 */}
+              {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
+                <span className="bg-orange-600/20 px-2 md:px-3 py-1 rounded-full border border-orange-500/30">
+                  {opponentPosition ? `vs${opponentPosition}` : 'vsランダム'}
+                </span>
+              )}
             </div>
             
             <Link 
