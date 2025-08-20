@@ -924,6 +924,15 @@ video {
 .mt-auto {
   margin-top: auto;
 }
+.-mt-1 {
+  margin-top: -0.25rem;
+}
+.-mt-2 {
+  margin-top: -0.5rem;
+}
+.-mt-3 {
+  margin-top: -0.75rem;
+}
 .block {
   display: block;
 }
@@ -3332,6 +3341,14 @@ video {
 
   .md\:mt-8 {
     margin-top: 2rem;
+  }
+
+  .md\:ml-4 {
+    margin-left: 1rem;
+  }
+
+  .md\:block {
+    display: block;
   }
 
   .md\:inline {

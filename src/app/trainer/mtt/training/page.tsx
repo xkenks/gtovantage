@@ -3914,17 +3914,17 @@ function MTTTrainingPage() {
       {/* ここから下は既存のページ内容 */}
       <div className="min-h-screen bg-black md:bg-gray-900 text-white p-4">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-4 hidden md:flex justify-between items-center">
-            <h1 className="text-2xl font-bold">MTTプリフロップトレーニング</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <span className="bg-blue-600/20 px-3 py-1 rounded-full border border-blue-500/30">
+          {/* 統一ヘッダー（PC・モバイル共通） */}
+          <div className="mb-4 flex justify-end items-center">
+            <div className="flex items-center gap-2 md:gap-4">
+              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm text-gray-300">
+                <span className="bg-blue-600/20 px-2 md:px-3 py-1 rounded-full border border-blue-500/30">
                   {stackSize}
                 </span>
-                <span className="bg-green-600/20 px-3 py-1 rounded-full border border-green-500/30">
+                <span className="bg-green-600/20 px-2 md:px-3 py-1 rounded-full border border-green-500/30">
                   {position}
                 </span>
-                <span className="bg-purple-600/20 px-3 py-1 rounded-full border border-purple-500/30">
+                <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30">
                   {actionType === 'open' ? 'オープンレイズ' : 
                    actionType === 'vsopen' ? 'vsオープン' :
                    actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
@@ -3938,85 +3938,45 @@ function MTTTrainingPage() {
                   action: actionType,
                   ...(customHands.length > 0 ? { hands: encodeURIComponent(customHands.join(',')) } : {})
                 }).toString()}`} 
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                className="px-3 md:px-4 py-1 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs md:text-sm font-medium transition-colors duration-200 flex items-center gap-1 md:gap-2"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
-                戻る
+                <span className="hidden md:inline">戻る</span>
               </Link>
               
               {/* 管理者ログインボタン（未ログイン時のみ表示） */}
               {!isAdmin && (
                 <button
                   onClick={() => setShowAdminLogin(true)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 ml-4"
+                  className="px-2 md:px-4 py-1 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs md:text-sm font-medium transition-colors duration-200 flex items-center gap-1 md:gap-2 ml-2 md:ml-4"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  管理者ログイン
+                  <span className="hidden md:inline">管理者ログイン</span>
+                  <span className="md:hidden">管理</span>
                 </button>
               )}
               
-              {/* 管理者ログイン情報 - 一番右側に配置 */}
+              {/* 管理者ログイン情報 */}
               {isAdmin && (
-                <div className="flex items-center gap-3 bg-green-600/20 px-3 py-2 rounded-lg border border-green-500/30 ml-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="flex items-center gap-2 md:gap-3 bg-green-600/20 px-2 md:px-3 py-1 md:py-2 rounded-lg border border-green-500/30 ml-2 md:ml-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
-                  <div className="text-sm">
+                  <div className="text-xs md:text-sm">
                     <div className="text-green-400 font-medium">gto-admin</div>
-                    <div className="text-green-300 text-xs">管理者でログイン中</div>
+                    <div className="text-green-300 text-xs hidden md:block">管理者でログイン中</div>
+                    <div className="text-green-300 text-xs md:hidden">管理者</div>
                   </div>
                   <button
                     onClick={() => {
                       localStorage.removeItem('admin-token');
                       window.location.reload();
                     }}
-                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
-                  >
-                    ログアウト
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* モバイル版ヘッダー */}
-          <div className="mb-1 md:hidden">
-            <div className="flex justify-between items-center py-2">
-              <h1 className="text-xl font-bold">MTTプリフロップトレーニング</h1>
-              
-              {/* モバイル版管理者ログインボタン（未ログイン時のみ表示） */}
-              {!isAdmin && (
-                <button
-                  onClick={() => setShowAdminLogin(true)}
-                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200 flex items-center gap-1"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  管理
-                </button>
-              )}
-              
-              {/* モバイル版管理者ログイン情報 */}
-              {isAdmin && (
-                <div className="flex items-center gap-2 bg-green-600/20 px-2 py-1 rounded border border-green-500/30">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <div className="text-xs">
-                    <div className="text-green-400 font-medium">gto-admin</div>
-                    <div className="text-green-300 text-xs">管理者</div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('admin-token');
-                      window.location.reload();
-                    }}
-                    className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
+                    className="px-2 md:px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
                   >
                     ログアウト
                   </button>
@@ -4769,20 +4729,6 @@ function MTTTrainingPage() {
                           {/* 頻度詳細情報 */}
                           {gtoData.frequencies && (
                             <div className={`${isMobile ? 'bg-gray-700/10' : 'bg-gray-700/30'} p-4 rounded mb-4`}>
-                              <h4 className="text-white font-semibold mb-3 text-sm">
-                                ハンド {(() => {
-                                  // テーブルに表示されているハンドと一致させる
-                                  const tableHandType = spot?.heroHand ? normalizeHandType(spot.heroHand as string[]) : 'XX';
-                                  console.log('🎯 結果表示タイトル - テーブルハンド一致:', { 
-                                    tableHandType,
-                                    spotHeroHand: spot?.heroHand,
-                                    gtoDataNormalizedHandType: gtoData?.normalizedHandType,
-                                    gtoDataExists: !!gtoData
-                                  });
-                                  return tableHandType;
-                                })()} の正解頻度分布
-                                {(gtoData as any)?.isCustomRange && <span className="text-purple-400 text-xs ml-2">(カスタム設定)</span>}
-                              </h4>
                               {(() => {
                                 console.log('🎯 結果表示デバッグ:', {
                                   normalizedHandType: gtoData?.normalizedHandType,
@@ -4935,7 +4881,7 @@ function MTTTrainingPage() {
                                       });
                                       
                                       return (
-                                        <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
+                                        <div className={`text-xs -mt-3 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
                                           正解頻度: {frequency}%
                                           {frequency === 0 && ' (推奨されません)'}
                                         </div>
