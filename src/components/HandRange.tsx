@@ -1224,7 +1224,13 @@ export const HandRangeSelector: React.FC<{
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
+    console.log('🔄 HandRangeSelector useEffect:', { 
+      selectedHands, 
+      selectedHandsLength: selectedHands.length,
+      hasOnSelectHands: !!onSelectHands 
+    });
     if (onSelectHands) {
+      console.log('🔄 HandRangeSelector: onSelectHands呼び出し（useEffect）');
       onSelectHands(selectedHands);
     }
   }, [selectedHands, onSelectHands]);
@@ -1316,7 +1322,12 @@ export const HandRangeSelector: React.FC<{
         <div className="mt-auto">
           <button
             onClick={() => {
+              console.log('🔄 HandRangeSelector: 選択完了ボタンクリック:', {
+                selectedHands,
+                selectedHandsLength: selectedHands.length
+              });
               onSelectHands(selectedHands);
+              console.log('🔄 HandRangeSelector: onSelectHands呼び出し（選択完了ボタン）');
               onClose();
             }}
             className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-lg transition-all duration-200 shadow-lg"

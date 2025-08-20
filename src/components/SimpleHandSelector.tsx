@@ -37,7 +37,12 @@ export const SimpleHandSelector: React.FC<SimpleHandSelectorProps> = ({
   };
 
   const handleConfirm = () => {
+    console.log('🔄 SimpleHandSelector: ハンド選択確定:', {
+      selectedHands,
+      selectedHandsLength: selectedHands.length
+    });
     onSelectHands(selectedHands);
+    console.log('🔄 SimpleHandSelector: onSelectHands実行完了');
     onClose();
   };
 

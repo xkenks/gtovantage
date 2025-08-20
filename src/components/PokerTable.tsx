@@ -1209,17 +1209,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     return (
       <>
-        {/* 戻るボタン（モバイル版テーブル右上） */}
-        {backButtonUrl && (
-          <div className="absolute top-0 right-2 z-50">
-            <a 
-              href={backButtonUrl}
-              className="px-3 py-1 bg-gray-700/90 hover:bg-gray-600/90 rounded text-white text-sm backdrop-blur-sm"
-            >
-              ← 戻る
-            </a>
-          </div>
-        )}
+
 
         {/* ポットサイズ表示（ポジション間の中央） */}
         <div className="absolute w-full flex flex-col items-center text-white z-40" style={{ top: '36%' }}>

@@ -803,6 +803,9 @@ video {
 .top-\[180px\] {
   top: 180px;
 }
+.bottom-4 {
+  bottom: 1rem;
+}
 .z-0 {
   z-index: 0;
 }
@@ -851,6 +854,9 @@ video {
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+.-mt-3 {
+  margin-top: -0.75rem;
 }
 .mb-1 {
   margin-bottom: 0.25rem;
@@ -923,15 +929,6 @@ video {
 }
 .mt-auto {
   margin-top: auto;
-}
-.-mt-1 {
-  margin-top: -0.25rem;
-}
-.-mt-2 {
-  margin-top: -0.5rem;
-}
-.-mt-3 {
-  margin-top: -0.75rem;
 }
 .block {
   display: block;
@@ -1263,6 +1260,9 @@ video {
 .items-center {
   align-items: center;
 }
+.justify-start {
+  justify-content: flex-start;
+}
 .justify-end {
   justify-content: flex-end;
 }
@@ -1467,6 +1467,9 @@ video {
 .border-blue-700 {
   --tw-border-opacity: 1;
   border-color: rgb(29 78 216 / var(--tw-border-opacity, 1));
+}
+.border-blue-700\/50 {
+  border-color: rgb(29 78 216 / 0.5);
 }
 .border-cyan-500 {
   --tw-border-opacity: 1;
@@ -1976,6 +1979,11 @@ video {
   --tw-gradient-to: rgb(37 99 235 / 0) var(--tw-gradient-to-position);
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
+.from-blue-900\/30 {
+  --tw-gradient-from: rgb(30 58 138 / 0.3) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(30 58 138 / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
 .from-blue-900\/50 {
   --tw-gradient-from: rgb(30 58 138 / 0.5) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(30 58 138 / 0) var(--tw-gradient-to-position);
@@ -2138,6 +2146,9 @@ video {
 }
 .to-green-700 {
   --tw-gradient-to: #15803d var(--tw-gradient-to-position);
+}
+.to-green-900\/30 {
+  --tw-gradient-to: rgb(20 83 45 / 0.3) var(--tw-gradient-to-position);
 }
 .to-indigo-800 {
   --tw-gradient-to: #3730a3 var(--tw-gradient-to-position);
@@ -3311,6 +3322,10 @@ video {
     margin-bottom: 2rem;
   }
 
+  .md\:ml-4 {
+    margin-left: 1rem;
+  }
+
   .md\:ml-6 {
     margin-left: 1.5rem;
   }
@@ -3341,10 +3356,6 @@ video {
 
   .md\:mt-8 {
     margin-top: 2rem;
-  }
-
-  .md\:ml-4 {
-    margin-left: 1rem;
   }
 
   .md\:block {
