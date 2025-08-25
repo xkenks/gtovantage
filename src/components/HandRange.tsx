@@ -887,16 +887,17 @@ const HandRangeGrid: React.FC<{
       }
     }
     
-    return 'bg-black hover:bg-gray-700 border-gray-600';
+    // デフォルトの背景色は返さない（getHandStyleで制御）
+    return 'border-gray-600';
   };
 
   // アクション別の色を取得
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'MIN': return 'bg-blue-500 hover:bg-blue-600';
-      case 'ALL_IN': return 'bg-red-500 hover:bg-red-600';
-      case 'CALL': return 'bg-yellow-500 hover:bg-yellow-600';
-      case 'FOLD': return 'bg-gray-600 hover:bg-gray-700';
+      case 'MIN': return 'bg-red-500 hover:bg-red-600';
+      case 'ALL_IN': return 'bg-red-900 hover:bg-red-800';
+      case 'CALL': return 'bg-green-500 hover:bg-green-600';
+      case 'FOLD': return 'bg-blue-500 hover:bg-blue-600';
       default: return 'bg-gray-800 hover:bg-gray-700';
     }
   };
@@ -904,9 +905,10 @@ const HandRangeGrid: React.FC<{
   // Tailwind用の色クラス
   const getActionColorTailwind = (action: string) => {
     switch (action) {
-      case 'MIN': return 'blue-500';
-      case 'ALL_IN': return 'red-500';
-      case 'CALL': return 'yellow-500';
+      case 'MIN': return 'red-500';
+      case 'ALL_IN': return 'red-900';
+      case 'CALL': return 'green-500';
+      case 'FOLD': return 'blue-500';
       default: return 'gray-600';
     }
   };
@@ -914,9 +916,10 @@ const HandRangeGrid: React.FC<{
   // Hex色を取得
   const getActionColorHex = (action: string) => {
     switch (action) {
-      case 'MIN': return '#3b82f6';
-      case 'ALL_IN': return '#ef4444';
-      case 'CALL': return '#eab308';
+      case 'MIN': return '#F44336'; // レイズ: 赤
+      case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
+      case 'CALL': return '#4CAF50'; // コール: 緑
+      case 'FOLD': return '#4A90E2'; // フォールド: 青
       default: return '#6b7280';
     }
   };
@@ -930,8 +933,9 @@ const HandRangeGrid: React.FC<{
   const getHandStyle = (hand: string) => {
     const frequencies = getHandFrequencies(hand);
     const actions = [
-      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
       { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
+      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
+      { key: 'RAISE', color: getActionColorHex('RAISE'), value: frequencies.MIN }, // MINをRAISEとして扱う
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
       { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
     ];
@@ -940,10 +944,17 @@ const HandRangeGrid: React.FC<{
 
     // フォールド100%
     if (totalNonFold === 0) {
-      return { background: 'rgb(31, 41, 55)' };
+      return { background: '#4A90E2 !important' }; // 青色（FOLD色）- !importantで優先
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
+      if (nonZeroActions[0].key === 'FOLD') {
+        return { 
+          background: '#4A90E2 !important',
+          backgroundColor: '#4A90E2 !important',
+          border: '1px solid rgb(75, 85, 99) !important'
+        };
+      }
       return { background: nonZeroActions[0].color };
     }
     // 混合戦略（2つ以上のアクションが0%超）
@@ -967,8 +978,9 @@ const HandRangeGrid: React.FC<{
     }
     // それ以外（念のため）
     return {
-      background: 'rgb(31, 41, 55)',
-      border: '1px solid rgb(75, 85, 99)'
+      background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
+      backgroundColor: '#4A90E2 !important',
+      border: '1px solid rgb(75, 85, 99) !important'
     };
   };
 
@@ -1825,6 +1837,19 @@ export const MTTRangeEditor: React.FC<{
 
   // 混合戦略の背景色とスタイルを取得（頻度比率で色をミックス）
   const getHandBackgroundStyle = (hand: string) => {
+    // ハンドが設定されていない場合（デフォルトフォールド）
+    if (!rangeData[hand]) {
+      console.log(`Hand: ${hand} - No data - Blue background (default) - rangeData keys:`, Object.keys(rangeData));
+      const style = { 
+        backgroundColor: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
+        background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
+        border: '1px solid rgb(75, 85, 99)',
+        color: 'white !important'
+      };
+      console.log(`Style for ${hand}:`, style);
+      return style;
+    }
+    
     // NONEアクションの特別処理
     if (rangeData[hand]?.action === 'NONE') {
       return { 
@@ -1835,20 +1860,35 @@ export const MTTRangeEditor: React.FC<{
     
     const frequencies = getHandFrequencies(hand);
     const actions = [
-      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
       { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
+      { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
       { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
     ];
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
 
+    // デバッグログ
+    console.log(`Hand: ${hand}, Frequencies:`, frequencies, `TotalNonFold: ${totalNonFold}`);
+
     // フォールド100%
     if (totalNonFold === 0) {
-      return { background: 'rgb(31, 41, 55)' };
+      console.log(`Hand: ${hand} - FOLD 100% - Blue background`);
+      return { 
+        background: '#4A90E2 !important',
+        backgroundColor: '#4A90E2 !important',
+        border: '1px solid rgb(75, 85, 99) !important'
+      }; // 青色（FOLD色）- !importantで優先
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
+      if (nonZeroActions[0].key === 'FOLD') {
+        return { 
+          background: '#4A90E2 !important',
+          backgroundColor: '#4A90E2 !important',
+          border: '1px solid rgb(75, 85, 99) !important'
+        };
+      }
       return { background: nonZeroActions[0].color };
     }
     // 混合戦略（2つ以上のアクションが0%超）
@@ -1856,7 +1896,19 @@ export const MTTRangeEditor: React.FC<{
       let gradientStops = [];
       let currentPosition = 0;
       
-      // アクションごとの色セグメントを作成（より美しいグラデーション）
+      // アクションごとの色セグメントを作成（オールイン→レイズ→コール→フォールドの順）
+      if (frequencies.ALL_IN > 0) {
+        const allInColor = getActionColorHex('ALL_IN');
+        gradientStops.push(`${allInColor} ${currentPosition}% ${currentPosition + frequencies.ALL_IN}%`);
+        currentPosition += frequencies.ALL_IN;
+      }
+      
+      if (frequencies.MIN > 0) {
+        const minColor = getActionColorHex('MIN');
+        gradientStops.push(`${minColor} ${currentPosition}% ${currentPosition + frequencies.MIN}%`);
+        currentPosition += frequencies.MIN;
+      }
+      
       if (frequencies.CALL > 0) {
         const callColor = getActionColorHex('CALL');
         gradientStops.push(`${callColor} ${currentPosition}% ${currentPosition + frequencies.CALL}%`);
@@ -1867,18 +1919,6 @@ export const MTTRangeEditor: React.FC<{
         const foldColor = getActionColorHex('FOLD');
         gradientStops.push(`${foldColor} ${currentPosition}% ${currentPosition + frequencies.FOLD}%`);
         currentPosition += frequencies.FOLD;
-      }
-      
-      if (frequencies.MIN > 0) {
-        const minColor = getActionColorHex('MIN');
-        gradientStops.push(`${minColor} ${currentPosition}% ${currentPosition + frequencies.MIN}%`);
-        currentPosition += frequencies.MIN;
-      }
-      
-      if (frequencies.ALL_IN > 0) {
-        const allInColor = getActionColorHex('ALL_IN');
-        gradientStops.push(`${allInColor} ${currentPosition}% ${currentPosition + frequencies.ALL_IN}%`);
-        currentPosition += frequencies.ALL_IN;
       }
       
       // FOLD部分（薄いグレーで表示）
@@ -1898,8 +1938,9 @@ export const MTTRangeEditor: React.FC<{
     }
     
     return {
-      background: 'rgb(31, 41, 55)',
-      border: '1px solid rgb(75, 85, 99)'
+      background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
+      backgroundColor: '#4A90E2 !important',
+      border: '1px solid rgb(75, 85, 99) !important'
     };
   };
 
@@ -1934,10 +1975,10 @@ export const MTTRangeEditor: React.FC<{
   // アクション別の色を取得
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'MIN': return 'bg-blue-500 hover:bg-blue-600';
-      case 'ALL_IN': return 'bg-red-500 hover:bg-red-600';
-      case 'CALL': return 'bg-yellow-500 hover:bg-yellow-600';
-      case 'FOLD': return 'bg-gray-600 hover:bg-gray-700';
+      case 'MIN': return 'bg-red-500 hover:bg-red-600';
+      case 'ALL_IN': return 'bg-red-900 hover:bg-red-800';
+      case 'CALL': return 'bg-green-500 hover:bg-green-600';
+      case 'FOLD': return 'bg-blue-500 hover:bg-blue-600';
       case 'NONE': return 'bg-gray-400 hover:bg-gray-500';
       default: return 'bg-gray-800 hover:bg-gray-700';
     }
@@ -1946,9 +1987,10 @@ export const MTTRangeEditor: React.FC<{
   // Tailwind用の色クラス
   const getActionColorTailwind = (action: string) => {
     switch (action) {
-      case 'MIN': return 'blue-500';
-      case 'ALL_IN': return 'red-500';
-      case 'CALL': return 'yellow-500';
+      case 'MIN': return 'red-500';
+      case 'ALL_IN': return 'red-900';
+      case 'CALL': return 'green-500';
+      case 'FOLD': return 'blue-500';
       default: return 'gray-600';
     }
   };
@@ -1956,9 +1998,10 @@ export const MTTRangeEditor: React.FC<{
   // Hex色を取得
   const getActionColorHex = (action: string) => {
     switch (action) {
-      case 'MIN': return '#3b82f6';
-      case 'ALL_IN': return '#ef4444';
-      case 'CALL': return '#eab308';
+      case 'MIN': return '#F44336'; // レイズ: 赤
+      case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
+      case 'CALL': return '#4CAF50'; // コール: 緑
+      case 'FOLD': return '#4A90E2'; // フォールド: 青
       default: return '#6b7280';
     }
   };
@@ -1979,10 +2022,11 @@ export const MTTRangeEditor: React.FC<{
     
     const frequencies = getHandFrequencies(hand);
     const activeActions = [
-      { name: 'CALL', freq: frequencies.CALL, symbol: 'C', color: 'text-yellow-200' },
-      { name: 'FOLD', freq: frequencies.FOLD, symbol: 'F', color: 'text-gray-300' },
-      { name: 'MIN', freq: frequencies.MIN, symbol: 'M', color: 'text-blue-200' },
-      { name: 'ALL_IN', freq: frequencies.ALL_IN, symbol: 'A', color: 'text-red-200' }
+      { name: 'CALL', freq: frequencies.CALL, symbol: 'C', color: 'text-green-200' },
+      { name: 'FOLD', freq: frequencies.FOLD, symbol: 'F', color: 'text-blue-200' },
+      { name: 'MIN', freq: frequencies.MIN, symbol: 'R', color: 'text-red-200' },
+      { name: 'RAISE', freq: frequencies.MIN, symbol: 'R', color: 'text-red-200' },
+      { name: 'ALL_IN', freq: frequencies.ALL_IN, symbol: 'A', color: 'text-red-800' }
     ].filter(action => action.freq > 0);
 
     if (activeActions.length === 1 && activeActions[0].freq === 100) {
@@ -2243,10 +2287,10 @@ export const MTTRangeEditor: React.FC<{
           <h3 className="text-xs md:text-sm font-semibold text-white mb-3">クイック設定（左クリック/ドラッグ）：</h3>
           <div className="grid grid-cols-3 md:flex md:gap-3 md:flex-wrap gap-2">
             {[
-              { action: 'MIN', label: 'レイズ', shortLabel: 'RAISE', color: 'bg-blue-500' },
-              { action: 'ALL_IN', label: 'オールイン', shortLabel: 'ALL IN', color: 'bg-red-500' },
-              { action: 'CALL', label: 'コール', shortLabel: 'CALL', color: 'bg-yellow-500' },
-              { action: 'FOLD', label: 'フォールド', shortLabel: 'FOLD', color: 'bg-gray-600' },
+              { action: 'MIN', label: 'レイズ', shortLabel: 'RAISE', color: 'bg-red-500' },
+              { action: 'CALL', label: 'コール', shortLabel: 'CALL', color: 'bg-green-500' },
+              { action: 'ALL_IN', label: 'オールイン', shortLabel: 'ALL IN', color: 'bg-red-900' },
+              { action: 'FOLD', label: 'フォールド', shortLabel: 'FOLD', color: 'bg-blue-500' },
               { action: 'NONE', label: 'NONE', shortLabel: 'NONE', color: 'bg-gray-400' },
               { action: 'CLEAR', label: '解除', shortLabel: 'CLEAR', color: 'bg-gray-700' }
             ].map(({ action, label, shortLabel, color }) => (
@@ -2273,21 +2317,21 @@ export const MTTRangeEditor: React.FC<{
         <div className="mb-4 bg-gray-800 rounded-lg p-3 md:p-4 border border-gray-600">
           <h3 className="text-xs md:text-sm font-semibold text-white mb-3">統計（頻度考慮）:</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 text-xs md:text-sm">
-            <div className="bg-yellow-500 bg-opacity-20 border border-yellow-500 rounded p-1.5 md:p-2 text-center">
-              <div className="text-yellow-300 font-semibold text-xs">CALL</div>
-              <div className="text-white text-xs md:text-sm">{stats.percentage.CALL}%</div>
-            </div>
-            <div className="bg-gray-600 bg-opacity-20 border border-gray-600 rounded p-1.5 md:p-2 text-center">
-              <div className="text-gray-300 font-semibold text-xs">FOLD</div>
-              <div className="text-white text-xs md:text-sm">{stats.percentage.FOLD}%</div>
-            </div>
-            <div className="bg-blue-500 bg-opacity-20 border border-blue-500 rounded p-1.5 md:p-2 text-center">
-              <div className="text-blue-300 font-semibold text-xs">RAISE</div>
+            <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-red-300 font-semibold text-xs">RAISE</div>
               <div className="text-white text-xs md:text-sm">{stats.percentage.MIN}%</div>
             </div>
-            <div className="bg-red-500 bg-opacity-20 border border-red-500 rounded p-1.5 md:p-2 text-center">
+            <div className="bg-green-500 bg-opacity-20 border border-green-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-green-300 font-semibold text-xs">CALL</div>
+              <div className="text-white text-xs md:text-sm">{stats.percentage.CALL}%</div>
+            </div>
+            <div className="bg-red-900 bg-opacity-20 border border-red-900 rounded p-1.5 md:p-2 text-center">
               <div className="text-red-300 font-semibold text-xs">ALL IN</div>
               <div className="text-white text-xs md:text-sm">{stats.percentage.ALL_IN}%</div>
+            </div>
+            <div className="bg-blue-500 bg-opacity-20 border border-blue-500 rounded p-1.5 md:p-2 text-center">
+              <div className="text-blue-300 font-semibold text-xs">FOLD</div>
+              <div className="text-white text-xs md:text-sm">{stats.percentage.FOLD}%</div>
             </div>
             <div className="bg-gray-400 bg-opacity-20 border border-gray-400 rounded p-1.5 md:p-2 text-center">
               <div className="text-gray-300 font-semibold text-xs">NONE</div>
@@ -2310,12 +2354,21 @@ export const MTTRangeEditor: React.FC<{
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  ${getHandColor(cell.hand, rowIndex, colIndex)} 
+                  ${!rangeData[cell.hand] ? '' : getHandColor(cell.hand, rowIndex, colIndex)} 
                   text-white text-[10px] md:text-xs font-bold py-0.5 md:py-1 px-0.5 md:px-1 text-center cursor-pointer 
                   rounded transition-all duration-200
                   hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center
+                  mtt-range-editor-cell
                 `}
-                style={getHandBackgroundStyle(cell.hand)}
+                data-has-range={!!rangeData[cell.hand]}
+                style={{
+                  ...getHandBackgroundStyle(cell.hand),
+                  ...(rangeData[cell.hand] ? {} : {
+                    backgroundColor: '#4A90E2 !important',
+                    background: '#4A90E2 !important',
+                    border: '1px solid rgb(75, 85, 99) !important'
+                  })
+                }}
                 onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
                 onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
                 onContextMenu={(e) => handleRightClick(e, cell.hand)}
@@ -2378,7 +2431,7 @@ export const MTTRangeEditor: React.FC<{
             <li>• <strong>同じアクションを再クリック：</strong> そのハンドを解除</li>
             <li>• <strong>右クリック：</strong> 詳細な頻度設定（例：RAISE 60%, FOLD 40%）</li>
             <li>• <strong>混合戦略の色分け：</strong> 複数アクションが設定されたハンドは横方向のグラデーションで表示</li>
-            <li>• <strong>色の意味：</strong> 青=RAISE、赤=ALL_IN、黄=コール、グレー=フォールド</li>
+            <li>• <strong>色の意味：</strong> 赤=RAISE、濃い赤=ALL_IN、緑=CALL、青=FOLD</li>
             <li>• <strong>混合戦略の識別：</strong> 紫の境界線と小さな%表示で混合戦略を識別</li>
             <li>• 統計は頻度を考慮した加重平均で表示</li>
           </ul>
@@ -2460,6 +2513,44 @@ const FrequencyModal: React.FC<{
         </div>
 
         <div className="space-y-4">
+          {/* ALL_IN */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-red-300 font-semibold">オールイン</label>
+              <span className="text-white font-bold">{frequencies.ALL_IN}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={frequencies.ALL_IN}
+              onChange={(e) => updateFrequency('ALL_IN', parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${frequencies.ALL_IN}%, #374151 ${frequencies.ALL_IN}%, #374151 100%)`
+              }}
+            />
+          </div>
+
+          {/* MIN */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-blue-300 font-semibold">レイズ</label>
+              <span className="text-white font-bold">{frequencies.MIN}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={frequencies.MIN}
+              onChange={(e) => updateFrequency('MIN', parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${frequencies.MIN}%, #374151 ${frequencies.MIN}%, #374151 100%)`
+              }}
+            />
+          </div>
+
           {/* CALL */}
           <div>
             <div className="flex justify-between items-center mb-2">
@@ -2498,44 +2589,6 @@ const FrequencyModal: React.FC<{
             />
           </div>
 
-          {/* MIN */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-blue-300 font-semibold">レイズ</label>
-              <span className="text-white font-bold">{frequencies.MIN}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={frequencies.MIN}
-              onChange={(e) => updateFrequency('MIN', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${frequencies.MIN}%, #374151 ${frequencies.MIN}%, #374151 100%)`
-              }}
-            />
-          </div>
-
-          {/* ALL_IN */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-red-300 font-semibold">オールイン</label>
-              <span className="text-white font-bold">{frequencies.ALL_IN}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={frequencies.ALL_IN}
-              onChange={(e) => updateFrequency('ALL_IN', parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #ef4444 0%, #ef4444 ${frequencies.ALL_IN}%, #374151 ${frequencies.ALL_IN}%, #374151 100%)`
-              }}
-            />
-          </div>
-
           {/* 合計表示 */}
           <div className="border-t border-gray-700 pt-4">
             <div className="flex justify-between items-center">
@@ -2558,28 +2611,48 @@ const FrequencyModal: React.FC<{
             {/* 単一アクション */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               <button
+                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 100, CALL: 0, FOLD: 0 })}
+                className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#7f1d1d'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b1512'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7f1d1d'}
+              >
+                ALL IN 100%
+              </button>
+              <button
+                onClick={() => setFrequencies({ MIN: 100, ALL_IN: 0, CALL: 0, FOLD: 0 })}
+                className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#F44336'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d32f2f'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F44336'}
+              >
+                RAISE 100%
+              </button>
+              <button
                 onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 100, FOLD: 0 })}
-                className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-all duration-200"
+                className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#4CAF50'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#43A047'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
               >
                 CALL 100%
               </button>
               <button
                 onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 100 })}
-                className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-all duration-200"
+                className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#4A90E2'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#357abd'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4A90E2'}
               >
                 FOLD 100%
-              </button>
-              <button
-                onClick={() => setFrequencies({ MIN: 100, ALL_IN: 0, CALL: 0, FOLD: 0 })}
-                className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-all duration-200"
-              >
-                RAISE 100%
-              </button>
-              <button
-                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 100, CALL: 0, FOLD: 0 })}
-                className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-all duration-200"
-              >
-                ALL IN 100%
               </button>
             </div>
             
@@ -2601,7 +2674,10 @@ const FrequencyModal: React.FC<{
                         <button
                           key={raisePercent}
                           onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 0, FOLD: 100 - raisePercent })}
-                          className="px-2 py-1 bg-gradient-to-r from-blue-600 to-gray-600 text-white rounded text-xs hover:from-blue-700 hover:to-gray-700 transition-all duration-200"
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4A90E2 ${raisePercent}%, #4A90E2 100%)`
+                          }}
                         >
                           {raisePercent}%/{100 - raisePercent}%
                         </button>
@@ -2627,7 +2703,10 @@ const FrequencyModal: React.FC<{
                         <button
                           key={raisePercent}
                           onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 100 - raisePercent, FOLD: 0 })}
-                          className="px-2 py-1 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded text-xs hover:from-blue-700 hover:to-green-700 transition-all duration-200"
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4CAF50 ${raisePercent}%, #4CAF50 100%)`
+                          }}
                         >
                           {raisePercent}%/{100 - raisePercent}%
                         </button>
@@ -2653,7 +2732,10 @@ const FrequencyModal: React.FC<{
                         <button
                           key={callPercent}
                           onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: callPercent, FOLD: 100 - callPercent })}
-                          className="px-2 py-1 bg-gradient-to-r from-green-600 to-gray-600 text-white rounded text-xs hover:from-green-700 hover:to-gray-700 transition-all duration-200"
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #4CAF50 0%, #4CAF50 ${callPercent}%, #4A90E2 ${callPercent}%, #4A90E2 100%)`
+                          }}
                         >
                           {callPercent}%/{100 - callPercent}%
                         </button>
@@ -2679,7 +2761,10 @@ const FrequencyModal: React.FC<{
                         <button
                           key={allinPercent}
                           onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 100 - allinPercent, FOLD: 0 })}
-                          className="px-2 py-1 bg-gradient-to-r from-red-600 to-green-600 text-white rounded text-xs hover:from-red-700 hover:to-green-700 transition-all duration-200"
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4CAF50 ${allinPercent}%, #4CAF50 100%)`
+                          }}
                         >
                           {allinPercent}%/{100 - allinPercent}%
                         </button>
@@ -2705,7 +2790,10 @@ const FrequencyModal: React.FC<{
                         <button
                           key={allinPercent}
                           onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 0, FOLD: 100 - allinPercent })}
-                          className="px-2 py-1 bg-gradient-to-r from-red-600 to-gray-600 text-white rounded text-xs hover:from-red-700 hover:to-gray-700 transition-all duration-200"
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4A90E2 ${allinPercent}%, #4A90E2 100%)`
+                          }}
                         >
                           {allinPercent}%/{100 - allinPercent}%
                         </button>

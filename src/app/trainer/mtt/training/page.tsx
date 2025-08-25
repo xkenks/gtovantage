@@ -87,45 +87,49 @@ const normalizeHandType = (hand: string[]): string => {
     rank2Length: rank2?.length
   });
   
-  const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
-  const rank1Index = ranks.indexOf(rank1);
-  const rank2Index = ranks.indexOf(rank2);
-  
-  console.log('🎯 normalizeHandType ランク検索:', { 
-    rank1, 
-    rank2, 
-    rank1Index, 
-    rank2Index,
-    ranks
-  });
-  
-  if (rank1Index === -1 || rank2Index === -1) {
-    console.log('🎯 normalizeHandType エラー: 無効なランク', { rank1, rank2, rank1Index, rank2Index });
-    return 'XX';
-  }
-  
+  // ペアの場合
   if (rank1 === rank2) {
-    // ペア
     const result = rank1 + rank2;
     console.log('🎯 normalizeHandType ペア結果:', { result, rank1, rank2 });
     return result;
-  } else {
-    // 異なるランク
-    const higher = rank1Index > rank2Index ? rank1 : rank2;
-    const lower = rank1Index > rank2Index ? rank2 : rank1;
-    const suffix = suit1 === suit2 ? 's' : 'o';
-    const result = higher + lower + suffix;
-    console.log('🎯 normalizeHandType 非ペア結果:', { 
-      result, 
-      higher, 
-      lower, 
-      suffix,
-      rank1Index,
-      rank2Index,
-      isHigher: rank1Index > rank2Index
-    });
-    return result;
   }
+  
+  // ランクの順序を決定（Aが最強、gtoDatabase.tsと一致）
+  const rankOrder: Record<string, number> = {
+    'A': 0, 'K': 1, 'Q': 2, 'J': 3, 'T': 4, 
+    '9': 5, '8': 6, '7': 7, '6': 8, '5': 9, 
+    '4': 10, '3': 11, '2': 12
+  };
+  
+  if (rankOrder[rank1] === undefined || rankOrder[rank2] === undefined) {
+    console.log('🎯 normalizeHandType エラー: 無効なランク', { rank1, rank2 });
+    return 'XX';
+  }
+  
+  // 強いランクが先に来るようにソート
+  let firstRank, secondRank;
+  if (rankOrder[rank1] <= rankOrder[rank2]) {
+    firstRank = rank1;
+    secondRank = rank2;
+  } else {
+    firstRank = rank2;
+    secondRank = rank1;
+  }
+  
+  // スーテッドかオフスートか判定
+  const suffix = suit1 === suit2 ? 's' : 'o';
+  const result = firstRank + secondRank + suffix;
+  
+  console.log('🎯 normalizeHandType 非ペア結果:', { 
+    result, 
+    firstRank, 
+    secondRank, 
+    suffix,
+    rank1Order: rankOrder[rank1],
+    rank2Order: rankOrder[rank2]
+  });
+  
+  return result;
 };
 
 // MTT特有のICMランドを生成するユーティリティ関数
@@ -275,17 +279,173 @@ const simulateMTTGTOData = (
     'FOLD': 0,
     'CALL': 0,
     'RAISE': 0,
-    'ALL IN': 0
+    'ALL_IN': 0
   };
   let gtoAction: string = 'FOLD';
   let evData: { [action: string]: number } = {
     'FOLD': 0,
     'CALL': -1.2,
     'RAISE': -1.5,
-    'ALL IN': -2.0
+    'ALL_IN': -2.0
   };
   
-
+  // オープンレイズの場合のカスタムレンジ処理
+  if (actionType === 'openraise' || actionType === 'open') {
+    console.log('🔍 オープンレイズ カスタムレンジ検索開始:', {
+      position,
+      stackSize,
+      handType: normalizedHandType,
+      hasCustomRanges: !!customRanges,
+      customRangesKeys: customRanges ? Object.keys(customRanges) : []
+    });
+    
+    // カスタムレンジが設定されている場合はそれを使用
+    let rangeKey: string;
+    let fallbackRangeKey: string | null = null;
+    
+    if (stackSize === '15BB') {
+      // 15BBの場合は既存のキー形式を優先
+      rangeKey = position;
+      fallbackRangeKey = `${position}_15BB`;
+    } else {
+      // その他のスタックサイズは新しいキー形式を使用
+      rangeKey = `${position}_${stackSize}`;
+      // 15BBレンジがある場合はフォールバックとして使用
+      fallbackRangeKey = position;
+    }
+    
+    console.log('🔍 オープンレイズ レンジキー:', {
+      rangeKey,
+      fallbackRangeKey,
+      stackSize,
+      handType: normalizedHandType,
+      hasThisRange: !!(customRanges && customRanges[rangeKey]),
+      hasFallbackRange: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+      hasThisHand: !!(customRanges && (
+        (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
+        (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      )),
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      openRangeKeys: customRanges ? Object.keys(customRanges).filter(key => 
+        key === position || key.startsWith(position + '_') || key === rangeKey
+      ) : []
+    });
+    
+    // スタック固有レンジを優先し、フォールバックレンジも確認
+    let customHandData = null;
+    let usedRangeKey = rangeKey;
+    
+    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
+      customHandData = customRanges[rangeKey][normalizedHandType];
+      console.log('✅ オープンレイズ カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
+    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('✅ オープンレイズ フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } else {
+      console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
+        rangeKey, 
+        fallbackRangeKey, 
+        handType: normalizedHandType,
+        hasCustomRanges: !!customRanges,
+        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+      });
+    }
+    
+    if (customHandData) {
+      // カスタムレンジから頻度データを取得
+      console.log('🎯 オープンレイズ カスタムレンジ適用:', { 
+        handType: normalizedHandType, 
+        customHandData,
+        usedRangeKey
+      });
+      
+      let customFrequencies: { [action: string]: number } = {
+        'FOLD': 0,
+        'CALL': 0,
+        'RAISE': 0,
+        'ALL_IN': 0
+      };
+      
+      let customPrimaryAction: string = 'FOLD';
+      
+      if (customHandData.mixedFrequencies) {
+        // 混合戦略の場合
+        const mixedFreq = customHandData.mixedFrequencies as { FOLD?: number; CALL?: number; RAISE?: number; ALL_IN?: number; MIN?: number; };
+        customFrequencies = {
+          'FOLD': mixedFreq.FOLD || 0,
+          'CALL': mixedFreq.CALL || 0,
+          'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
+          'ALL_IN': mixedFreq.ALL_IN || 0
+        };
+        
+        // 最大頻度のアクションを主要アクションとする
+        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
+          curr[1] > max[1] ? curr : max
+        );
+        customPrimaryAction = maxFreqEntry[0];
+      } else {
+        // 単一アクションの場合
+        const actionMapping: { [key: string]: string } = {
+          'ALL_IN': 'ALL_IN',
+          'ALLIN': 'ALL_IN',
+          'ALL-IN': 'ALL_IN',
+          'MIN': 'RAISE',
+          'CALL': 'CALL',
+          'FOLD': 'FOLD',
+          'RAISE': 'RAISE'
+        };
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action;
+        
+        // オールインアクションの特別処理
+        if (customHandData.action.toUpperCase().includes('ALL')) {
+          customPrimaryAction = 'ALL_IN';
+        }
+        const actionKey = customPrimaryAction as keyof typeof customFrequencies;
+        customFrequencies[actionKey] = customHandData.frequency;
+        
+        // 残りの頻度をFOLDに設定
+        if (customHandData.frequency < 100) {
+          customFrequencies['FOLD'] = 100 - customHandData.frequency;
+        }
+      }
+      
+      // カスタムレンジ用のEVデータを生成
+      const customEvData: { [action: string]: number } = {
+        'FOLD': 0,
+        'CALL': customPrimaryAction === 'CALL' ? 1.5 : -1.0,
+        'RAISE': customPrimaryAction === 'RAISE' ? 2.8 : -1.2,
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 3.5 : -2.0
+      };
+      
+      console.log('🎯 オープンレイズ カスタム戦略決定:', {
+        handType: normalizedHandType,
+        primaryAction: customPrimaryAction,
+        frequencies: customFrequencies
+      });
+      
+      const positionAdvice = getPositionAdvice(position, customPrimaryAction, stackDepthBB);
+      
+      return {
+        correctAction: customPrimaryAction,
+        evData: customEvData,
+        frequencies: customFrequencies,
+        normalizedHandType: finalHandType,
+        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのオープンレイズ戦略です。`,
+        stackSizeStrategy: positionAdvice,
+        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        strategicAnalysis: `カスタム${stackSize}オープンレイズ: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
+        isCustomRange: true, // カスタムレンジ使用を示すフラグ
+        usedRangeKey // デバッグ用
+      };
+    }
+  }
 
   // vs オープンの場合の特別処理
   if (actionType === 'vsopen' && openerPosition) {
@@ -300,8 +460,8 @@ const simulateMTTGTOData = (
       
       // 無効な組み合わせの場合はエラー情報を返す
       gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
-      evData = { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 };
+      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
+      evData = { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 };
       
       return {
         correctAction: gtoAction,
@@ -370,7 +530,7 @@ const simulateMTTGTOData = (
       });
       
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -380,7 +540,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -405,7 +565,7 @@ const simulateMTTGTOData = (
   } else {
         // 単一アクションの場合
         let originalAction = customHandData.action;
-        customPrimaryAction = originalAction.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = originalAction.replace('ALL_IN', 'ALL_IN');
         
         // MINをRAISEに変換
         if (customPrimaryAction === 'MIN') {
@@ -436,7 +596,7 @@ const simulateMTTGTOData = (
           'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
         'RAISE': customPrimaryAction === 'RAISE' ? 1.5 : -1.2,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 2.8 : -2.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 2.8 : -2.0
       };
       
       console.log('🎯 カスタムレンジ使用:', {
@@ -460,7 +620,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${openerPosition}からのオープンに対する${position}ポジションでの設定済み戦略です。`,
         stackSizeStrategy: vsOpenAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
         openerInfo: getOpenerInfo(openerPosition),
         openRaiserPosition: openerPosition,
         openRaiseSize: currentOpenRaiseSize,
@@ -499,7 +659,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `${openerPosition}からのオープンに対する${position}ポジションでの最適戦略です。`,
         stackSizeStrategy: vsOpenAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
-        recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? 2.2 : 0,
+        recommendedBetSize: gtoAction === 'ALL_IN' ? stackDepthBB : gtoAction === 'RAISE' ? 2.2 : 0,
         openerInfo: getOpenerInfo(openerPosition),
         openRaiserPosition: openerPosition,
         openRaiseSize: currentOpenRaiseSize,
@@ -515,8 +675,8 @@ const simulateMTTGTOData = (
       console.log('🎯 レンジ外ハンド検出:', { actionType, normalizedHandType });
       return {
         correctAction: 'FOLD',
-        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
-        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
         stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
@@ -542,8 +702,8 @@ const simulateMTTGTOData = (
         // 有効な3ベッターがいない場合はフォールド
         return {
           correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -3, 'RAISE': -3, 'ALL IN': -3 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          evData: { 'FOLD': 0, 'CALL': -3, 'RAISE': -3, 'ALL_IN': -3 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
           normalizedHandType: finalHandType,
           effectiveStackExplanation: '❌ 無効なvs3ベット設定: 有効な3ベッターが存在しません',
           stackSizeStrategy: 'vs3ベットには、オープンレイザーより後のポジションの3ベッターが必要です。',
@@ -697,6 +857,11 @@ const simulateMTTGTOData = (
               usedRangeKey = fallbackRangeKey;
               console.log('🎯 強制読み込みからフォールバックレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
             }
+            
+            // カスタムレンジが見つかった場合はログ出力のみ（stateの更新は別途useEffectで処理）
+            if (Object.keys(parsedRanges).length > 0) {
+              console.log('🔄 強制読み込み成功: カスタムレンジが見つかりました');
+            }
           } catch (e) {
             console.log('強制読み込みエラー:', e);
           }
@@ -720,7 +885,7 @@ const simulateMTTGTOData = (
     
     if (customHandData) {
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -732,7 +897,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -766,7 +931,7 @@ const simulateMTTGTOData = (
           isMixed: customHandData.action === 'MIXED'
         });
         // 単一アクションの場合
-        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL_IN');
         // MINをRAISEに変換
         if (customPrimaryAction === 'MIN') {
           customPrimaryAction = 'RAISE';
@@ -794,8 +959,8 @@ const simulateMTTGTOData = (
         console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
         return {
           correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
           normalizedHandType: finalHandType,
           effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
           stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
@@ -818,7 +983,7 @@ const simulateMTTGTOData = (
         'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 1.2 : -1.5,
         'RAISE': customPrimaryAction === 'RAISE' ? 2.8 : -2.0,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 4.5 : -3.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 4.5 : -3.0
       };
       
       console.log('🎯 カスタムvs3ベットレンジ使用:', {
@@ -838,7 +1003,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
         stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
         strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         isCustomRange: true,
 
@@ -855,8 +1020,8 @@ const simulateMTTGTOData = (
     
     // 強力なハンドの場合は強制的に適切なアクションを設定（CPUオールイン対応）
     if (normalizedHandType === 'AA') {
-      gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
+      gtoAction = 'ALL_IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
       console.log('🎯 AAハンド強制ALL IN設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -865,8 +1030,8 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (normalizedHandType === 'KK') {
-      gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
+      gtoAction = 'ALL_IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
       console.log('🎯 KKハンド強制ALL IN設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -876,8 +1041,8 @@ const simulateMTTGTOData = (
       });
     } else if (normalizedHandType === 'QQ') {
       // QQは混合戦略（90%オールイン、10%フォールド）
-      gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 10, 'CALL': 0, 'RAISE': 0, 'ALL IN': 90 };
+      gtoAction = 'ALL_IN';
+      frequencies = { 'FOLD': 10, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 90 };
       console.log('🎯 QQハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -886,8 +1051,8 @@ const simulateMTTGTOData = (
         primaryFrequency: frequencies[gtoAction]
       });
     } else if (['AKs', 'AKo'].includes(normalizedHandType)) {
-      gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
+      gtoAction = 'ALL_IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
       console.log('🎯 AKハンド強制ALL IN設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -898,7 +1063,7 @@ const simulateMTTGTOData = (
     } else if (normalizedHandType === 'JJ') {
       // JJは混合戦略（70%コール、30%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 70, 'RAISE': 0, 'ALL IN': 30 };
+      frequencies = { 'FOLD': 0, 'CALL': 70, 'RAISE': 0, 'ALL_IN': 30 };
       console.log('🎯 JJハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -909,7 +1074,7 @@ const simulateMTTGTOData = (
     } else if (normalizedHandType === 'TT') {
       // TTは混合戦略（60%コール、40%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 60, 'RAISE': 0, 'ALL IN': 40 };
+      frequencies = { 'FOLD': 0, 'CALL': 60, 'RAISE': 0, 'ALL_IN': 40 };
       console.log('🎯 TTハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -920,7 +1085,7 @@ const simulateMTTGTOData = (
     } else if (['AQs', 'AQo'].includes(normalizedHandType)) {
       // AQは混合戦略（80%コール、20%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 80, 'RAISE': 0, 'ALL IN': 20 };
+      frequencies = { 'FOLD': 0, 'CALL': 80, 'RAISE': 0, 'ALL_IN': 20 };
       console.log('🎯 AQハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -931,7 +1096,7 @@ const simulateMTTGTOData = (
     } else if (normalizedHandType === '99') {
       // 99は混合戦略（50%コール、50%オールイン）
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 50, 'RAISE': 0, 'ALL IN': 50 };
+      frequencies = { 'FOLD': 0, 'CALL': 50, 'RAISE': 0, 'ALL_IN': 50 };
       console.log('🎯 99ハンド混合戦略設定:', { 
         handType: normalizedHandType, 
         gtoAction, 
@@ -941,7 +1106,7 @@ const simulateMTTGTOData = (
       });
     } else {
       gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
     }
     
     // 頻度の合計を確認（正規化は行わない）
@@ -965,7 +1130,7 @@ const simulateMTTGTOData = (
       'FOLD': 0,
       'CALL': gtoAction === 'CALL' ? 1.2 : -1.5,
       'RAISE': gtoAction === 'RAISE' ? 2.8 : -2.0,
-      'ALL IN': gtoAction === 'ALL IN' ? 4.5 : -3.0
+      'ALL_IN': gtoAction === 'ALL_IN' ? 4.5 : -3.0
     };
     
     return {
@@ -976,7 +1141,7 @@ const simulateMTTGTOData = (
       effectiveStackExplanation: `${stackSize}スタックでのvs 3ベット戦略です。`,
       stackSizeStrategy: `vs 3ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
-      recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
+      recommendedBetSize: gtoAction === 'ALL_IN' ? stackDepthBB : gtoAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
       strategicAnalysis: `vs3ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       exploitSuggestion: `vs 3ベットでは、相手の3ベット頻度と4ベットに対する反応を観察して調整しましょう。`,
 
@@ -990,8 +1155,8 @@ const simulateMTTGTOData = (
       console.log('🎯 レンジ外ハンド検出:', { actionType, normalizedHandType });
       return {
         correctAction: 'FOLD',
-        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
-        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+        evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+        frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `このハンド(${normalizedHandType})は${actionType}のレンジに含まれていません。`,
         stackSizeStrategy: `レンジ外のハンドは通常フォールドが最適です。`,
@@ -1017,8 +1182,8 @@ const simulateMTTGTOData = (
         // 有効な4ベッターがいない場合はフォールド
         return {
           correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
           normalizedHandType: finalHandType,
           effectiveStackExplanation: '❌ 無効なvs4ベット設定: 有効な4ベッターが存在しません',
           stackSizeStrategy: 'vs4ベットには、3ベッターより前のポジション（通常オリジナルのオープンレイザー）の4ベッターが必要です。',
@@ -1064,7 +1229,7 @@ const simulateMTTGTOData = (
     
     if (customHandData) {
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -1074,7 +1239,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -1090,7 +1255,7 @@ const simulateMTTGTOData = (
         });
       } else {
         // 単一アクションの場合
-        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL_IN');
         // MINをRAISEに変換
         if (customPrimaryAction === 'MIN') {
           customPrimaryAction = 'RAISE';
@@ -1108,8 +1273,8 @@ const simulateMTTGTOData = (
         console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
         return {
           correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
           normalizedHandType: finalHandType,
           effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
           stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
@@ -1132,7 +1297,7 @@ const simulateMTTGTOData = (
         'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 2.0 : -2.5,
         'RAISE': customPrimaryAction === 'RAISE' ? 5.5 : -4.0,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 8.0 : -5.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 8.0 : -5.0
       };
       
       console.log('🎯 カスタムvs4ベットレンジ使用:', {
@@ -1151,7 +1316,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 4ベット戦略です。`,
         stackSizeStrategy: `vs 4ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? stackDepthBB : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? stackDepthBB : 0,
         strategicAnalysis: `カスタムvs4ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         isCustomRange: true
       };
@@ -1174,14 +1339,14 @@ const simulateMTTGTOData = (
     });
     
     if (['AA', 'KK'].includes(normalizedHandType)) {
-      gtoAction = 'ALL IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 };
+      gtoAction = 'ALL_IN';
+      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
     } else if (['QQ', 'AKs', 'AKo'].includes(normalizedHandType)) {
       gtoAction = 'CALL';
-      frequencies = { 'FOLD': 20, 'CALL': 70, 'RAISE': 0, 'ALL IN': 10 };
+      frequencies = { 'FOLD': 20, 'CALL': 70, 'RAISE': 0, 'ALL_IN': 10 };
     } else {
       gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
     }
     
     console.log('🎯 vs4bet デフォルト戦略適用:', {
@@ -1195,7 +1360,7 @@ const simulateMTTGTOData = (
       'FOLD': 0,
       'CALL': gtoAction === 'CALL' ? 2.0 : -2.5,
       'RAISE': gtoAction === 'RAISE' ? 5.5 : -4.0,
-      'ALL IN': gtoAction === 'ALL IN' ? 8.0 : -5.0
+      'ALL_IN': gtoAction === 'ALL_IN' ? 8.0 : -5.0
     };
     
     return {
@@ -1206,7 +1371,7 @@ const simulateMTTGTOData = (
       effectiveStackExplanation: `${stackSize}スタックでのvs 4ベット戦略です。`,
       stackSizeStrategy: `vs 4ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
-      recommendedBetSize: gtoAction === 'ALL IN' ? stackDepthBB : gtoAction === 'RAISE' ? stackDepthBB : 0,
+      recommendedBetSize: gtoAction === 'ALL_IN' ? stackDepthBB : gtoAction === 'RAISE' ? stackDepthBB : 0,
       strategicAnalysis: `vs4ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
       exploitSuggestion: `vs 4ベットでは、プレミアムハンド以外はほぼフォールドが基本です。相手の4ベット頻度を観察しましょう。`
     };
@@ -1236,7 +1401,7 @@ const simulateMTTGTOData = (
       const customHandData = customRanges[stackSpecificRangeKey][normalizedHandType];
       
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -1246,7 +1411,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -1263,13 +1428,13 @@ const simulateMTTGTOData = (
       } else {
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
-          'ALL_IN': 'ALL IN',
+          'ALL_IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -1284,7 +1449,7 @@ const simulateMTTGTOData = (
         'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
         'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 3.2 : -2.0
       };
       
       console.log('🎯 スタック固有カスタムレンジ使用:', {
@@ -1305,7 +1470,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
         strategicAnalysis: `カスタム${stackSize}戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
         isCustomRange: true // カスタムレンジ使用を示すフラグ
@@ -1317,7 +1482,7 @@ const simulateMTTGTOData = (
       const customHandData = customRanges[position][normalizedHandType];
       
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -1327,7 +1492,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -1338,13 +1503,13 @@ const simulateMTTGTOData = (
       } else {
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
-          'ALL_IN': 'ALL IN',
+          'ALL_IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -1359,7 +1524,7 @@ const simulateMTTGTOData = (
         'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
         'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 3.2 : -2.0
       };
       
       console.log('🎯 カスタムレンジ使用 (オープン):', {
@@ -1380,7 +1545,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジションでの設定済み15BBオープン戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
         strategicAnalysis: `カスタム15BB戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
         isCustomRange: true // カスタムレンジ使用を示すフラグ
@@ -1405,7 +1570,7 @@ const simulateMTTGTOData = (
       const customHandData = customRanges[stackSpecificRangeKey][normalizedHandType];
       
       // カスタムレンジから頻度データを取得
-      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
+      let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
@@ -1415,7 +1580,7 @@ const simulateMTTGTOData = (
           'FOLD': mixedFreq.FOLD || 0,
           'CALL': mixedFreq.CALL || 0,
           'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-          'ALL IN': mixedFreq.ALL_IN || 0
+          'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
         // 最大頻度のアクションを主要アクションとする
@@ -1432,13 +1597,13 @@ const simulateMTTGTOData = (
       } else {
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
-          'ALL_IN': 'ALL IN',
+          'ALL_IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -1453,7 +1618,7 @@ const simulateMTTGTOData = (
         'FOLD': 0,
         'CALL': customPrimaryAction === 'CALL' ? 0.8 : -1.0,
         'RAISE': customPrimaryAction === 'RAISE' ? 2.5 : -1.2,
-        'ALL IN': customPrimaryAction === 'ALL IN' ? 3.2 : -2.0
+        'ALL_IN': customPrimaryAction === 'ALL_IN' ? 3.2 : -2.0
       };
       
       console.log('🎯 深いスタック固有カスタムレンジ使用:', {
@@ -1474,7 +1639,7 @@ const simulateMTTGTOData = (
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}での設定済み戦略です。`,
         stackSizeStrategy: positionAdvice,
         icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
         strategicAnalysis: `カスタム${stackSize}戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
         isCustomRange: true // カスタムレンジ使用を示すフラグ
@@ -1502,7 +1667,7 @@ const simulateMTTGTOData = (
         'FOLD': mixedFreq.FOLD || 0,
         'CALL': mixedFreq.CALL || 0,
         'RAISE': (mixedFreq.RAISE || 0) + (mixedFreq.MIN || 0), // MINをRAISEに統合
-        'ALL IN': mixedFreq.ALL_IN || 0
+        'ALL_IN': mixedFreq.ALL_IN || 0
       };
       
       // 最大頻度のアクションを主要アクションとする
@@ -1513,13 +1678,13 @@ const simulateMTTGTOData = (
           } else {
       // 単一アクションの場合
       const actionMapping: { [key: string]: string } = {
-        'ALL_IN': 'ALL IN',
+        'ALL_IN': 'ALL_IN',
         'MIN': 'RAISE',
         'CALL': 'CALL',
         'FOLD': 'FOLD',
         'RAISE': 'RAISE'
       };
-      gtoAction = actionMapping[handData.action] || handData.action.replace('ALL_IN', 'ALL IN');
+      gtoAction = actionMapping[handData.action] || handData.action;
       const actionKey = gtoAction as keyof typeof frequencies;
       frequencies[actionKey] = handData.frequency;
       
@@ -1534,13 +1699,13 @@ const simulateMTTGTOData = (
             'FOLD': 0,
       'CALL': gtoAction === 'CALL' ? 0.8 : -1.0,
       'RAISE': gtoAction === 'RAISE' ? 2.5 : -1.2,
-      'ALL IN': gtoAction === 'ALL IN' ? 3.2 : -2.0
+      'ALL_IN': gtoAction === 'ALL_IN' ? 3.2 : -2.0
           };
         } else {
     // レンジ外のハンドの場合はフォールド
           gtoAction = 'FOLD';
-    frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 };
-    evData = { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL IN': -2.5 };
+    frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
+    evData = { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL_IN': -2.5 };
   }
   
   console.log('🎯 デフォルト戦略使用:', {
@@ -1622,7 +1787,7 @@ const getExploitSuggestion = (action: string, position: string, handType: string
   if (action === 'RAISE') {
     return `${handType}での${position}からのレイズは、対戦相手の3ベット頻度に応じて調整しましょう。`
   }
-  if (action === 'ALL IN') {
+  if (action === 'ALL_IN') {
     return `${handType}でのオールインは15BBスタックでは標準的ですが、ICM状況を考慮して調整が必要な場合があります。`
   }
   return `${handType}は${position}ポジションで柔軟性のある戦略を要求します。`
@@ -1648,9 +1813,9 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
     // プレミアムハンド
     if (['AA', 'KK', 'QQ', 'AKs', 'AKo'].includes(handType)) {
       return {
-        frequencies: { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL IN': 100 },
-        primaryAction: 'ALL IN',
-        evData: { 'FOLD': 0, 'CALL': -1.0, 'RAISE': 1.5, 'ALL IN': 3.2 }
+        frequencies: { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 },
+        primaryAction: 'ALL_IN',
+        evData: { 'FOLD': 0, 'CALL': -1.0, 'RAISE': 1.5, 'ALL_IN': 3.2 }
       };
     }
     
@@ -1660,15 +1825,15 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
       const tightOpeners = ['UTG', 'MP'];
       if (tightOpeners.includes(openerPosition)) {
         return {
-          frequencies: { 'FOLD': 30, 'CALL': 20, 'RAISE': 0, 'ALL IN': 50 },
-          primaryAction: 'ALL IN',
-          evData: { 'FOLD': 0, 'CALL': 0.8, 'RAISE': 1.2, 'ALL IN': 2.5 }
+          frequencies: { 'FOLD': 30, 'CALL': 20, 'RAISE': 0, 'ALL_IN': 50 },
+          primaryAction: 'ALL_IN',
+          evData: { 'FOLD': 0, 'CALL': 0.8, 'RAISE': 1.2, 'ALL_IN': 2.5 }
             };
           } else {
         return {
-          frequencies: { 'FOLD': 10, 'CALL': 30, 'RAISE': 0, 'ALL IN': 60 },
-          primaryAction: 'ALL IN',
-          evData: { 'FOLD': 0, 'CALL': 1.0, 'RAISE': 1.5, 'ALL IN': 2.8 }
+          frequencies: { 'FOLD': 10, 'CALL': 30, 'RAISE': 0, 'ALL_IN': 60 },
+          primaryAction: 'ALL_IN',
+          evData: { 'FOLD': 0, 'CALL': 1.0, 'RAISE': 1.5, 'ALL_IN': 2.8 }
         };
       }
     }
@@ -1676,18 +1841,18 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
     // 中程度のハンド
     if (['88', '77', '66', 'ATo', 'KQs', 'KQo'].includes(handType)) {
       return {
-        frequencies: { 'FOLD': 60, 'CALL': 25, 'RAISE': 0, 'ALL IN': 15 },
+        frequencies: { 'FOLD': 60, 'CALL': 25, 'RAISE': 0, 'ALL_IN': 15 },
         primaryAction: 'FOLD',
-        evData: { 'FOLD': 0, 'CALL': 0.3, 'RAISE': 0.8, 'ALL IN': 1.8 }
+        evData: { 'FOLD': 0, 'CALL': 0.3, 'RAISE': 0.8, 'ALL_IN': 1.8 }
       };
     }
   }
   
   // デフォルト: 弱いハンドはフォールド
   return {
-    frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL IN': 0 },
+    frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
     primaryAction: 'FOLD',
-    evData: { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL IN': -2.5 }
+    evData: { 'FOLD': 0, 'CALL': -1.5, 'RAISE': -2.0, 'ALL_IN': -2.5 }
   };
 }
 
@@ -1695,7 +1860,7 @@ const getVsOpenStrategy = (handType: string, heroPosition: string, openerPositio
 const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: string, stackBB: number): string => {
   const positionInfo = `${openerPosition}のオープンに対して${heroPosition}ポジションから`;
   
-  if (action === 'ALL IN') {
+  if (action === 'ALL_IN') {
     return `${positionInfo}のオールインは15BBスタックでは標準的な戦略です。ICM圧力を考慮して調整してください。`;
   } else if (action === 'CALL') {
     return `${positionInfo}のコールは、フロップでの戦略を事前に計画しておくことが重要です。`;
@@ -1744,6 +1909,7 @@ function MTTTrainingPage() {
   const [editingPosition, setEditingPosition] = useState<string>('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [lastRangeUpdate, setLastRangeUpdate] = useState<number>(0); // レンジ更新タイムスタンプ
+  const [isInitialized, setIsInitialized] = useState(false); // 初期化制御フラグ
   
   // vsオープン用レンジエディター関連のstate
   const [selectedVSOpenPosition, setSelectedVSOpenPosition] = useState<string>('BTN');
@@ -1756,7 +1922,6 @@ function MTTTrainingPage() {
   const [showHandSelector, setShowHandSelector] = useState(false);
   const [selectedTrainingHands, setSelectedTrainingHands] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   
   // ハンドレンジ表示用のstate
   const [showHandRange, setShowHandRange] = useState<boolean>(false);
@@ -1768,7 +1933,7 @@ function MTTTrainingPage() {
     
     const { actionType, heroPosition, stackDepth } = spot;
     
-    if (actionType === 'open') {
+    if (actionType === 'open' || actionType === 'openraise') {
       // オープンレンジの場合
       if (stackDepth === '15BB') {
         return heroPosition || null; // 15BBの場合はポジション名のみ
@@ -1860,6 +2025,26 @@ function MTTTrainingPage() {
 
   // 新しいシナリオを生成
   const generateNewScenario = () => {
+    // 最新のカスタムレンジを強制的に読み込み
+    const latestLocalRanges = localStorage.getItem('mtt-custom-ranges');
+    let latestCustomRanges = customRanges; // 現在のstateから開始
+    
+    if (latestLocalRanges) {
+      try {
+        const parsedRanges = JSON.parse(latestLocalRanges);
+        if (Object.keys(parsedRanges).length > 0) {
+          latestCustomRanges = parsedRanges;
+          // stateも同期更新
+          if (JSON.stringify(customRanges) !== JSON.stringify(parsedRanges)) {
+            setCustomRanges(parsedRanges);
+            console.log('🔄 シナリオ生成時にカスタムレンジを同期更新');
+          }
+        }
+      } catch (e) {
+        console.log('最新カスタムレンジ取得エラー:', e);
+      }
+    }
+    
     // URLパラメータで特定のハンドが指定されている場合はそれを維持
     const urlHands = searchParams.get('hands') ? decodeURIComponent(searchParams.get('hands')!) : null;
     
@@ -2016,13 +2201,13 @@ function MTTTrainingPage() {
     });
     
     // MTT特有のGTOデータをシミュレート（簡略化）
-    // カスタムレンジを直接渡す（変更されないように注意）
+    // 最新のカスタムレンジを使用
     const data = simulateMTTGTOData(
       newHand, 
       position, 
       stackSize, 
       actionType as string,
-      customRanges,
+      latestCustomRanges, // 最新のカスタムレンジを渡す
       openerPosition,
       threeBetType
     );
@@ -2722,7 +2907,7 @@ function MTTTrainingPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
   
-  // 初期化（依存関係も簡略化）
+  // 初期化（カスタムレンジ読み込み完了後に実行）
   useEffect(() => {
     console.log('🔄 初期化 useEffect 実行:', {
       isInitialized,
@@ -2733,12 +2918,36 @@ function MTTTrainingPage() {
       lastRangeUpdate,
       customRangesCount: Object.keys(customRanges).length
     });
-    
+
     if (!isInitialized) {
+      // カスタムレンジがある場合は読み込み完了を待つ
+      const localRanges = localStorage.getItem('mtt-custom-ranges');
+      if (localRanges) {
+        try {
+          const parsedRanges = JSON.parse(localRanges);
+          if (Object.keys(parsedRanges).length > 0) {
+            // カスタムレンジが存在するが、まだstateに反映されていない場合は待機
+            if (Object.keys(customRanges).length === 0) {
+              console.log('🔄 カスタムレンジ読み込み待機中 - 初期化を遅延');
+              setCustomRanges(parsedRanges);
+              // 次のレンダリングサイクルで初期化を実行
+              setTimeout(() => {
+                generateNewScenario();
+                setIsInitialized(true);
+              }, 50);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('カスタムレンジ確認エラー:', e);
+        }
+      }
+
+      // カスタムレンジがない場合、または既に読み込み済みの場合は即座に初期化
       generateNewScenario();
       setIsInitialized(true);
     }
-  }, [position, stackSize, actionType, customHandsString, isInitialized, customRanges]); // customRangesを追加
+  }, [position, stackSize, actionType, customHandsString, isInitialized, customRanges]); // customRanges added to dependencies
 
   // selectedTrainingHandsの変更を監視して新しいシナリオを生成
   useEffect(() => {
@@ -2835,7 +3044,7 @@ function MTTTrainingPage() {
   
   // カスタムレンジをlocalStorageから読み込み（リアルタイム更新対応）
   useEffect(() => {
-    console.log('🔄 カスタムレンジ読み込み useEffect 実行:', { lastRangeUpdate });
+    console.log('🔄 カスタムレンジ読み込み useEffect 実行:', { lastRangeUpdate, isInitialized });
     
     const savedRanges = localStorage.getItem('mtt-custom-ranges');
     if (savedRanges) {
@@ -2846,13 +3055,23 @@ function MTTTrainingPage() {
           rangeKeys: Object.keys(parsedRanges).slice(0, 5),
           lastRangeUpdate
         });
-        setCustomRanges(parsedRanges);
         
-        // カスタムレンジが読み込まれた後に新しいシナリオを生成
-        if (isInitialized) {
-          console.log('🔄 カスタムレンジ読み込み後に新しいシナリオを生成');
-          generateNewScenario();
-        }
+        // stateの更新が確実に反映されるようにする
+        setCustomRanges(prev => {
+          const hasChanged = JSON.stringify(prev) !== JSON.stringify(parsedRanges);
+          if (hasChanged) {
+            console.log('🔄 カスタムレンジが変更されました - 新しいシナリオを生成予定');
+            // 次のレンダリングサイクルでシナリオを生成
+            setTimeout(() => {
+              if (isInitialized) {
+                console.log('🔄 カスタムレンジ読み込み後に新しいシナリオを生成');
+                generateNewScenario();
+              }
+            }, 100);
+          }
+          return parsedRanges;
+        });
+        
       } catch (error) {
         console.error('カスタムレンジの読み込みに失敗しました:', error);
       }
@@ -3775,7 +3994,8 @@ function MTTTrainingPage() {
     } else if (gtoData?.frequencies) {
       // アクションが頻度に含まれていない場合、類似のアクションを探す
       const actionVariants = {
-        'ALL IN': ['ALL IN', 'ALL_IN'],
+        'ALL_IN': ['ALL_IN', 'ALLIN', 'ALL-IN'],
+        'ALL IN': ['ALL IN', 'ALL_IN', 'ALLIN', 'ALL-IN'],
         'RAISE': ['RAISE', 'MIN'],
         'CALL': ['CALL'],
         'FOLD': ['FOLD']
@@ -3783,12 +4003,37 @@ function MTTTrainingPage() {
       
       const variants = actionVariants[action as keyof typeof actionVariants] || [action];
       let foundFrequency = 0;
+      let usedVariant = action;
+      
+      console.log('🎯 オールインアクション変形検索:', { 
+        originalAction: action, 
+        variants, 
+        availableKeys: Object.keys(gtoData.frequencies) 
+      });
       
       for (const variant of variants) {
         if (variant in gtoData.frequencies) {
           foundFrequency = gtoData.frequencies[variant];
+          usedVariant = variant;
           console.log('🎯 アクション変形発見:', { action, variant, frequency: foundFrequency });
           break;
+        }
+      }
+      
+      // オールインアクションの特別処理
+      if ((action === 'ALL_IN' || action === 'ALL IN') && foundFrequency === 0) {
+        // ALL_INが見つからない場合、他の表記も確認
+        const allinKeys = Object.keys(gtoData.frequencies).filter(key => 
+          key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
+        );
+        
+        if (allinKeys.length > 0) {
+          foundFrequency = gtoData.frequencies[allinKeys[0]];
+          usedVariant = allinKeys[0];
+          console.log('🎯 オールイン特別検索成功:', { 
+            foundKey: allinKeys[0], 
+            frequency: foundFrequency 
+          });
         }
       }
       
@@ -3970,9 +4215,10 @@ function MTTTrainingPage() {
                 {position}
               </span>
               <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30">
-                {actionType === 'open' ? 'オープンレイズ' : 
+                {actionType === 'open' || actionType === 'openraise' ? 'オープンレイズ' : 
                  actionType === 'vsopen' ? 'vsオープン' :
-                 actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
+                 actionType === 'vs3bet' ? 'vs3ベット' : 
+                 actionType === 'vs4bet' ? 'vs4ベット' : 'オープンレイズ'}
               </span>
               {/* 相手のポジション情報を表示 */}
               {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
@@ -4640,10 +4886,10 @@ function MTTTrainingPage() {
                       ) : null}
                       {/* ALL INボタン - CPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
                       {(!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
-                       (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL IN'] > 0)) ? (
+                       (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
-                          onClick={() => handleActionSelect('ALL IN')}
+                          onClick={() => handleActionSelect('ALL_IN')}
                         >
                           ALL IN
                         </button>
@@ -4767,7 +5013,7 @@ function MTTTrainingPage() {
                                   </div>
                                 ) : (
                                   Object.entries(gtoData.frequencies)
-                                    .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL IN'].includes(action))
+                                    .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL_IN'].includes(action))
                                     .map(([action, frequency]) => (
                                   <div 
                                     key={action} 
@@ -4800,7 +5046,7 @@ function MTTTrainingPage() {
                               </div>
                               
                               {/* ハンドレンジを表示ボタン */}
-                              <div className="mt-4 pt-4 border-t border-gray-600">
+                              <div className="mt-4">
                                 <button
                                   onClick={() => setShowHandRangeViewer(true)}
                                   className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-purple-600 via-purple-700 to-purple-600 hover:from-purple-500 hover:via-purple-600 hover:to-purple-500 text-white rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 md:gap-3 shadow-lg hover:shadow-xl border border-purple-500/30 hover:border-purple-400/50 transform hover:scale-105"
@@ -4823,9 +5069,12 @@ function MTTTrainingPage() {
                               <div className="text-lg font-bold text-green-400">
                                 {(() => {
                                   // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                                  const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                  let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                  // ALL INをALL_INに変換
+                                  if (actionKey === 'ALL_IN') actionKey = 'ALL_IN';
                                   const frequency = gtoData.frequencies?.[actionKey] || 0;
-                                  const displayText = frequency === 100 ? actionKey : `${actionKey} ${frequency}%`;
+                                  const displayActionKey = actionKey === 'ALL_IN' ? 'ALL IN' : actionKey;
+                                  const displayText = frequency === 100 ? displayActionKey : `${displayActionKey} ${frequency}%`;
                                   
                                   console.log('🎯 最適アクション表示（統一版）:', {
                                     gtoDataCorrectAction: gtoData.correctAction,
@@ -4843,7 +5092,9 @@ function MTTTrainingPage() {
                                     <div className="text-xs text-green-300 mt-1">
                                       推奨頻度: {(() => {
                                         // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                                        const actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                        let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
+                                        // ALL INをALL_INに変換
+                                        if (actionKey === 'ALL_IN') actionKey = 'ALL_IN';
                                         const frequency = gtoData.frequencies[actionKey] || 0;
                                         
                                         console.log('🎯 推奨頻度表示（統一版）:', {
@@ -4866,7 +5117,7 @@ function MTTTrainingPage() {
                                     (() => {
                                       // アクションの形式を正しく変換
                                       const actionVariants = {
-                                        'ALL IN': ['ALL IN', 'ALL_IN'],
+                                        'ALL_IN': ['ALL_IN', 'ALL_IN'],
                                         'RAISE': ['RAISE', 'MIN'],
                                         'CALL': ['CALL'],
                                         'FOLD': ['FOLD']
@@ -4896,7 +5147,7 @@ function MTTTrainingPage() {
                                       });
                                       
                                       return (
-                                        <div className={`text-xs -mt-3 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
+                                        <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
                                           正解頻度: {frequency}%
                                           {frequency === 0 && ' (推奨されません)'}
                                         </div>
@@ -5013,7 +5264,34 @@ function MTTTrainingPage() {
       {/* ハンドレンジビューアー */}
       {showHandRangeViewer && (() => {
         const rangeKey = getCurrentSpotRangeKey();
-        const rangeData = rangeKey ? customRanges[rangeKey] : null;
+        let rangeData = rangeKey ? customRanges[rangeKey] : null;
+        
+        // カスタムレンジが見つからない場合は、ローカルストレージから直接取得を試行
+        if (!rangeData && rangeKey) {
+          const localRanges = localStorage.getItem('mtt-custom-ranges');
+          if (localRanges) {
+            try {
+              const parsedRanges = JSON.parse(localRanges);
+              rangeData = parsedRanges[rangeKey] || null;
+              console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
+                rangeKey,
+                found: !!rangeData,
+                rangeDataSize: rangeData ? Object.keys(rangeData).length : 0
+              });
+            } catch (e) {
+              console.error('ローカルストレージからの直接取得に失敗:', e);
+            }
+          }
+        }
+        
+        console.log('🎯 ハンドレンジビューアーデバッグ:', {
+          showHandRangeViewer,
+          rangeKey,
+          rangeData: rangeData ? Object.keys(rangeData).length : null,
+          spot: spot ? { actionType: spot.actionType, heroPosition: spot.heroPosition, stackDepth: spot.stackDepth } : null,
+          customRangesKeys: Object.keys(customRanges).filter(key => key.includes('40BB')),
+          hasRangeData: !!rangeData
+        });
         
         if (!rangeKey) {
           return (
@@ -5070,6 +5348,12 @@ function MTTTrainingPage() {
           );
         }
         
+        // 現在のスポットから相手のポジション情報を取得
+        const currentOpponentPosition = opponentPosition || 
+          (spot?.openRaiserPosition) || 
+          (spot?.threeBetterPosition) || 
+          undefined;
+        
         return (
           <HandRangeViewer
             rangeData={rangeData}
@@ -5077,6 +5361,8 @@ function MTTTrainingPage() {
             onClose={() => setShowHandRangeViewer(false)}
             position={position}
             stackSize={stackSize}
+            actionType={actionType}
+            opponentPosition={currentOpponentPosition}
           />
         );
       })()}
@@ -5152,8 +5438,8 @@ function MTTTrainingPage() {
       )}
 
       {/* 管理者ログイン関連 - 画面一番下に配置 */}
-      <div className="fixed bottom-4 left-4 z-50">
-        {/* 管理者ログインボタン（未ログイン時のみ表示） */}
+      <div className="fixed bottom-4 left-4 z-50 hidden md:block">
+        {/* 管理者ログインボタン（未ログイン時のみ表示） - PC版 */}
         {!isAdmin && (
           <button
             onClick={() => setShowAdminLogin(true)}
@@ -5166,7 +5452,7 @@ function MTTTrainingPage() {
           </button>
         )}
         
-        {/* 管理者ログイン情報 */}
+        {/* 管理者ログイン情報 - PC版 */}
         {isAdmin && (
           <div className="flex items-center gap-3 bg-green-600/20 px-3 py-2 rounded-lg border border-green-500/30 shadow-lg">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -5184,6 +5470,43 @@ function MTTTrainingPage() {
               className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
             >
               ログアウト
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* モバイル版管理者ログイン関連 - 右下に配置 */}
+      <div className="fixed bottom-2 right-2 z-50 md:hidden">
+        {/* 管理者ログインボタン（未ログイン時のみ表示） - モバイル版 */}
+        {!isAdmin && (
+          <button
+            onClick={() => setShowAdminLogin(true)}
+            className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200 flex items-center gap-1 shadow-lg"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            管理
+          </button>
+        )}
+        
+        {/* 管理者ログイン情報 - モバイル版 */}
+        {isAdmin && (
+          <div className="flex items-center gap-1 bg-green-600/20 px-2 py-1 rounded border border-green-500/30 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <div className="text-xs">
+              <div className="text-green-400 font-medium">管理</div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('admin-token');
+                window.location.reload();
+              }}
+              className="px-1 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200"
+            >
+              出
             </button>
           </div>
         )}

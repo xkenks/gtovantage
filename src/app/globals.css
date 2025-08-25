@@ -89,4 +89,22 @@
 
 .animate-slideInUp {
   animation: slideInUp 0.5s ease-out;
+}
+
+/* フォールド色の強制適用 */
+[style*="background: #4A90E2"] {
+  background-color: #4A90E2 !important;
+  background: #4A90E2 !important;
+}
+
+/* デフォルトフォールドの強制適用 */
+.mtt-range-editor-cell:not([data-has-range="true"]) {
+  background-color: #4A90E2 !important;
+  background: #4A90E2 !important;
+}
+
+/* HandRangeViewer用のフォールド色強制適用 */
+.hand-range-viewer-cell:not([data-has-range="true"]) {
+  background-color: #4A90E2 !important;
+  background: #4A90E2 !important;
 } 

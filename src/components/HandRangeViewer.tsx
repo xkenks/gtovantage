@@ -56,9 +56,11 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   // アクション別の色を取得
   const getActionColorHex = (action: string) => {
     switch (action) {
-      case 'MIN': return '#3b82f6';
-      case 'ALL_IN': return '#ef4444';
-      case 'CALL': return '#eab308';
+      case 'MIN': return '#F44336'; // レイズ: 赤（MINはRAISEに統合）
+      case 'RAISE': return '#F44336'; // レイズ: 赤色
+      case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
+      case 'CALL': return '#4CAF50'; // コール: 緑
+      case 'FOLD': return '#4A90E2'; // フォールド: 青
       default: return '#6b7280';
     }
   };
@@ -67,20 +69,32 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   const getHandStyle = (hand: string) => {
     const frequencies = getHandFrequencies(hand);
     const actions = [
-      { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
-      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD },
+      { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
       { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
-      { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN }
+      { key: 'RAISE', color: getActionColorHex('RAISE'), value: frequencies.MIN }, // MINをRAISEとして扱う
+      { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
+      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
     ];
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
 
     // フォールド100%
     if (totalNonFold === 0) {
-      return { background: 'rgb(31, 41, 55)' };
+      return { 
+        background: '#4A90E2 !important',
+        backgroundColor: '#4A90E2 !important',
+        border: '1px solid rgb(75, 85, 99) !important'
+      }; // 青色（FOLD色）- !importantで優先
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
+      if (nonZeroActions[0].key === 'FOLD') {
+        return { 
+          background: '#4A90E2 !important',
+          backgroundColor: '#4A90E2 !important',
+          border: '1px solid rgb(75, 85, 99) !important'
+        };
+      }
       return { background: nonZeroActions[0].color };
     }
     // 混合戦略（2つ以上のアクションが0%超）
@@ -104,8 +118,9 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
     }
     // それ以外（念のため）
     return {
-      background: 'rgb(31, 41, 55)',
-      border: '1px solid rgb(75, 85, 99)'
+      background: '#4A90E2 !important', // 青色（FOLD色）
+      backgroundColor: '#4A90E2 !important',
+      border: '1px solid rgb(75, 85, 99) !important'
     };
   };
 
@@ -240,13 +255,14 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                     <span className="bg-green-600/20 px-2 md:px-3 py-1 rounded-full border border-green-500/30 text-green-300 text-xs md:text-sm font-medium">
                       {stackSize}
                     </span>
-                    {actionType && actionType !== 'open' && (
+                    {actionType && actionType !== 'open' && actionType !== 'openraise' && (
                       <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30 text-purple-300 text-xs md:text-sm font-medium">
                         {actionType === 'vsopen' ? 'vsオープン' : 
-                         actionType === 'vs3bet' ? 'vs3ベット' : 'vs4ベット'}
+                         actionType === 'vs3bet' ? 'vs3ベット' : 
+                         actionType === 'vs4bet' ? 'vs4ベット' : 'vsオープン'}
                       </span>
                     )}
-                    {opponentPosition && actionType && actionType !== 'open' && (
+                    {opponentPosition && (
                       <span className="bg-orange-600/20 px-2 md:px-3 py-1 rounded-full border border-orange-500/30 text-orange-300 text-xs md:text-sm font-medium">
                         vs {opponentPosition}
                       </span>
@@ -273,17 +289,17 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
         <div className="p-4 md:p-6 bg-gray-800 border-b border-gray-700">
           <h3 className="text-white font-bold mb-3 md:mb-4 text-base md:text-lg">統計(頻度考慮):</h3>
           <div className="flex gap-2 md:gap-3 flex-wrap">
-            <div className="bg-yellow-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              CALL: {stats.CALL.percentage}%
-            </div>
-            <div className="bg-gray-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
-              FOLD: {stats.FOLD.percentage}%
-            </div>
-            <div className="bg-blue-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-red-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
               RAISE: {stats.MIN.percentage}%
             </div>
-            <div className="bg-red-600 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-green-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+              CALL: {stats.CALL.percentage}%
+            </div>
+            <div className="bg-red-900 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
               ALL IN: {stats.ALL_IN.percentage}%
+            </div>
+            <div className="bg-blue-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+              FOLD: {stats.FOLD.percentage}%
             </div>
             <div className="bg-gray-700 text-gray-300 px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
               NONE: {stats.NONE.percentage}%
@@ -296,13 +312,14 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
           <div className="grid grid-cols-13 gap-0.5 md:gap-1 max-w-4xl md:max-w-5xl mx-auto">
             {grid.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
-                                 <div
-                   key={`${rowIndex}-${colIndex}`}
-                   className="text-white text-[10px] md:text-xs font-bold py-0.5 md:py-1 px-1 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center"
-                   style={getHandStyle(cell.hand)}
-                 >
-                   {cell.hand}
-                 </div>
+                                                 <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className="text-white text-[10px] md:text-xs font-bold py-0.5 md:py-1 px-1 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center hand-range-viewer-cell"
+                  style={getHandStyle(cell.hand)}
+                  data-has-range={!!rangeData[cell.hand]}
+                >
+                  {cell.hand}
+                </div>
               ))
             )}
           </div>
@@ -313,15 +330,15 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-300 flex-wrap">
               <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-yellow-600 rounded-full"></div>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-green-600 rounded-full"></div>
                 <span>CALL</span>
               </div>
               <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-gray-600 rounded-full"></div>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-full"></div>
                 <span>FOLD</span>
               </div>
               <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-full"></div>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-red-600 rounded-full"></div>
                 <span>RAISE</span>
               </div>
               <div className="flex items-center gap-1 md:gap-2">
