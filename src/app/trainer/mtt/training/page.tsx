@@ -1429,12 +1429,19 @@ const simulateMTTGTOData = (
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
           'ALL_IN': 'ALL_IN',
+          'ALLIN': 'ALL_IN',
+          'ALL-IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action;
+        
+        // オールインアクションの特別処理
+        if (customHandData.action.toUpperCase().includes('ALL')) {
+          customPrimaryAction = 'ALL_IN';
+        }
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -1504,12 +1511,19 @@ const simulateMTTGTOData = (
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
           'ALL_IN': 'ALL_IN',
+          'ALLIN': 'ALL_IN',
+          'ALL-IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action;
+        
+        // オールインアクションの特別処理
+        if (customHandData.action.toUpperCase().includes('ALL')) {
+          customPrimaryAction = 'ALL_IN';
+        }
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -1598,12 +1612,19 @@ const simulateMTTGTOData = (
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
           'ALL_IN': 'ALL_IN',
+          'ALLIN': 'ALL_IN',
+          'ALL-IN': 'ALL_IN',
           'MIN': 'RAISE',
           'CALL': 'CALL',
           'FOLD': 'FOLD',
           'RAISE': 'RAISE'
         };
-        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action.replace('ALL_IN', 'ALL_IN');
+        customPrimaryAction = actionMapping[customHandData.action] || customHandData.action;
+        
+        // オールインアクションの特別処理
+        if (customHandData.action.toUpperCase().includes('ALL')) {
+          customPrimaryAction = 'ALL_IN';
+        }
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         
@@ -4059,7 +4080,8 @@ function MTTTrainingPage() {
       console.log('🎯 オールインアクション変形検索:', { 
         originalAction: action, 
         variants, 
-        availableKeys: Object.keys(gtoData.frequencies) 
+        availableKeys: Object.keys(gtoData.frequencies),
+        isCustomRange: (gtoData as any)?.isCustomRange
       });
       
       for (const variant of variants) {
@@ -4083,8 +4105,18 @@ function MTTTrainingPage() {
           usedVariant = allinKeys[0];
           console.log('🎯 オールイン特別検索成功:', { 
             foundKey: allinKeys[0], 
-            frequency: foundFrequency 
+            frequency: foundFrequency,
+            isCustomRange: (gtoData as any)?.isCustomRange
           });
+        } else {
+          // カスタムレンジの場合、さらに詳細な検索
+          if ((gtoData as any)?.isCustomRange) {
+            console.log('🔍 カスタムレンジでオールイン未発見 - 詳細調査:', {
+              action,
+              frequencies: gtoData.frequencies,
+              allKeys: Object.keys(gtoData.frequencies)
+            });
+          }
         }
       }
       
@@ -4143,7 +4175,12 @@ function MTTTrainingPage() {
       selectedFrequency: gtoData?.frequencies?.[action],
       correctAction: gtoData?.correctAction,
       hasFrequencies: !!gtoData?.frequencies,
-      frequencyKeys: gtoData?.frequencies ? Object.keys(gtoData.frequencies) : []
+      frequencyKeys: gtoData?.frequencies ? Object.keys(gtoData.frequencies) : [],
+      isAllInAction: action === 'ALL_IN' || action === 'ALL IN',
+      allInFrequency: gtoData?.frequencies?.['ALL_IN'],
+      allInRelatedKeys: gtoData?.frequencies ? Object.keys(gtoData.frequencies).filter(key => 
+        key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
+      ) : []
     });
     
     setIsCorrect(correct);
