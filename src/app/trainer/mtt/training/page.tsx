@@ -4031,42 +4031,23 @@ function MTTTrainingPage() {
     // カスタムレンジの場合は、頻度情報を優先して判定
     console.log('🎯 頻度判定開始:', {
       action,
+      correctAction: gtoData?.correctAction,
       frequencies: gtoData?.frequencies,
       frequencyKeys: gtoData?.frequencies ? Object.keys(gtoData.frequencies) : [],
       hasAction: gtoData?.frequencies ? action in gtoData.frequencies : false,
       isCustomRange: (gtoData as any)?.isCustomRange
     });
     
+    // まず直接のアクションマッチングを試行
+    let foundFrequency = 0;
+    let usedVariant = action;
+    
     if (gtoData?.frequencies && action in gtoData.frequencies) {
-      const selectedFrequency = gtoData.frequencies[action];
-      
-      // カスタムレンジの場合は、頻度が10%以上なら正解扱い
-      if ((gtoData as any)?.isCustomRange) {
-        console.log('🎯 カスタムレンジ判定:', {
-          selectedAction: action,
-          selectedFrequency,
-          threshold: 10,
-          isCorrect: selectedFrequency >= 10
-        });
-        if (selectedFrequency >= 10) {
-          correct = true;
-        } else {
-          correct = false;
-        }
-      } else {
-        // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
-        if (selectedFrequency >= 30) {
-          correct = true;
-        } else if (selectedFrequency >= 10) {
-          correct = true; // 部分正解も正解扱い
-        } else {
-          correct = false;
-        }
-      }
+      foundFrequency = gtoData.frequencies[action];
     } else if (gtoData?.frequencies) {
-      // アクションが頻度に含まれていない場合、類似のアクションを探す
+      // アクションが頻度に含まれていない場合、ALL_IN系の特別処理
       const actionVariants = {
-        'ALL_IN': ['ALL_IN', 'ALLIN', 'ALL-IN'],
+        'ALL_IN': ['ALL_IN', 'ALL IN', 'ALLIN', 'ALL-IN'],
         'ALL IN': ['ALL IN', 'ALL_IN', 'ALLIN', 'ALL-IN'],
         'RAISE': ['RAISE', 'MIN'],
         'CALL': ['CALL'],
@@ -4074,10 +4055,8 @@ function MTTTrainingPage() {
       };
       
       const variants = actionVariants[action as keyof typeof actionVariants] || [action];
-      let foundFrequency = 0;
-      let usedVariant = action;
       
-      console.log('🎯 オールインアクション変形検索:', { 
+      console.log('🎯 アクション変形検索:', { 
         originalAction: action, 
         variants, 
         availableKeys: Object.keys(gtoData.frequencies),
@@ -4093,9 +4072,8 @@ function MTTTrainingPage() {
         }
       }
       
-      // オールインアクションの特別処理
+      // オールインアクション特別処理強化
       if ((action === 'ALL_IN' || action === 'ALL IN') && foundFrequency === 0) {
-        // ALL_INが見つからない場合、他の表記も確認
         const allinKeys = Object.keys(gtoData.frequencies).filter(key => 
           key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
         );
@@ -4108,50 +4086,34 @@ function MTTTrainingPage() {
             frequency: foundFrequency,
             isCustomRange: (gtoData as any)?.isCustomRange
           });
-        } else {
-          // カスタムレンジの場合、さらに詳細な検索
-          if ((gtoData as any)?.isCustomRange) {
-            console.log('🔍 カスタムレンジでオールイン未発見 - 詳細調査:', {
-              action,
-              frequencies: gtoData.frequencies,
-              allKeys: Object.keys(gtoData.frequencies)
-            });
-          }
         }
       }
-      
-      if (foundFrequency > 0) {
-        // カスタムレンジの場合は、頻度が10%以上なら正解扱い
-        if ((gtoData as any)?.isCustomRange) {
-          console.log('🎯 カスタムレンジ判定（変形）:', {
-            selectedAction: action,
-            foundFrequency,
-            threshold: 10,
-            isCorrect: foundFrequency >= 10
-          });
-          if (foundFrequency >= 10) {
-            correct = true;
-          } else {
-            correct = false;
-          }
+    }
+    
+    if (foundFrequency > 0) {
+      // カスタムレンジの場合は、頻度が10%以上なら正解扱い
+      if ((gtoData as any)?.isCustomRange) {
+        console.log('🎯 カスタムレンジ判定（統合版）:', {
+          selectedAction: action,
+          usedVariant,
+          foundFrequency,
+          threshold: 10,
+          isCorrect: foundFrequency >= 10
+        });
+        if (foundFrequency >= 10) {
+          correct = true;
         } else {
-          if (foundFrequency >= 30) {
-            correct = true;
-          } else if (foundFrequency >= 10) {
-            correct = true;
-          } else {
-            correct = false;
-          }
+          correct = false;
         }
       } else {
-        // 頻度情報がない場合は、アクションの基本部分で判定
-        console.log('🎯 頻度情報なし - 基本アクションで判定:', {
-          selectedAction: action,
-          selectedBase,
-          correctBase,
-          normalizedCorrectBase,
-          isCorrect: selectedBase === normalizedCorrectBase
-        });
+        // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
+        if (foundFrequency >= 30) {
+          correct = true;
+        } else if (foundFrequency >= 10) {
+          correct = true; // 部分正解も正解扱い
+        } else {
+          correct = false;
+        }
       }
     } else {
       // 頻度情報がない場合は、アクションの基本部分で判定
@@ -4162,6 +4124,7 @@ function MTTTrainingPage() {
         normalizedCorrectBase,
         isCorrect: selectedBase === normalizedCorrectBase
       });
+      correct = selectedBase === normalizedCorrectBase;
     }
     
     console.log('🎯 アクション選択デバッグ:', {
