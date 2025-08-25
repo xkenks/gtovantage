@@ -54,6 +54,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // マスターアカウントの確保
+      const ensureMasterAccounts = () => {
+        try {
+          const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+          let updated = false;
+          
+          MASTER_USER_EMAILS.forEach(email => {
+            const existingUser = users.find((u: any) => u.email === email);
+            if (!existingUser) {
+              // マスターアカウントが存在しない場合は作成
+              const masterUser = {
+                id: `master-${Date.now()}`,
+                email,
+                name: email === 'admin@gtovantage.com' ? 'Admin' : 'Master',
+                password: btoa('GTO2024Admin!' + email), // ハッシュ化された形式で保存
+                createdAt: new Date().toISOString(),
+                emailVerified: true,
+                isMasterUser: true,
+                subscriptionStatus: 'master',
+                practiceCount: 0
+              };
+              users.push(masterUser);
+              updated = true;
+              console.log(`✅ マスターアカウント作成: ${email}`);
+            } else {
+              // 既存のマスターアカウントのパスワードが古い形式の場合、新しい形式に更新
+              const oldPasswords = ['Acs@ef3UR', 'admin123', 'GTO2024Admin!'];
+              const newHashedPassword = btoa('GTO2024Admin!' + email);
+              
+              if (oldPasswords.includes(existingUser.password) || existingUser.password !== newHashedPassword) {
+                existingUser.password = newHashedPassword;
+                existingUser.isMasterUser = true;
+                existingUser.subscriptionStatus = 'master';
+                existingUser.emailVerified = true;
+                updated = true;
+                console.log(`🔄 マスターアカウントパスワード更新: ${email}`);
+              }
+            }
+          });
+          
+          if (updated) {
+            localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+            console.log('✅ マスターアカウントの確保が完了しました');
+          }
+        } catch (error) {
+          console.error('マスターアカウント確保エラー:', error);
+        }
+      };
+
+      // マスターアカウントを確保
+      ensureMasterAccounts();
+
       const savedUser = localStorage.getItem('gto-vantage-user');
       if (savedUser) {
         try {
