@@ -26,12 +26,21 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   // トークンの検証
   const verifyToken = async (tokenToVerify: string) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+
     try {
       const response = await fetch('/api/admin/auth', {
         headers: {
-          'Authorization': `Bearer ${tokenToVerify}`
-        }
+          'Authorization': `Bearer ${tokenToVerify}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -41,15 +50,20 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         return true;
       } else {
         // トークンが無効な場合はクリア
-        localStorage.removeItem('admin-token');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin-token');
+        }
         setIsAdmin(false);
         setUser(null);
         setToken(null);
         return false;
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('トークン検証エラー:', error);
-      localStorage.removeItem('admin-token');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin-token');
+      }
       setIsAdmin(false);
       setUser(null);
       setToken(null);
@@ -60,9 +74,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   // 初期化時のトークンチェック
   useEffect(() => {
     const checkStoredToken = async () => {
-      const storedToken = localStorage.getItem('admin-token');
-      if (storedToken) {
-        await verifyToken(storedToken);
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('admin-token');
+        if (storedToken) {
+          await verifyToken(storedToken);
+        }
       }
       setLoading(false);
     };
@@ -72,27 +88,46 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   // ログイン関数
   const login = async (username: string, password: string): Promise<boolean> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒タイムアウト
+
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({ username, password }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
         setIsAdmin(true);
         setUser(data.user);
         setToken(data.token);
-        localStorage.setItem('admin-token', data.token);
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('admin-token', data.token);
+        }
+        
         return true;
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('管理者ログイン失敗:', response.status, errorData);
         return false;
       }
     } catch (error) {
-      console.error('ログインエラー:', error);
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('管理者ログインタイムアウト');
+      } else {
+        console.error('管理者ログインエラー:', error);
+      }
       return false;
     }
   };
@@ -102,7 +137,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setIsAdmin(false);
     setUser(null);
     setToken(null);
-    localStorage.removeItem('admin-token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin-token');
+    }
   };
 
   return (

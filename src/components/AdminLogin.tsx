@@ -8,30 +8,47 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onClose }: AdminLoginProps) {
-  const [username, setUsername] = useState('gto-admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAdmin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!username.trim() || !password.trim()) {
+      setError('ユーザー名とパスワードを入力してください');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
-    console.log('管理者ログイン試行:', { username, password });
+    console.log('管理者ログイン試行:', {
+      username,
+      passwordLength: password.length,
+      device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
+    });
 
-    const success = await login(username, password);
+    try {
+      const success = await login(username, password);
+      console.log('ログイン結果:', success);
 
-    console.log('ログイン結果:', success);
-
-    if (success) {
-      onClose();
-    } else {
-      setError('ユーザー名またはパスワードが間違っています');
+      if (success) {
+        // モバイルでの遅延を追加してUIの安定性を確保
+        setTimeout(() => {
+          onClose();
+        }, 100);
+      } else {
+        setError('ユーザー名またはパスワードが間違っています');
+      }
+    } catch (error) {
+      console.error('管理者ログインエラー:', error);
+      setError('ログイン中にエラーが発生しました。もう一度お試しください。');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -60,6 +77,9 @@ export function AdminLogin({ onClose }: AdminLoginProps) {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               placeholder="管理者ユーザー名を入力"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               required
             />
           </div>
@@ -74,6 +94,9 @@ export function AdminLogin({ onClose }: AdminLoginProps) {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
               placeholder="パスワードを入力"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
               required
             />
           </div>

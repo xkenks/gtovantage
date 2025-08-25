@@ -41,41 +41,28 @@ export const useAuth = () => {
   return context;
 };
 
-// ダミーユーザー（常にログイン済み状態）
-const dummyUser: User = {
-  id: 'dummy',
-  email: 'admin@gtovantage.com',
-  name: 'Admin',
-  createdAt: new Date().toISOString(),
-  emailVerified: true,
-  isMasterUser: true,
-  subscriptionStatus: 'master',
-  practiceCount: 0
-};
+// マスターユーザーのメールアドレス（認証されたユーザーのみアクセス可能）
+const MASTER_USER_EMAILS = [
+  'admin@gtovantage.com',
+  'master@gtovantage.com'
+];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // 初期状態をtrueに設定
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [practiceCount, setPracticeCount] = useState(0);
 
-  // クライアントサイドでのみローカルストレージからログイン状態と練習回数を復元
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedLoginState = localStorage.getItem('isLoggedIn');
-      const sessionLoginState = sessionStorage.getItem('isLoggedIn');
-      
-      // ローカルストレージまたはセッションストレージにログイン状態がある場合は復元
-      if (savedLoginState === 'true' || sessionLoginState === 'true') {
-        setIsLoggedIn(true);
-        // 両方のストレージに保存
-        localStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('isLoggedIn', 'true');
-      } else if (savedLoginState === null && sessionLoginState === null) {
-        // どちらにも値がない場合は、ログイン済み状態を保存
-        localStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('isLoggedIn', 'true');
-        setIsLoggedIn(true);
-      } else {
-        setIsLoggedIn(false);
+      const savedUser = localStorage.getItem('gto-vantage-user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        } catch (error) {
+          console.error('ユーザーデータの読み込みエラー:', error);
+          localStorage.removeItem('gto-vantage-user');
+        }
       }
 
       // 今日の練習回数を復元
@@ -91,30 +78,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('practiceDate', today);
         localStorage.setItem('practiceCount', '0');
       }
+
+      setIsLoading(false);
     }
   }, []);
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    return true;
+    try {
+      if (typeof window === 'undefined') return false;
+
+      // 既存ユーザーをチェック
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const existingUser = users.find((u: any) => u.email === email);
+      
+      if (existingUser) {
+        throw new Error('このメールアドレスは既に登録されています');
+      }
+
+      // 新しいユーザーを作成
+      const newUser: User = {
+        id: Date.now().toString(),
+        email,
+        name,
+        createdAt: new Date().toISOString(),
+        emailVerified: false,
+        isMasterUser: MASTER_USER_EMAILS.includes(email),
+        subscriptionStatus: MASTER_USER_EMAILS.includes(email) ? 'master' : 'free',
+        practiceCount: 0
+      };
+
+      // パスワードハッシュ化（簡易版）
+      const hashedPassword = btoa(password + email); // 本番環境では適切なハッシュ化を使用
+      
+      users.push({ ...newUser, password: hashedPassword });
+      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+
+      // ユーザー情報をセット
+      setUser(newUser);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
+
+      return true;
+    } catch (error) {
+      console.error('Registration failed:', error);
+      return false;
+    }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoggedIn(true);
-    // ローカルストレージにログイン状態を保存
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('isLoggedIn', 'true');
-      // セッションストレージにも保存（ブラウザを閉じても維持）
-      sessionStorage.setItem('isLoggedIn', 'true');
+    try {
+      if (typeof window === 'undefined') return false;
+
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const hashedPassword = btoa(password + email);
+      const user = users.find((u: any) => u.email === email && u.password === hashedPassword);
+
+      if (!user) {
+        throw new Error('メールアドレスまたはパスワードが正しくありません');
+      }
+
+      // ユーザー情報をセット（パスワードは除外）
+      const userWithoutPassword = { ...user };
+      delete (userWithoutPassword as any).password;
+      setUser(userWithoutPassword);
+      localStorage.setItem('gto-vantage-user', JSON.stringify(userWithoutPassword));
+
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return true;
   };
 
   const logout = () => {
-    setIsLoggedIn(false);
-    // ローカルストレージとセッションストレージからログイン状態を削除
+    setUser(null);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('isLoggedIn');
-      sessionStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('gto-vantage-user');
     }
   };
 
@@ -127,21 +165,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value: AuthContextType = {
-    user: isLoggedIn ? dummyUser : null,
-    isLoading: false,
+    user,
+    isLoading,
     register,
     login,
     logout,
-    isAuthenticated: isLoggedIn,
-    isEmailVerified: isLoggedIn,
-    isMasterUser: isLoggedIn,
-    hasActiveSubscription: isLoggedIn,
-    canPractice: isLoggedIn,
+    isAuthenticated: !!user,
+    isEmailVerified: user?.emailVerified || false,
+    isMasterUser: user?.isMasterUser || false,
+    hasActiveSubscription: user?.subscriptionStatus !== 'free' || false,
+    canPractice: !!user,
     practiceCount: practiceCount,
-    maxPracticeCount: Infinity,
+    maxPracticeCount: user?.subscriptionStatus === 'master' ? Infinity : 50,
     incrementPracticeCount,
-    canUseStackSize: () => true,
-    getAllowedStackSizes: () => ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB']
+    canUseStackSize: (stackSize: string) => {
+      if (!user) return false;
+      if (user.subscriptionStatus === 'master') return true;
+      if (user.subscriptionStatus === 'premium') return true;
+      if (user.subscriptionStatus === 'light') return ['10BB', '15BB', '20BB'].includes(stackSize);
+      return stackSize === '20BB'; // free users
+    },
+    getAllowedStackSizes: () => {
+      if (!user) return ['20BB'];
+      if (user.subscriptionStatus === 'master' || user.subscriptionStatus === 'premium') {
+        return ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB'];
+      }
+      if (user.subscriptionStatus === 'light') {
+        return ['10BB', '15BB', '20BB'];
+      }
+      return ['20BB']; // free users
+    }
   };
 
   return (

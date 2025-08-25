@@ -3050,6 +3050,14 @@ function MTTTrainingPage() {
     if (savedRanges) {
       try {
         const parsedRanges = JSON.parse(savedRanges);
+        
+        // 読み込んだデータの基本的なバリデーション
+        if (typeof parsedRanges !== 'object' || parsedRanges === null) {
+          console.error('❌ 無効なカスタムレンジデータ: オブジェクトではありません');
+          localStorage.removeItem('mtt-custom-ranges');
+          return;
+        }
+        
         console.log('📂 localStorageからカスタムレンジを読み込み:', {
           rangeCount: Object.keys(parsedRanges).length,
           rangeKeys: Object.keys(parsedRanges).slice(0, 5),
@@ -3445,7 +3453,43 @@ function MTTTrainingPage() {
 
   
   // レンジエディターのハンドラー関数
+  // レンジデータのバリデーション関数
+  const validateRangeData = (rangeData: Record<string, HandInfo>): boolean => {
+    try {
+      if (!rangeData || typeof rangeData !== 'object') {
+        console.error('レンジデータが無効です: データがオブジェクトではありません');
+        return false;
+      }
+
+      for (const [hand, handInfo] of Object.entries(rangeData)) {
+        if (!handInfo || typeof handInfo !== 'object') {
+          console.error(`レンジデータが無効です: ${hand}のデータが無効です`);
+          return false;
+        }
+
+        if (typeof handInfo.action !== 'string' || 
+            typeof handInfo.frequency !== 'number' ||
+            handInfo.frequency < 0 || handInfo.frequency > 100) {
+          console.error(`レンジデータが無効です: ${hand}のaction(${handInfo.action})またはfrequency(${handInfo.frequency})が無効です`);
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('レンジデータのバリデーション中にエラーが発生しました:', error);
+      return false;
+    }
+  };
+
   const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
+    // データの妥当性をチェック
+    if (!validateRangeData(rangeData)) {
+      console.error('❌ レンジデータのバリデーションに失敗しました');
+      setIsSaving(false);
+      return;
+    }
+
     console.log('🎯 保存開始:', { 
       position, 
       rangeDataKeys: Object.keys(rangeData), 
@@ -3504,9 +3548,16 @@ function MTTTrainingPage() {
     // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
     setLastRangeUpdate(Date.now());
     
-    // localStorageに保存
+    // localStorageに安全に保存
     try {
-      localStorage.setItem('mtt-custom-ranges', JSON.stringify(newCustomRanges));
+      const dataToSave = JSON.stringify(newCustomRanges);
+      
+      // データサイズをチェック（5MBを超える場合は警告）
+      if (dataToSave.length > 5 * 1024 * 1024) {
+        console.warn('⚠️ データサイズが大きすぎます:', dataToSave.length, 'bytes');
+      }
+      
+      localStorage.setItem('mtt-custom-ranges', dataToSave);
       localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
       console.log(`✅ ${position}ポジションのカスタムレンジを保存しました`);
       console.log('🎯 保存詳細:', {
