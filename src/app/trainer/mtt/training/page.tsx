@@ -5101,14 +5101,21 @@ function MTTTrainingPage() {
                                   </div>
                                 ) : (
                                   Object.entries(gtoData.frequencies)
-                                    .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL_IN'].includes(action))
-                                    .map(([action, frequency]) => (
+                                    .filter(([action]) => ['FOLD', 'CALL', 'RAISE', 'ALL_IN', 'ALL IN', 'ALLIN', 'ALL-IN'].includes(action))
+                                    .map(([action, frequency]) => {
+                                      // ALL_IN系のアクションを統一表示
+                                      const displayAction = ['ALL_IN', 'ALLIN', 'ALL-IN'].includes(action) ? 'ALL_IN' : action;
+                                      const isCorrectAction = action === gtoData.correctAction || 
+                                                            (displayAction === 'ALL_IN' && gtoData.correctAction === 'ALL_IN') ||
+                                                            (gtoData.correctAction === 'MIN' && action === 'RAISE');
+                                      
+                                      return (
                                   <div 
                                     key={action} 
                                     className={`flex justify-between p-2 rounded ${
                                       action === selectedAction 
                                         ? 'bg-blue-600/30 border border-blue-500' 
-                                        : action === (gtoData.correctAction.split(' ')[0] === 'MIN' ? 'RAISE' : gtoData.correctAction.split(' ')[0]) 
+                                        : isCorrectAction
                                           ? 'bg-green-600/30 border border-green-500' 
                                           : 'bg-gray-600/30'
                                     }`}
@@ -5116,12 +5123,12 @@ function MTTTrainingPage() {
                                     <span className={`font-medium ${
                                       action === selectedAction 
                                         ? 'text-blue-300' 
-                                        : action === (gtoData.correctAction.split(' ')[0] === 'MIN' ? 'RAISE' : gtoData.correctAction.split(' ')[0]) 
+                                        : isCorrectAction
                                           ? 'text-green-300' 
                                           : 'text-gray-300'
                                     }`}>
-                                      {action}
-                                      {action === (gtoData.correctAction.split(' ')[0] === 'MIN' ? 'RAISE' : gtoData.correctAction.split(' ')[0]) && ' (推奨)'}
+                                      {displayAction === 'ALL_IN' ? 'ALL_IN' : action}
+                                      {isCorrectAction && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${
                                       Number(frequency) > 0 ? 'text-white' : 'text-gray-500'
@@ -5129,7 +5136,8 @@ function MTTTrainingPage() {
                                       {Number(frequency)}%
                                     </span>
                                   </div>
-                                ))
+                                      );
+                                    })
                                 )}
                               </div>
                               
@@ -5158,18 +5166,29 @@ function MTTTrainingPage() {
                                 {(() => {
                                   // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
                                   let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                                  // ALL INをALL_INに変換
-                                  if (actionKey === 'ALL_IN') actionKey = 'ALL_IN';
-                                  const frequency = gtoData.frequencies?.[actionKey] || 0;
+                                  
+                                  // 頻度取得時に複数のキーを試行
+                                  let frequency = 0;
+                                  if (actionKey === 'ALL_IN') {
+                                    // ALL_IN関連の複数キーを試行
+                                    frequency = gtoData.frequencies?.['ALL_IN'] || 
+                                               gtoData.frequencies?.['ALL IN'] || 
+                                               gtoData.frequencies?.['ALLIN'] || 
+                                               gtoData.frequencies?.['ALL-IN'] || 0;
+                                  } else {
+                                    frequency = gtoData.frequencies?.[actionKey] || 0;
+                                  }
+                                  
                                   const displayActionKey = actionKey === 'ALL_IN' ? 'ALL IN' : actionKey;
                                   const displayText = frequency === 100 ? displayActionKey : `${displayActionKey} ${frequency}%`;
                                   
-                                  console.log('🎯 最適アクション表示（統一版）:', {
+                                  console.log('🎯 最適アクション表示（修正版）:', {
                                     gtoDataCorrectAction: gtoData.correctAction,
                                     actionKey,
                                     frequency,
                                     displayText,
                                     gtoDataFrequencies: gtoData.frequencies,
+                                    allFrequencyKeys: Object.keys(gtoData.frequencies || {}),
                                     timestamp: Date.now()
                                   });
                                   
@@ -5181,15 +5200,25 @@ function MTTTrainingPage() {
                                       推奨頻度: {(() => {
                                         // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
                                         let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                                        // ALL INをALL_INに変換
-                                        if (actionKey === 'ALL_IN') actionKey = 'ALL_IN';
-                                        const frequency = gtoData.frequencies[actionKey] || 0;
                                         
-                                        console.log('🎯 推奨頻度表示（統一版）:', {
+                                        // 頻度取得時に複数のキーを試行
+                                        let frequency = 0;
+                                        if (actionKey === 'ALL_IN') {
+                                          // ALL_IN関連の複数キーを試行
+                                          frequency = gtoData.frequencies?.['ALL_IN'] || 
+                                                     gtoData.frequencies?.['ALL IN'] || 
+                                                     gtoData.frequencies?.['ALLIN'] || 
+                                                     gtoData.frequencies?.['ALL-IN'] || 0;
+                                        } else {
+                                          frequency = gtoData.frequencies?.[actionKey] || 0;
+                                        }
+                                        
+                                        console.log('🎯 推奨頻度表示（修正版）:', {
                                           gtoDataCorrectAction: gtoData.correctAction,
                                           actionKey,
                                           frequency,
                                           gtoDataFrequencies: gtoData.frequencies,
+                                          allFrequencyKeys: Object.keys(gtoData.frequencies || {}),
                                           timestamp: Date.now()
                                         });
                                         
