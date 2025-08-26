@@ -235,9 +235,9 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-50 p-2 md:p-4">
-      <div className="bg-gray-900 rounded-3xl max-w-7xl w-full max-h-[98vh] overflow-hidden shadow-2xl border border-gray-800">
+      <div className="bg-gray-900 rounded-3xl max-w-[95vw] md:max-w-[80vw] w-full h-[98vh] overflow-hidden shadow-2xl border border-gray-800 flex flex-col">
         {/* ヘッダー */}
-        <div className="bg-gray-800 p-4 md:p-6 border-b border-gray-700">
+        <div className="bg-gray-800 p-3 md:p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -286,35 +286,34 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
         </div>
 
         {/* 統計バー */}
-        <div className="p-4 md:p-6 bg-gray-800 border-b border-gray-700">
-          <h3 className="text-white font-bold mb-3 md:mb-4 text-base md:text-lg">統計(頻度考慮):</h3>
-          <div className="flex gap-2 md:gap-3 flex-wrap">
-            <div className="bg-red-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+        <div className="p-2 md:p-3 bg-gray-800 border-b border-gray-700 flex-shrink-0">
+          <div className="flex gap-1 md:gap-2 flex-wrap text-xs">
+            <div className="bg-red-500 text-white px-2 py-1 rounded font-medium">
               RAISE: {stats.MIN.percentage}%
             </div>
-            <div className="bg-green-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-green-500 text-white px-2 py-1 rounded font-medium">
               CALL: {stats.CALL.percentage}%
             </div>
-            <div className="bg-red-900 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-red-900 text-white px-2 py-1 rounded font-medium">
               ALL IN: {stats.ALL_IN.percentage}%
             </div>
-            <div className="bg-blue-500 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-blue-500 text-white px-2 py-1 rounded font-medium">
               FOLD: {stats.FOLD.percentage}%
             </div>
-            <div className="bg-gray-700 text-gray-300 px-3 md:px-4 py-2 md:py-3 rounded-lg text-xs md:text-sm font-medium">
+            <div className="bg-gray-700 text-gray-300 px-2 py-1 rounded font-medium">
               NONE: {stats.NONE.percentage}%
             </div>
           </div>
         </div>
 
         {/* ハンドグリッド - 既存のHandRangeの正確なデザインを使用 */}
-        <div className="p-4 md:p-6 overflow-auto max-h-[60vh] md:max-h-[65vh] bg-gradient-to-br from-gray-900 to-gray-800">
-          <div className="grid grid-cols-13 gap-0.5 md:gap-1 max-w-4xl md:max-w-5xl mx-auto">
+        <div className="p-2 md:p-4 flex-1 overflow-auto bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+          <div className="grid grid-cols-13 gap-0.5 md:gap-1 max-w-4xl md:max-w-none mx-auto w-full">
             {grid.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                                                  <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="text-white text-[10px] md:text-xs font-bold py-0.5 md:py-1 px-1 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center hand-range-viewer-cell"
+                  className="text-white text-[10px] md:text-sm font-bold py-0.5 md:py-1 px-1 md:px-1.5 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center hand-range-viewer-cell"
                   style={getHandStyle(cell.hand)}
                   data-has-range={!!rangeData[cell.hand]}
                 >
@@ -325,35 +324,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
           </div>
         </div>
 
-        {/* フッター */}
-        <div className="p-4 md:p-6 bg-gray-800 border-t border-gray-700">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-gray-300 flex-wrap">
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-green-600 rounded-full"></div>
-                <span>CALL</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-blue-600 rounded-full"></div>
-                <span>FOLD</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-red-600 rounded-full"></div>
-                <span>RAISE</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-2 h-2 md:w-3 md:h-3 bg-red-600 rounded-full"></div>
-                <span>ALL IN</span>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="px-4 md:px-6 py-2 md:py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200 text-sm md:text-base"
-            >
-              閉じる
-            </button>
-          </div>
-        </div>
+
       </div>
     </div>
   );

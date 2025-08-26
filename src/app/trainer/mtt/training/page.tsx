@@ -4975,7 +4975,7 @@ function MTTTrainingPage() {
                 )}
                 
                 {/* 結果情報エリア - 常に同じ高さで表示、空の場合は空白のプレースホルダー */}
-                <div className={`${isMobile ? '-mt-6' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
+                <div className={`${isMobile ? '-mt-6' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 border-t border-gray-700'}`}>
                   {/* 結果がない場合のプレースホルダー */}
                   {!showResults && (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
@@ -5152,6 +5152,11 @@ function MTTTrainingPage() {
                                     displayText,
                                     gtoDataFrequencies: gtoData.frequencies,
                                     allFrequencyKeys: Object.keys(gtoData.frequencies || {}),
+                                    isCustomRange: (gtoData as any)?.isCustomRange,
+                                    isAllInCorrectAction: gtoData.correctAction === 'ALL_IN',
+                                    allInFrequencyKeys: Object.keys(gtoData.frequencies || {}).filter(key => 
+                                      key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
+                                    ),
                                     timestamp: Date.now()
                                   });
                                   
