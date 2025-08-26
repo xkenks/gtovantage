@@ -199,28 +199,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Bottom Stats Section */}
-            <div className="bg-gradient-to-br from-gray-900/50 to-blue-900/30 border border-gray-600/30 p-6 md:p-8 rounded-xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center">
-                <div className="text-center md:text-left">
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-4">最新GTO Solver技術で実現</h3>
-                  <p className="text-gray-300 leading-relaxed">
-                    感情に左右されない意思決定をサポートする最新のゲーム理論最適化エンジン。
-                    科学的アプローチでポーカースキルを向上させます。
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-800/30 p-4 rounded-lg text-center">
-                    <div className="text-blue-400 font-bold text-2xl mb-1">500+</div>
-                    <div className="text-gray-300 text-sm">GTOシナリオ</div>
-                  </div>
-                  <div className="bg-purple-800/30 p-4 rounded-lg text-center">
-                    <div className="text-purple-400 font-bold text-2xl mb-1">最新</div>
-                    <div className="text-gray-300 text-sm">GTO Solver</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </section>
