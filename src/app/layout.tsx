@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import Header from '@/components/Header';
 import { ChakraWrapper } from '@/components/ChakraWrapper';
 import { AdminProvider } from '@/contexts/AdminContext';
+import Analytics, { GoogleAnalyticsScript } from '@/components/Analytics';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -69,6 +70,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
+      <head>
+        <GoogleAnalyticsScript />
+      </head>
       <body className={inter.className}>
         <ChakraWrapper>
           <AdminProvider>
@@ -77,6 +81,7 @@ export default function RootLayout({
                 <Header />
                 {children}
               </div>
+              <Analytics />
             </AuthProvider>
           </AdminProvider>
         </ChakraWrapper>

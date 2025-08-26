@@ -8,6 +8,7 @@ import { getMTTRange, MTTRangeEditor, HandInfo, HandRangeSelector, HAND_TEMPLATE
 import HandRangeViewer from '@/components/HandRangeViewer';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AdminLogin } from '@/components/AdminLogin';
+import { gtoEvents } from '@/lib/analytics';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -2046,6 +2047,8 @@ function MTTTrainingPage() {
 
   // 新しいシナリオを生成
   const generateNewScenario = () => {
+    // アナリティクス: トレーニング開始を追跡
+    gtoEvents.startTraining(position, stackSize, actionType);
     // 最新のカスタムレンジを強制的に読み込み
     const latestLocalRanges = localStorage.getItem('mtt-custom-ranges');
     let latestCustomRanges = customRanges; // 現在のstateから開始

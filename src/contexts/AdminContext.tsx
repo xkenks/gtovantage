@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { gtoEvents } from '@/lib/analytics';
 
 interface AdminUser {
   username: string;
@@ -114,6 +115,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('admin-token', data.token);
         }
+        
+        // アナリティクス: 管理者ログインを追跡
+        gtoEvents.login('admin');
         
         return true;
       } else {

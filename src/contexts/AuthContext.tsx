@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { gtoEvents } from '@/lib/analytics';
 
 interface User {
   id: string;
@@ -169,6 +170,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
       localStorage.setItem('gto-vantage-user', JSON.stringify(newUser));
 
+      // アナリティクス: 新規登録を追跡
+      gtoEvents.register();
+
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -193,6 +197,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       delete (userWithoutPassword as any).password;
       setUser(userWithoutPassword);
       localStorage.setItem('gto-vantage-user', JSON.stringify(userWithoutPassword));
+
+      // アナリティクス: ログインを追跡
+      const userType = userWithoutPassword.isMasterUser ? 'master' : 'user';
+      gtoEvents.login(userType);
 
       return true;
     } catch (error) {
