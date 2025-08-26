@@ -4975,14 +4975,11 @@ function MTTTrainingPage() {
                 )}
                 
                 {/* 結果情報エリア - 常に同じ高さで表示、空の場合は空白のプレースホルダー */}
-                <div className={`${isMobile ? '-mt-2' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
+                <div className={`${isMobile ? '-mt-6' : 'pt-4'} ${isMobile ? 'h-auto' : 'flex-1 overflow-y-auto border-t border-gray-700'}`}>
                   {/* 結果がない場合のプレースホルダー */}
                   {!showResults && (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                      <div className="mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mx-auto mb-2 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                      <div className="mb-2 mt-8">
                         <p className="text-lg">アクションを選択すると<br/>GTO分析が表示されます</p>
                       </div>
                     </div>
