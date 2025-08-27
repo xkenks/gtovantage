@@ -991,6 +991,23 @@ const simulateMTTGTOData = (
         handType: normalizedHandType
       });
       
+      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う（15BBのvs3ベットのALLIN無効化処理の前）
+      if (customFrequencies['FOLD'] === 100 && !(stackSize === '15BB' && actionType === 'vs3bet' && customFrequencies['ALL_IN'] > 0)) {
+        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
+          normalizedHandType: finalHandType,
+          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
+          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
+          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
+          recommendedBetSize: 0,
+          isRangeOut: true,
+          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
+        };
+      }
+      
       // 15BBのvs3ベットでALLINアクションが設定されている場合は無効化
       if (stackSize === '15BB' && actionType === 'vs3bet' && customFrequencies['ALL_IN'] > 0) {
         console.log('🎯 15BB vs3ベット ALLIN無効化:', { 
@@ -1015,23 +1032,6 @@ const simulateMTTGTOData = (
           newPrimaryAction: customPrimaryAction,
           handType: normalizedHandType
         });
-      }
-      
-      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
-      if (customFrequencies['FOLD'] === 100) {
-        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
-        return {
-          correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
-          normalizedHandType: finalHandType,
-          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
-          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
-          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
-          recommendedBetSize: 0,
-          isRangeOut: true,
-          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
-        };
       }
 
       console.log('🎯 vs3bet カスタムレンジ処理完了:', {
