@@ -1986,6 +1986,17 @@ function MTTTrainingPage() {
     
     const { actionType, heroPosition, stackDepth } = spot;
     
+    console.log('🎯 getCurrentSpotRangeKey デバッグ:', {
+      actionType,
+      heroPosition,
+      stackDepth,
+      openRaiserPosition: spot.openRaiserPosition,
+      threeBetterPosition: spot.threeBetterPosition,
+      hasThreeBetterPosition: !!spot.threeBetterPosition,
+      hasOpenRaiserPosition: !!spot.openRaiserPosition,
+      spotKeys: Object.keys(spot)
+    });
+    
     if (actionType === 'open' || actionType === 'openraise') {
       // オープンレンジの場合
       if (stackDepth === '15BB') {
@@ -2002,13 +2013,80 @@ function MTTTrainingPage() {
       }
     } else if (actionType === 'vs3bet' && spot.threeBetterPosition) {
       // vs3ベットレンジの場合
-      if (stackDepth === '15BB') {
-        return `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`; // 15BBの場合は既存キー形式
-      } else {
-        return `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`; // その他のスタックサイズ
-      }
+      const vs3betKey = stackDepth === '15BB' 
+        ? `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}` 
+        : `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
+      
+      console.log('🎯 vs3ベットレンジキー生成:', {
+        actionType,
+        heroPosition,
+        threeBetterPosition: spot.threeBetterPosition,
+        stackDepth,
+        generatedKey: vs3betKey,
+        is15BB: stackDepth === '15BB',
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
+      });
+      
+      // 各スタックサイズでのレンジキー生成例をログ出力
+      const exampleKeys = {
+        '10BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_10BB`,
+        '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
+        '20BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_20BB`,
+        '30BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_30BB`,
+        '40BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_40BB`,
+        '50BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_50BB`,
+        '75BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_75BB`,
+        '100BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_100BB`
+      };
+      
+      console.log('🎯 vs3ベット全スタックサイズレンジキー例:', exampleKeys);
+      
+      return vs3betKey;
+    } else if (actionType === 'vs4bet' && spot.openRaiserPosition) {
+      // vs4ベットレンジの場合（4ベッターはopenRaiserPositionに格納）
+      const vs4betKey = stackDepth === '15BB' 
+        ? `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}` 
+        : `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`;
+      
+      console.log('🎯 vs4ベットレンジキー生成:', {
+        actionType,
+        heroPosition,
+        fourBetterPosition: spot.openRaiserPosition,
+        stackDepth,
+        generatedKey: vs4betKey,
+        is15BB: stackDepth === '15BB',
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
+      });
+      
+      // 各スタックサイズでのレンジキー生成例をログ出力
+      const exampleKeys = {
+        '10BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_10BB`,
+        '15BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}`,
+        '20BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_20BB`,
+        '30BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_30BB`,
+        '40BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_40BB`,
+        '50BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_50BB`,
+        '75BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_75BB`,
+        '100BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_100BB`
+      };
+      
+      console.log('🎯 vs4ベット全スタックサイズレンジキー例:', exampleKeys);
+      
+      return vs4betKey;
     }
     
+    console.log('🎯 レンジキー生成失敗:', { 
+      actionType, 
+      heroPosition, 
+      stackDepth,
+      openRaiserPosition: spot.openRaiserPosition,
+      threeBetterPosition: spot.threeBetterPosition,
+      hasThreeBetterPosition: !!spot.threeBetterPosition,
+      hasOpenRaiserPosition: !!spot.openRaiserPosition,
+      reason: actionType === 'vs3bet' ? 'threeBetterPositionが未設定' : 
+              actionType === 'vs4bet' ? 'openRaiserPositionが未設定' :
+              actionType === 'vsopen' ? 'openRaiserPositionが未設定' : '不明'
+    });
     return null;
   };
 
@@ -2282,7 +2360,49 @@ function MTTTrainingPage() {
     
     // ポットサイズの計算 - Ante 1BBを含む正確な計算（ポット調整対応）
     let potSize = 1.5;     // デフォルト（SB + BB）
-    let openRaiseSize = actionType === 'vs4bet' ? 30 : 2.0; // 4ベットの場合は30BB、それ以外は2.0BB
+    // 4ベットサイズをスタックサイズに応じて動的に設定
+    let fourBetSize = 30; // デフォルト
+    if (actionType === 'vs4bet') {
+      switch (stackSize) {
+        case '10BB':
+          fourBetSize = 10;
+          break;
+        case '15BB':
+          fourBetSize = 15;
+          break;
+        case '20BB':
+          fourBetSize = 20;
+          break;
+        case '30BB':
+          fourBetSize = 30;
+          break;
+        case '40BB':
+          fourBetSize = 40;
+          break;
+        case '50BB':
+          fourBetSize = 50;
+          break;
+        case '75BB':
+          fourBetSize = 75;
+          break;
+        case '100BB':
+          fourBetSize = 100;
+          break;
+        default:
+          fourBetSize = 30;
+      }
+    }
+    let openRaiseSize = actionType === 'vs4bet' ? fourBetSize : 2.0; // 4ベットの場合はスタックサイズに応じたサイズ、それ以外は2.0BB
+    
+    // 4ベットサイズのデバッグログ
+    if (actionType === 'vs4bet') {
+      console.log('🎯 4ベットサイズ設定:', {
+        stackSize,
+        fourBetSize,
+        openRaiseSize,
+        actionType
+      });
+    }
     let threeBetSize = 6.3; // デフォルトの3ベットサイズ
     
     // ポット調整係数（SBとBBの位置に応じて調整）
@@ -5480,7 +5600,31 @@ function MTTTrainingPage() {
           rangeData: rangeData ? Object.keys(rangeData).length : null,
           spot: spot ? { actionType: spot.actionType, heroPosition: spot.heroPosition, stackDepth: spot.stackDepth } : null,
           customRangesKeys: Object.keys(customRanges).filter(key => key.includes('40BB')),
-          hasRangeData: !!rangeData
+          hasRangeData: !!rangeData,
+          // 全スタックサイズのvs3ベットレンジ確認
+          vs3betRanges: Object.keys(customRanges).filter(key => key.includes('vs3bet')),
+          vs3betRangesByStack: {
+            '10BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('10BB')),
+            '15BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && !key.includes('_')),
+            '20BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('20BB')),
+            '30BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('30BB')),
+            '40BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('40BB')),
+            '50BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('50BB')),
+            '75BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('75BB')),
+            '100BB': Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes('100BB'))
+          },
+          // 全スタックサイズのvs4ベットレンジ確認
+          vs4betRanges: Object.keys(customRanges).filter(key => key.includes('vs4bet')),
+          vs4betRangesByStack: {
+            '10BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('10BB')),
+            '15BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && !key.includes('_')),
+            '20BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('20BB')),
+            '30BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('30BB')),
+            '40BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')),
+            '50BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('50BB')),
+            '75BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('75BB')),
+            '100BB': Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('100BB'))
+          }
         });
         
         if (!rangeKey) {
