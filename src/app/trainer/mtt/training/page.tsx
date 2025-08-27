@@ -1019,34 +1019,7 @@ const simulateMTTGTOData = (
         };
       }
       
-      // 15BBのvs3ベットでALLINアクションが設定されている場合は無効化
-      if (stackSize === '15BB' && actionType === 'vs3bet' && customFrequencies['ALL_IN'] > 0) {
-        console.log('🎯 15BB vs3ベット ALLIN無効化開始:', { 
-          originalFrequencies: customFrequencies,
-          handType: normalizedHandType,
-          rangeKey,
-          stackSize,
-          actionType,
-          allinFrequency: customFrequencies['ALL_IN']
-        });
-        
-        // ALLINの頻度をFOLDに移行
-        const allinFrequency = customFrequencies['ALL_IN'];
-        customFrequencies['FOLD'] += allinFrequency;
-        customFrequencies['ALL_IN'] = 0;
-        
-        // 主要アクションを再計算
-        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
-          curr[1] > max[1] ? curr : max
-        );
-        customPrimaryAction = maxFreqEntry[0];
-        
-        console.log('🎯 15BB vs3ベット ALLIN無効化完了:', {
-          adjustedFrequencies: customFrequencies,
-          newPrimaryAction: customPrimaryAction,
-          handType: normalizedHandType
-        });
-      }
+
 
       console.log('🎯 vs3bet カスタムレンジ処理完了:', {
         originalAction: customHandData.action,
@@ -1186,31 +1159,7 @@ const simulateMTTGTOData = (
       frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
     }
     
-    // 15BBのvs3ベットでALLINアクションが設定されている場合は無効化
-    if (stackSize === '15BB' && actionType === 'vs3bet' && frequencies['ALL_IN'] > 0) {
-      console.log('🎯 15BB vs3ベット デフォルト戦略ALLIN無効化:', { 
-        originalFrequencies: frequencies,
-        handType: normalizedHandType,
-        originalGtoAction: gtoAction
-      });
-      
-      // ALLINの頻度をFOLDに移行
-      const allinFrequency = frequencies['ALL_IN'];
-      frequencies['FOLD'] += allinFrequency;
-      frequencies['ALL_IN'] = 0;
-      
-      // 主要アクションを再計算
-      const maxFreqEntry = Object.entries(frequencies).reduce((max, curr) => 
-        curr[1] > max[1] ? curr : max
-      );
-      gtoAction = maxFreqEntry[0];
-      
-      console.log('🎯 15BB vs3ベット デフォルト戦略ALLIN無効化完了:', {
-        adjustedFrequencies: frequencies,
-        newGtoAction: gtoAction,
-        handType: normalizedHandType
-      });
-    }
+
     
     // 頻度の合計を確認（正規化は行わない）
     const totalFreq = Object.values(frequencies).reduce((sum, freq) => sum + freq, 0);
