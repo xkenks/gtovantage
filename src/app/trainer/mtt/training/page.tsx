@@ -1068,96 +1068,16 @@ const simulateMTTGTOData = (
       availableRangeKeys: customRanges ? Object.keys(customRanges) : []
     });
     
-    // 強力なハンドの場合は強制的に適切なアクションを設定（CPUオールイン対応）
-    if (normalizedHandType === 'AA') {
-      gtoAction = 'ALL_IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
-      console.log('🎯 AAハンド強制ALL IN設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (normalizedHandType === 'KK') {
-      gtoAction = 'ALL_IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
-      console.log('🎯 KKハンド強制ALL IN設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (normalizedHandType === 'QQ') {
-      // QQは混合戦略（90%オールイン、10%フォールド）
-      gtoAction = 'ALL_IN';
-      frequencies = { 'FOLD': 10, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 90 };
-      console.log('🎯 QQハンド混合戦略設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (['AKs', 'AKo'].includes(normalizedHandType)) {
-      gtoAction = 'ALL_IN';
-      frequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 100 };
-      console.log('🎯 AKハンド強制ALL IN設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (normalizedHandType === 'JJ') {
-      // JJは混合戦略（70%コール、30%オールイン）
-      gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 70, 'RAISE': 0, 'ALL_IN': 30 };
-      console.log('🎯 JJハンド混合戦略設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (normalizedHandType === 'TT') {
-      // TTは混合戦略（60%コール、40%オールイン）
-      gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 60, 'RAISE': 0, 'ALL_IN': 40 };
-      console.log('🎯 TTハンド混合戦略設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (['AQs', 'AQo'].includes(normalizedHandType)) {
-      // AQは混合戦略（80%コール、20%オールイン）
-      gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 80, 'RAISE': 0, 'ALL_IN': 20 };
-      console.log('🎯 AQハンド混合戦略設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else if (normalizedHandType === '99') {
-      // 99は混合戦略（50%コール、50%オールイン）
-      gtoAction = 'CALL';
-      frequencies = { 'FOLD': 0, 'CALL': 50, 'RAISE': 0, 'ALL_IN': 50 };
-      console.log('🎯 99ハンド混合戦略設定:', { 
-        handType: normalizedHandType, 
-        gtoAction, 
-        frequencies,
-        correctAction: gtoAction,
-        primaryFrequency: frequencies[gtoAction]
-      });
-    } else {
-      gtoAction = 'FOLD';
-      frequencies = { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
-    }
+    // デフォルト戦略（カスタムレンジがない場合のみ使用）
+    gtoAction = 'CALL';
+    frequencies = { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL_IN': 0 };
+    console.log('🎯 デフォルト戦略設定:', { 
+      handType: normalizedHandType, 
+      gtoAction, 
+      frequencies,
+      correctAction: gtoAction,
+      primaryFrequency: frequencies[gtoAction]
+    });
     
 
     
