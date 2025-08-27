@@ -889,6 +889,60 @@ const simulateMTTGTOData = (
           exactMatchExists: customRanges ? Object.keys(customRanges).includes(rangeKey) : false,
           partialMatches: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
         });
+        
+        // 15BBのvs3ベットでカスタムレンジが見つからない場合の最終手段
+        if (actionType === 'vs3bet') {
+          console.log('🎯 15BB vs3ベット 最終手段: ローカルストレージから直接検索');
+          const localRanges = localStorage.getItem('mtt-custom-ranges');
+          if (localRanges) {
+            try {
+              const parsedRanges = JSON.parse(localRanges);
+              console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
+                rangeKeys: Object.keys(parsedRanges),
+                vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
+                targetRangeKey: rangeKey,
+                fallbackRangeKey,
+                hasTargetRange: !!parsedRanges[rangeKey],
+                hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
+                targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
+                fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
+              });
+              
+              // 新しい形式のレンジキーを試行
+              if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
+                customHandData = parsedRanges[rangeKey][normalizedHandType];
+                usedRangeKey = rangeKey;
+                console.log('🎯 15BB vs3ベット 最終手段: 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
+              }
+              // フォールバック形式のレンジキーを試行
+              else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
+                customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
+                usedRangeKey = fallbackRangeKey;
+                console.log('🎯 15BB vs3ベット 最終手段: フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+              }
+              // 部分一致で検索
+              else {
+                const partialMatches = Object.keys(parsedRanges).filter(key => 
+                  key.includes('vs3bet') && 
+                  key.includes(normalizedPosition) && 
+                  key.includes(normalizedThreeBetterPosition)
+                );
+                console.log('🎯 15BB vs3ベット 最終手段: 部分一致検索:', { partialMatches });
+                
+                for (const matchKey of partialMatches) {
+                  if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
+                    customHandData = parsedRanges[matchKey][normalizedHandType];
+                    usedRangeKey = matchKey;
+                    console.log('🎯 15BB vs3ベット 最終手段: 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('15BB vs3ベット 最終手段エラー:', e);
+            }
+          }
+        }
       }
       
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
