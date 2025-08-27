@@ -5220,7 +5220,7 @@ function MTTTrainingPage() {
                 
                 {/* アクションボタンエリア - PC版のみ表示 */}
                 {!isMobile && (
-                <div className="border-t border-gray-700 pt-4 mb-4 h-[70px] flex items-center">
+                <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
                     <div className={`grid gap-2 w-full ${(() => {
                       // 表示されるアクション数をカウント
@@ -5241,13 +5241,13 @@ function MTTTrainingPage() {
                       return 'grid-cols-4';
                     })()}`}>
                       <button
-                        className="py-2.5 rounded-lg font-bold text-base shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
+                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
                         onClick={() => handleActionSelect('FOLD')}
                       >
                         {getActionButtonText('FOLD')}
                       </button>
                       <button
-                        className="py-2.5 rounded-lg font-bold text-base shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
+                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
                         onClick={() => handleActionSelect('CALL')}
                       >
                         {getActionButtonText('CALL')}
@@ -5255,7 +5255,7 @@ function MTTTrainingPage() {
                       {/* RAISEボタン - 削除ロジックを適用 */}
                       {shouldShowAction('RAISE') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') ? (
                         <button
-                          className="py-2.5 rounded-lg font-bold text-base shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
+                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('RAISE')}
                         >
                           {getActionButtonText('RAISE')}
@@ -5265,7 +5265,7 @@ function MTTTrainingPage() {
                       {shouldShowAction('ALL_IN') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
-                          className="py-2.5 rounded-lg font-bold text-base shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
+                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('ALL_IN')}
                         >
                           {getActionButtonText('ALL_IN')}

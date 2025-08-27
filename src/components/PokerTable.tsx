@@ -1566,7 +1566,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             return (
                             <button
                               key={action}
-                              className={`px-3 py-2 rounded-lg text-white font-semibold whitespace-nowrap min-h-10 min-w-16 text-xs ${colorClass} transition-colors shadow-lg`}
+                              className={`px-4 py-2.5 rounded-lg text-white font-semibold whitespace-nowrap min-h-12 min-w-20 text-sm ${colorClass} transition-colors shadow-lg`}
                               onClick={() => onActionSelect && onActionSelect(action)}
                               disabled={cpuActionEnabled && !cpuActionComplete}
                             >
