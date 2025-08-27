@@ -866,7 +866,9 @@ const simulateMTTGTOData = (
         usedRangeKey = fallbackRangeKey;
         console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
       }
-    } else {
+    }
+    
+    if (!customHandData) {
       // 15BBのvs3ベットの場合の特別なデバッグ
       if (stackSize === '15BB') {
         console.log('🎯 15BB vs3ベット カスタムレンジ未発見の詳細デバッグ:', {
