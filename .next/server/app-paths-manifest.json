@@ -1,23 +1,8 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/admin/auth/route": "app/api/admin/auth/route.js",
-  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js",
-  "/api/auth/change-password/route": "app/api/auth/change-password/route.js",
-  "/admin/gto-data/page": "app/admin/gto-data/page.js",
-  "/contact/page": "app/contact/page.js",
-  "/login/page": "app/login/page.js",
-  "/api/gto/upload/route": "app/api/gto/upload/route.js",
-  "/mypage/page": "app/mypage/page.js",
-  "/operator/page": "app/operator/page.js",
-  "/register/page": "app/register/page.js",
-  "/subscription/page": "app/subscription/page.js",
-  "/terms/page": "app/terms/page.js",
-  "/test/page": "app/test/page.js",
-  "/trainer/mtt/page": "app/trainer/mtt/page.js",
-  "/trainer/page": "app/trainer/page.js",
   "/page": "app/page.js",
-  "/verify-email/page": "app/verify-email/page.js",
-  "/privacy/page": "app/privacy/page.js",
-  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
-  "/trainer/stats/page": "app/trainer/stats/page.js"
+  "/login/page": "app/login/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js",
+  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js",
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js"
 }

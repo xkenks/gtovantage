@@ -819,7 +819,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       }
       console.log(`🎯 有効3ベットサイズ: ${effectiveThreeBetSize} (${position})`);
       
-      if (currentSpot.stackDepth === '20BB') {
+      if (currentSpot.stackDepth === '15BB') {
+        console.log(`🎯 15BB vs3ベット: ${position}のスタックを0に設定`);
+        return '0';
+      } else if (currentSpot.stackDepth === '20BB') {
         let stack: number;
         
         // SB・BBの場合はブラインドを戻してからレイズするため、スタックの減り方が異なる
@@ -1248,7 +1251,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
              // 15BBの場合
          if (stackSizeNum === 15 && actionType === 'vs3bet') {
-           actions = actions.filter(action => action !== 'RAISE');
+           actions = actions.filter(action => action !== 'RAISE' && action !== 'ALL IN');
          }
          
          // 20BBの場合

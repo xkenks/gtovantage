@@ -2140,7 +2140,7 @@ function MTTTrainingPage() {
          const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
          
          // 15BBの場合
-         if (stackSizeNum === 15 && actionType === 'vs3bet' && action === 'RAISE') {
+         if (stackSizeNum === 15 && actionType === 'vs3bet' && (action === 'RAISE' || action === 'ALL_IN')) {
            return false;
          }
          
@@ -3592,9 +3592,27 @@ function MTTTrainingPage() {
         }
         
         // API読み込みが失敗した場合の処理
-        console.log('❌ APIからの読み込みに失敗しました。ローカルデータまたはファイルデータを使用します。');
+        console.log('❌ APIからの読み込みに失敗しました。ローカルデータを優先的に使用します。');
         
-        // APIからの読み込みが失敗した場合、データファイルから直接読み込み
+        // ローカルデータを確認
+        const localRanges = localStorage.getItem('mtt-custom-ranges');
+        if (localRanges) {
+          try {
+            const parsedRanges = JSON.parse(localRanges);
+            if (Object.keys(parsedRanges).length > 0) {
+              setCustomRanges(parsedRanges);
+              console.log('✅ ローカルデータを使用しました:', {
+                rangeKeys: Object.keys(parsedRanges),
+                rangeCount: Object.keys(parsedRanges).length
+              });
+              return; // ローカルデータ使用時は終了
+            }
+          } catch (e) {
+            console.log('ローカルデータ解析エラー:', e);
+          }
+        }
+        
+        // ローカルデータがない場合のみ、データファイルから読み込み
         console.log('ローカルデータがないため、データファイルから読み込みます...');
         const fileResponse = await fetch('/data/mtt-ranges.json');
         if (fileResponse.ok) {
@@ -3898,9 +3916,9 @@ function MTTTrainingPage() {
     }
     // vs3ベットレンジで15BBの場合の互換性も保つ (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
     else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
-      const baseVs3BetKey = position.replace('_15BB', '');
-      newCustomRanges[baseVs3BetKey] = rangeData; // 既存のvs3ベットレンジキーも更新
-      console.log('15BB互換性: 既存vs3ベットレンジキーも更新', { baseVs3BetKey, position });
+      // 15bbのvs3ベットは新しい形式のみを使用（互換性は不要）
+      newCustomRanges[position] = rangeData;
+      console.log('15BB vs3ベットレンジ保存:', { position, stackSize });
     }
     // vs4ベットレンジで15BBの場合の互換性も保つ (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
     else if (position.startsWith('vs4bet_') && position.endsWith('_15BB')) {
