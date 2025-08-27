@@ -2140,7 +2140,7 @@ function MTTTrainingPage() {
          const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
          
          // 15BBの場合
-         if (stackSizeNum === 15 && actionType === 'vs3bet' && (action === 'RAISE' || action === 'ALL_IN')) {
+         if (stackSizeNum === 15 && actionType === 'vs3bet' && action === 'RAISE') {
            return false;
          }
          
