@@ -803,6 +803,28 @@ const simulateMTTGTOData = (
       usedRangeKey = fallbackRangeKey;
       console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
+      // 15BBのvs3ベットの場合の特別なデバッグ
+      if (stackSize === '15BB') {
+        console.log('🎯 15BB vs3ベット カスタムレンジ未発見の詳細デバッグ:', {
+          rangeKey,
+          fallbackRangeKey,
+          handType: normalizedHandType,
+          hasCustomRanges: !!customRanges,
+          availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+          vs3betRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet')) : [],
+          hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+          hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+          rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+          fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : [],
+          // 15BBのvs3ベットレンジの詳細確認
+          has15BBVs3betRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB')).length : 0,
+          fifteenBBVs3betRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB')) : [],
+          // 現在のレンジキーに一致するレンジが存在するかチェック
+          exactMatchExists: customRanges ? Object.keys(customRanges).includes(rangeKey) : false,
+          partialMatches: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
+        });
+      }
+      
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
       if (stackSize === '20BB' && threeBetType) {
         console.log('🎯 20BB タイプ別レンジ未発見の詳細デバッグ:', {
@@ -2026,6 +2048,17 @@ function MTTTrainingPage() {
         is15BB: stackDepth === '15BB',
         keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
       });
+      
+      // 15BBのvs3ベットの場合の特別なデバッグログ
+      if (stackDepth === '15BB') {
+        console.log('🎯 15BB vs3ベット特別デバッグ:', {
+          heroPosition,
+          threeBetterPosition: spot.threeBetterPosition,
+          generatedKey: vs3betKey,
+          expectedKeyFormat: `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
+          keyMatches: vs3betKey === `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`
+        });
+      }
       
       // 各スタックサイズでのレンジキー生成例をログ出力
       const exampleKeys = {
