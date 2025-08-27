@@ -5417,10 +5417,9 @@ function MTTTrainingPage() {
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 {gtoData.correctAction === 'NONE' ? (
                                   <div className="col-span-2 p-4 bg-yellow-600/30 border border-yellow-500 rounded text-center">
-                                    <div className="text-yellow-300 font-bold mb-2">⚠️ アクション未設定</div>
+                                    <div className="text-yellow-300 font-bold mb-2">⚠️ GTO戦略なし</div>
                                     <div className="text-gray-300 text-sm">
-                                      このハンドはアクションが設定されていません。<br/>
-                                      注意してください。
+                                      このハンドにはGTO戦略上、推奨アクションが存在しません。
                                     </div>
                                   </div>
                                 ) : (
