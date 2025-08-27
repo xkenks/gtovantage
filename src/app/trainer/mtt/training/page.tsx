@@ -911,6 +911,14 @@ const simulateMTTGTOData = (
       let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
+      console.log('🎯 15BB vs3ベット カスタムレンジ処理開始:', {
+        customHandData,
+        handType: normalizedHandType,
+        stackSize,
+        actionType,
+        rangeKey: usedRangeKey
+      });
+      
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
         // 混合戦略の場合
         const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
@@ -988,7 +996,10 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies,
         totalFreq,
         customPrimaryAction,
-        handType: normalizedHandType
+        handType: normalizedHandType,
+        stackSize,
+        actionType,
+        is15BBVs3bet: stackSize === '15BB' && actionType === 'vs3bet'
       });
       
       // カスタムレンジでFOLD 100%の場合はレンジ外として扱う（15BBのvs3ベットのALLIN無効化処理の前）
@@ -1010,10 +1021,13 @@ const simulateMTTGTOData = (
       
       // 15BBのvs3ベットでALLINアクションが設定されている場合は無効化
       if (stackSize === '15BB' && actionType === 'vs3bet' && customFrequencies['ALL_IN'] > 0) {
-        console.log('🎯 15BB vs3ベット ALLIN無効化:', { 
+        console.log('🎯 15BB vs3ベット ALLIN無効化開始:', { 
           originalFrequencies: customFrequencies,
           handType: normalizedHandType,
-          rangeKey 
+          rangeKey,
+          stackSize,
+          actionType,
+          allinFrequency: customFrequencies['ALL_IN']
         });
         
         // ALLINの頻度をFOLDに移行
