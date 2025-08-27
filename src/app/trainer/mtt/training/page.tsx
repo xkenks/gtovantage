@@ -2090,6 +2090,54 @@ function MTTTrainingPage() {
     return null;
   };
 
+  // アクションボタンが表示されるかどうかを判定する関数
+  const shouldShowAction = (action: string): boolean => {
+    if (!spot || !spot.stackDepth) return true;
+    
+    const { actionType, stackDepth } = spot;
+    const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
+    
+    // 20BBの場合
+    if (stackSizeNum === 20 && actionType === 'vs3bet' && action === 'RAISE') {
+      return false;
+    }
+    
+    // 30BBの場合
+    if (stackSizeNum === 30) {
+      if (actionType === 'vs3bet' && action === 'RAISE') {
+        return false;
+      } else if (actionType === 'vs4bet' && (action === 'RAISE' || action === 'ALL_IN')) {
+        return false;
+      }
+    }
+    
+    // 40BBの場合
+    if (stackSizeNum === 40) {
+      if (actionType === 'vs3bet' && action === 'RAISE') {
+        return false;
+      } else if (actionType === 'vs4bet' && action === 'RAISE') {
+        return false;
+      }
+    }
+    
+    // 50BBの場合
+    if (stackSizeNum === 50 && actionType === 'vs4bet' && action === 'RAISE') {
+      return false;
+    }
+    
+    // 75BBの場合
+    if (stackSizeNum === 75 && actionType === 'vs4bet' && action === 'RAISE') {
+      return false;
+    }
+    
+    // 100BBの場合
+    if (stackSizeNum === 100 && actionType === 'vs4bet' && action === 'RAISE') {
+      return false;
+    }
+    
+    return true;
+  };
+
   // アクションボタンの表示テキストを取得する関数
   const getActionButtonText = (action: string): string => {
     if (!spot || !spot.stackDepth) return action;
@@ -5175,11 +5223,21 @@ function MTTTrainingPage() {
                 <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
                     <div className={`grid gap-2 w-full ${(() => {
-                      // CPUがオールインしている場合、2列のグリッドに変更
-                      if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
-                        return 'grid-cols-2';
+                      // 表示されるアクション数をカウント
+                      let visibleActions = 2; // FOLDとCALLは常に表示
+                      
+                      if (shouldShowAction('RAISE') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin')) {
+                        visibleActions++;
                       }
-                      // その他の場合は4列のグリッド
+                      
+                      if (shouldShowAction('ALL_IN') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                          (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0))) {
+                        visibleActions++;
+                      }
+                      
+                      // アクション数に応じてグリッド列数を決定
+                      if (visibleActions === 2) return 'grid-cols-2';
+                      if (visibleActions === 3) return 'grid-cols-3';
                       return 'grid-cols-4';
                     })()}`}>
                       <button
@@ -5194,8 +5252,8 @@ function MTTTrainingPage() {
                       >
                         {getActionButtonText('CALL')}
                       </button>
-                      {/* RAISEボタン - CPUがオールインしていない場合のみ表示 */}
-                      {!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin' ? (
+                      {/* RAISEボタン - 削除ロジックを適用 */}
+                      {shouldShowAction('RAISE') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('RAISE')}
@@ -5203,8 +5261,8 @@ function MTTTrainingPage() {
                           {getActionButtonText('RAISE')}
                         </button>
                       ) : null}
-                      {/* ALL INボタン - CPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
-                      {(!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                      {/* ALL INボタン - 削除ロジックを適用 */}
+                      {shouldShowAction('ALL_IN') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"

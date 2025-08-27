@@ -1245,6 +1245,48 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       return actions;
     }
     
+    // アクションボタンの削除ロジック
+    const { actionType, stackDepth } = currentSpot;
+    const stackSizeNum = parseInt(stackDepth?.replace('BB', '') || stackSize);
+    
+    // 20BBの場合
+    if (stackSizeNum === 20 && actionType === 'vs3bet') {
+      actions = actions.filter(action => action !== 'RAISE');
+    }
+    
+    // 30BBの場合
+    if (stackSizeNum === 30) {
+      if (actionType === 'vs3bet') {
+        actions = actions.filter(action => action !== 'RAISE');
+      } else if (actionType === 'vs4bet') {
+        actions = actions.filter(action => action !== 'RAISE' && action !== 'ALL IN');
+      }
+    }
+    
+    // 40BBの場合
+    if (stackSizeNum === 40) {
+      if (actionType === 'vs3bet') {
+        actions = actions.filter(action => action !== 'RAISE');
+      } else if (actionType === 'vs4bet') {
+        actions = actions.filter(action => action !== 'RAISE');
+      }
+    }
+    
+    // 50BBの場合
+    if (stackSizeNum === 50 && actionType === 'vs4bet') {
+      actions = actions.filter(action => action !== 'RAISE');
+    }
+    
+    // 75BBの場合
+    if (stackSizeNum === 75 && actionType === 'vs4bet') {
+      actions = actions.filter(action => action !== 'RAISE');
+    }
+    
+    // 100BBの場合
+    if (stackSizeNum === 100 && actionType === 'vs4bet') {
+      actions = actions.filter(action => action !== 'RAISE');
+    }
+    
     // エフェクティブスタックが15BB以下の場合、または特定のシナリオでオールインオプションを追加
     const showAllIn = 
       // 浅いスタック（15BB以下）の場合
