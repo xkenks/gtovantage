@@ -124,6 +124,109 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   backButtonUrl
 }) => {
   
+  // アクションボタンの表示テキストを取得する関数
+  const getActionButtonText = (action: string): string => {
+    if (!currentSpot || !currentSpot.stackDepth) return action;
+    
+    const { actionType, heroPosition, stackDepth, threeBetterPosition, openRaiserPosition } = currentSpot;
+    const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
+    
+    if (action === 'FOLD') return 'FOLD';
+    if (action === 'CALL') return 'CALL';
+    
+    if (action === 'RAISE') {
+      // オープンレイズの場合
+      if (actionType === 'open' || actionType === 'openraise') {
+        const openRaiseAmounts: Record<string, number> = {
+          '10BB': 2.0, '15BB': 2.0, '20BB': 2.0, '30BB': 2.1, 
+          '40BB': 2.3, '50BB': 2.3, '75BB': 2.3, '100BB': 2.3
+        };
+        const amount = openRaiseAmounts[stackDepth] || 2.0;
+        return `RAISE ${amount}`;
+      }
+      
+      // vsオープンの場合
+      if (actionType === 'vsopen') {
+        // 15BBの場合はRAISEボタンが存在しない
+        if (stackSizeNum <= 15) return 'RAISE';
+        
+        // ヒーローのポジションに基づいてレイズ額を決定
+        const vsOpenAmounts: Record<string, { default: number; SB: number; BB: number }> = {
+          '20BB': { default: 5.0, SB: 5.5, BB: 6.0 },
+          '30BB': { default: 6.3, SB: 7.5, BB: 8.2 },
+          '40BB': { default: 6.8, SB: 8.6, BB: 9.2 },
+          '50BB': { default: 6.9, SB: 9.2, BB: 9.8 },
+          '75BB': { default: 8.0, SB: 10.0, BB: 10.3 },
+          '100BB': { default: 8.0, SB: 11.0, BB: 11.5 }
+        };
+        
+        const amounts = vsOpenAmounts[stackDepth];
+        if (!amounts) return 'RAISE';
+        
+        let amount: number;
+        if (heroPosition === 'SB') {
+          amount = amounts.SB;
+        } else if (heroPosition === 'BB') {
+          amount = amounts.BB;
+        } else {
+          amount = amounts.default;
+        }
+        
+        return `RAISE ${amount}`;
+      }
+      
+      // vs3ベットの場合
+      if (actionType === 'vs3bet') {
+        // 15BB、30BB、40BBの場合はRAISEボタンが存在しない
+        if (stackSizeNum <= 40) return 'RAISE';
+        
+        // 50BBの場合
+        if (stackSizeNum === 50) {
+          // 3ベッターのポジションを確認
+          if (threeBetterPosition === 'SB' || threeBetterPosition === 'BB') {
+            return 'RAISE'; // ALLINになるため、RAISEボタンは表示されない
+          }
+          return 'RAISE 16';
+        }
+        
+        // 75BB、100BBの場合
+        const vs3betAmounts: Record<string, { default: number; SB: number; BB: number }> = {
+          '75BB': { default: 20.9, SB: 21.2, BB: 22.0 },
+          '100BB': { default: 21.0, SB: 23.0, BB: 24.0 }
+        };
+        
+        const amounts = vs3betAmounts[stackDepth];
+        if (!amounts) return 'RAISE';
+        
+        // 3ベッターのポジションを確認
+        let amount: number;
+        if (threeBetterPosition === 'SB') {
+          amount = amounts.SB;
+        } else if (threeBetterPosition === 'BB') {
+          amount = amounts.BB;
+        } else {
+          amount = amounts.default;
+        }
+        
+        return `RAISE ${amount}`;
+      }
+      
+      // vs4ベットの場合
+      if (actionType === 'vs4bet') {
+        // 30BB、40BB、50BB、75BB、100BBの場合はRAISEボタンが存在しない
+        return 'RAISE';
+      }
+      
+      return 'RAISE';
+    }
+    
+    if (action === 'ALL_IN') {
+      return `ALLIN ${stackSizeNum}`;
+    }
+    
+    return action;
+  };
+
   // デバッグ: vs3ベットのスタック確認
   useEffect(() => {
     if (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetterPosition && currentSpot.positions) {
@@ -1413,8 +1516,8 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                             if (action === 'FOLD') return { label: 'FOLD', colorClass: 'bg-blue-600 hover:bg-blue-700' };
                             if (action === 'CHECK') return { label: 'CHECK', colorClass: 'bg-gray-600 hover:bg-gray-700' };
                             if (action === 'CALL') return { label: 'CALL', colorClass: 'bg-green-600 hover:bg-green-700' };
-                            if (action === 'RAISE') return { label: 'RAISE', colorClass: 'bg-red-600 hover:bg-red-700' };
-                            if (action === 'ALL IN') return { label: 'ALLIN', colorClass: 'bg-purple-600 hover:bg-purple-700' };
+                            if (action === 'RAISE') return { label: getActionButtonText('RAISE'), colorClass: 'bg-red-600 hover:bg-red-700' };
+                            if (action === 'ALL IN') return { label: getActionButtonText('ALL_IN'), colorClass: 'bg-purple-600 hover:bg-purple-700' };
                             return { label: action, colorClass: 'bg-gray-600 hover:bg-gray-700' };
                           })();
             
