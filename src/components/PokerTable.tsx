@@ -1293,15 +1293,20 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     }
     
     // エフェクティブスタックが15BB以下の場合、または特定のシナリオでオールインオプションを追加
+    // ただし、15BBのvs3ベットではALLINを表示しない
     const showAllIn = 
-      // 浅いスタック（15BB以下）の場合
-      stackNum <= 15 || 
-      // PioSolverのレンジにAll inが含まれる場合
-      (currentSpot.frequencies && currentSpot.frequencies['ALL IN'] > 0) ||
-      // トーナメントの状況によって（例：バブル際でICM圧力が高い）
-      (currentSpot.tournamentStage === 'bubble' && currentSpot.icmPressure === 'high') ||
-      // 特定のアクションタイプ（push/fold領域）
-      currentSpot.actionType === 'push_fold';
+      // 15BBのvs3ベットの場合はALLINを表示しない
+      !(stackSizeNum === 15 && actionType === 'vs3bet') &&
+      (
+        // 浅いスタック（15BB以下）の場合
+        stackNum <= 15 || 
+        // PioSolverのレンジにAll inが含まれる場合
+        (currentSpot.frequencies && currentSpot.frequencies['ALL IN'] > 0) ||
+        // トーナメントの状況によって（例：バブル際でICM圧力が高い）
+        (currentSpot.tournamentStage === 'bubble' && currentSpot.icmPressure === 'high') ||
+        // 特定のアクションタイプ（push/fold領域）
+        currentSpot.actionType === 'push_fold'
+      );
     
     // オールインが含まれておらず、表示条件を満たす場合に追加
     if (showAllIn && !actions.includes('ALL IN')) {
