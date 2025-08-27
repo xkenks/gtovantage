@@ -795,13 +795,77 @@ const simulateMTTGTOData = (
       targetHandExists: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType])
     });
     
-    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
-      customHandData = customRanges[rangeKey][normalizedHandType];
-      console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
-    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
-      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
-      usedRangeKey = fallbackRangeKey;
-      console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    // 15bbのvs3ベットの場合の特別な処理
+    if (stackSize === '15BB' && actionType === 'vs3bet') {
+      console.log('🎯 15BB vs3ベット カスタムレンジ検索開始:', {
+        rangeKey,
+        fallbackRangeKey,
+        handType: normalizedHandType,
+        hasCustomRanges: !!customRanges,
+        customRangesKeys: customRanges ? Object.keys(customRanges) : [],
+        vs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet')) : []
+      });
+      
+      // ローカルストレージから直接読み込み
+      const localRanges = localStorage.getItem('mtt-custom-ranges');
+      if (localRanges) {
+        try {
+          const parsedRanges = JSON.parse(localRanges);
+          console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
+            rangeKeys: Object.keys(parsedRanges),
+            vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
+            targetRangeKey: rangeKey,
+            fallbackRangeKey,
+            hasTargetRange: !!parsedRanges[rangeKey],
+            hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
+            targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
+            fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
+          });
+          
+          // 新しい形式のレンジキーを試行
+          if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
+            customHandData = parsedRanges[rangeKey][normalizedHandType];
+            usedRangeKey = rangeKey;
+            console.log('🎯 15BB vs3ベット 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
+          }
+          // フォールバック形式のレンジキーを試行
+          else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
+            customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
+            usedRangeKey = fallbackRangeKey;
+            console.log('🎯 15BB vs3ベット フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+          }
+          // 部分一致で検索
+          else {
+            const partialMatches = Object.keys(parsedRanges).filter(key => 
+              key.includes('vs3bet') && 
+              key.includes(normalizedPosition) && 
+              key.includes(normalizedThreeBetterPosition)
+            );
+            console.log('🎯 15BB vs3ベット 部分一致検索:', { partialMatches });
+            
+            for (const matchKey of partialMatches) {
+              if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
+                customHandData = parsedRanges[matchKey][normalizedHandType];
+                usedRangeKey = matchKey;
+                console.log('🎯 15BB vs3ベット 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('15BB vs3ベット 特別処理エラー:', e);
+        }
+      }
+    } else {
+      // 通常の処理
+      if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
+        customHandData = customRanges[rangeKey][normalizedHandType];
+        console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
+      } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+        customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+        usedRangeKey = fallbackRangeKey;
+        console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+      }
     } else {
       // 15BBのvs3ベットの場合の特別なデバッグ
       if (stackSize === '15BB') {
@@ -3720,10 +3784,20 @@ function MTTTrainingPage() {
           });
           setCustomRanges(parsedRanges);
           setLastRangeUpdate(Date.now());
+          
+          // 15bbのvs3ベットのレンジが存在するか特別に確認
+          const vs3bet15BBRanges = Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && key.includes('15BB'));
+          if (vs3bet15BBRanges.length > 0) {
+            console.log('🎯 15BB vs3ベットレンジ発見:', vs3bet15BBRanges);
+          } else {
+            console.log('❌ 15BB vs3ベットレンジが見つかりません');
+          }
         }
       } catch (e) {
         console.log('カスタムレンジ強制読み込みエラー:', e);
       }
+    } else {
+      console.log('❌ ローカルストレージにカスタムレンジが存在しません');
     }
   };
   
@@ -3915,9 +3989,11 @@ function MTTTrainingPage() {
     }
     // vs3ベットレンジで15BBの場合の互換性も保つ (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
     else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
-      // 15bbのvs3ベットは新しい形式のみを使用（互換性は不要）
+      // 15bbのvs3ベットは新しい形式と既存形式の両方を保存
       newCustomRanges[position] = rangeData;
-      console.log('15BB vs3ベットレンジ保存:', { position, stackSize });
+      const baseVs3BetKey = position.replace('_15BB', '');
+      newCustomRanges[baseVs3BetKey] = rangeData; // 既存のvs3ベットレンジキーも更新
+      console.log('15BB vs3ベットレンジ保存（互換性あり）:', { position, baseVs3BetKey, stackSize });
     }
     // vs3ベットレンジで15BBの場合の既存キー形式も保存（互換性のため）
     else if (position.startsWith('vs3bet_') && !position.endsWith('_15BB') && stackSize === '15BB') {
