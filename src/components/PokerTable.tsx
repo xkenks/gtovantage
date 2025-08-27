@@ -1566,7 +1566,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             return (
                             <button
                               key={action}
-                              className={`px-4 py-2.5 rounded-lg text-white font-semibold min-h-12 min-w-20 text-sm ${colorClass} transition-colors shadow-lg flex flex-col items-center justify-center`}
+                              className={`px-4 py-2.5 rounded-lg text-white font-semibold min-h-12 min-w-20 text-xs ${colorClass} transition-colors shadow-lg flex flex-col items-center justify-center`}
                               onClick={() => onActionSelect && onActionSelect(action)}
                               disabled={cpuActionEnabled && !cpuActionComplete}
                             >
@@ -1576,7 +1576,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                                   return (
                                     <>
                                       <span>{actionName}</span>
-                                      <span className="text-xs">{amount}</span>
+                                      <span className="text-[10px]">{amount}</span>
                                     </>
                                   );
                                 }
