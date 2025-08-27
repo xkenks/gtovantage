@@ -2050,9 +2050,7 @@ function MTTTrainingPage() {
       }
     } else if (actionType === 'vs3bet' && spot.threeBetterPosition) {
       // vs3ベットレンジの場合
-      const vs3betKey = stackDepth === '15BB' 
-        ? `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}` 
-        : `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
+      const vs3betKey = `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
       
       console.log('🎯 vs3ベットレンジキー生成:', {
         actionType,
@@ -2060,8 +2058,7 @@ function MTTTrainingPage() {
         threeBetterPosition: spot.threeBetterPosition,
         stackDepth,
         generatedKey: vs3betKey,
-        is15BB: stackDepth === '15BB',
-        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
+        keyFormat: 'スタック固有形式'
       });
       
       // 15BBのvs3ベットの場合の特別なデバッグログ
@@ -2070,15 +2067,15 @@ function MTTTrainingPage() {
           heroPosition,
           threeBetterPosition: spot.threeBetterPosition,
           generatedKey: vs3betKey,
-          expectedKeyFormat: `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
-          keyMatches: vs3betKey === `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`
+          expectedKeyFormat: `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`,
+          keyMatches: vs3betKey === `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`
         });
       }
       
       // 各スタックサイズでのレンジキー生成例をログ出力
       const exampleKeys = {
         '10BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_10BB`,
-        '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
+        '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`,
         '20BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_20BB`,
         '30BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_30BB`,
         '40BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_40BB`,
@@ -2092,9 +2089,7 @@ function MTTTrainingPage() {
       return vs3betKey;
     } else if (actionType === 'vs4bet' && spot.openRaiserPosition) {
       // vs4ベットレンジの場合（4ベッターはopenRaiserPositionに格納）
-      const vs4betKey = stackDepth === '15BB' 
-        ? `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}` 
-        : `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`;
+      const vs4betKey = `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`;
       
       console.log('🎯 vs4ベットレンジキー生成:', {
         actionType,
@@ -2102,14 +2097,13 @@ function MTTTrainingPage() {
         fourBetterPosition: spot.openRaiserPosition,
         stackDepth,
         generatedKey: vs4betKey,
-        is15BB: stackDepth === '15BB',
-        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
+        keyFormat: 'スタック固有形式'
       });
       
       // 各スタックサイズでのレンジキー生成例をログ出力
       const exampleKeys = {
         '10BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_10BB`,
-        '15BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}`,
+        '15BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_15BB`,
         '20BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_20BB`,
         '30BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_30BB`,
         '40BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_40BB`,
