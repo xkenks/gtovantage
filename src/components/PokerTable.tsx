@@ -1249,10 +1249,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     const { actionType, stackDepth } = currentSpot;
     const stackSizeNum = parseInt(stackDepth?.replace('BB', '') || stackSize);
     
-    // 20BBの場合
-    if (stackSizeNum === 20 && actionType === 'vs3bet') {
-      actions = actions.filter(action => action !== 'RAISE');
-    }
+             // 15BBの場合
+         if (stackSizeNum === 15 && actionType === 'vs3bet') {
+           actions = actions.filter(action => action !== 'RAISE' && action !== 'ALL IN');
+         }
+         
+         // 20BBの場合
+         if (stackSizeNum === 20 && actionType === 'vs3bet') {
+           actions = actions.filter(action => action !== 'RAISE');
+         }
     
     // 30BBの場合
     if (stackSizeNum === 30) {

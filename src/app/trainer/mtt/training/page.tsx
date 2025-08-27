@@ -2091,16 +2091,21 @@ function MTTTrainingPage() {
   };
 
   // アクションボタンが表示されるかどうかを判定する関数
-  const shouldShowAction = (action: string): boolean => {
-    if (!spot || !spot.stackDepth) return true;
-    
-    const { actionType, stackDepth } = spot;
-    const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
-    
-    // 20BBの場合
-    if (stackSizeNum === 20 && actionType === 'vs3bet' && action === 'RAISE') {
-      return false;
-    }
+         const shouldShowAction = (action: string): boolean => {
+         if (!spot || !spot.stackDepth) return true;
+         
+         const { actionType, stackDepth } = spot;
+         const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
+         
+         // 15BBの場合
+         if (stackSizeNum === 15 && actionType === 'vs3bet' && (action === 'RAISE' || action === 'ALL_IN')) {
+           return false;
+         }
+         
+         // 20BBの場合
+         if (stackSizeNum === 20 && actionType === 'vs3bet' && action === 'RAISE') {
+           return false;
+         }
     
     // 30BBの場合
     if (stackSizeNum === 30) {
