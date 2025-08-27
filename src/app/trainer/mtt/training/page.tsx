@@ -3840,6 +3840,12 @@ function MTTTrainingPage() {
       newCustomRanges[position] = rangeData;
       console.log('15BB vs3ベットレンジ保存:', { position, stackSize });
     }
+    // vs3ベットレンジで15BBの場合の既存キー形式も保存（互換性のため）
+    else if (position.startsWith('vs3bet_') && !position.endsWith('_15BB') && stackSize === '15BB') {
+      const newVs3BetKey = `${position}_15BB`;
+      newCustomRanges[newVs3BetKey] = rangeData; // 新しいvs3ベットレンジキーも更新
+      console.log('15BB互換性: 新しいvs3ベットレンジキーも更新', { newVs3BetKey, position });
+    }
     // vs4ベットレンジで15BBの場合の互換性も保つ (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
     else if (position.startsWith('vs4bet_') && position.endsWith('_15BB')) {
       const baseVs4BetKey = position.replace('_15BB', '');
@@ -4261,6 +4267,14 @@ function MTTTrainingPage() {
       if (customRanges[baseVs3BetKey] && !customRanges[position]) {
         targetPosition = baseVs3BetKey;
         console.log('15BB互換性: 既存vs3ベットレンジキーを使用', { baseVs3BetKey, targetPosition });
+      }
+    }
+    // vs3ベットレンジで15BBの既存キー形式の場合、新しいキー形式も確認
+    else if (position.startsWith('vs3bet_') && !position.includes('_15BB') && stackSize === '15BB') {
+      const newVs3BetKey = `${position}_15BB`;
+      if (customRanges[newVs3BetKey] && !customRanges[position]) {
+        targetPosition = newVs3BetKey;
+        console.log('15BB互換性: 新しいvs3ベットレンジキーを使用', { newVs3BetKey, targetPosition });
       }
     }
     // vs4ベットレンジでの15BB互換性も確認 (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
