@@ -932,11 +932,25 @@ const simulateMTTGTOData = (
           isMixed: customHandData.action === 'MIXED'
         });
         // 単一アクションの場合
-        customPrimaryAction = customHandData.action.replace('ALL_IN', 'ALL_IN');
+        customPrimaryAction = customHandData.action;
+        
+        // オールインアクションの正規化
+        if (customHandData.action.toUpperCase().includes('ALL') || 
+            customHandData.action.toUpperCase().includes('ALLIN')) {
+          customPrimaryAction = 'ALL_IN';
+        }
         // MINをRAISEに変換
-        if (customPrimaryAction === 'MIN') {
+        else if (customPrimaryAction === 'MIN') {
           customPrimaryAction = 'RAISE';
         }
+        
+        console.log('🔥 オールイン正規化処理:', {
+          originalAction: customHandData.action,
+          normalizedAction: customPrimaryAction,
+          frequency: customHandData.frequency,
+          isAllInAction: customHandData.action.toUpperCase().includes('ALL')
+        });
+        
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
         // 残りの頻度をFOLDに設定
@@ -1213,7 +1227,13 @@ const simulateMTTGTOData = (
         (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
         (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
       )),
-      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      // 40bbのvs4ベットレンジの詳細確認
+      vs4bet40BBRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')) : [],
+      vs4betAllRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs4bet')) : [],
+      // 特定のレンジキーの詳細確認
+      targetRangeData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : null,
+      fallbackRangeData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : null
     });
     
     // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
@@ -1222,10 +1242,21 @@ const simulateMTTGTOData = (
     
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
       customHandData = customRanges[rangeKey][normalizedHandType];
+      console.log('✅ vs4ベット スタック固有レンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
     } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
       customHandData = customRanges[fallbackRangeKey][normalizedHandType];
       usedRangeKey = fallbackRangeKey;
-      console.log('15BB互換性: 既存vs4ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+      console.log('15BB互換性: 既存vs4ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } else {
+      console.log('❌ vs4ベット カスタムレンジ未発見:', { 
+        rangeKey, 
+        fallbackRangeKey, 
+        handType: normalizedHandType,
+        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+      });
     }
     
     if (customHandData) {
@@ -3559,6 +3590,12 @@ function MTTTrainingPage() {
       newCustomRanges[baseVs4BetKey] = rangeData; // 既存のvs4ベットレンジキーも更新
       console.log('15BB互換性: 既存vs4ベットレンジキーも更新', { baseVs4BetKey, position });
     }
+    // vs4ベットレンジで他のスタックサイズの場合の処理
+    else if (position.startsWith('vs4bet_') && !position.endsWith('_15BB')) {
+      // vs4ベットレンジはそのまま保存（例: vs4bet_BTN_vs_UTG_40BB）
+      newCustomRanges[position] = rangeData;
+      console.log('vs4ベットレンジ保存:', { position, stackSize });
+    }
     // 他のスタックサイズでポジション名のみが指定された場合は、現在のスタックサイズのレンジキーを使用
     else if (!position.includes('_') && !position.startsWith('vsopen_') && stackSize !== '15BB') {
       const stackSpecificKey = `${position}_${stackSize}`;
@@ -3597,7 +3634,12 @@ function MTTTrainingPage() {
         has20BBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')).length,
         has20BBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')).length,
         twentyBBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')),
-        twentyBBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin'))
+        twentyBBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')),
+        // 40BBのvs4ベットレンジの詳細確認
+        has40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')).length,
+        fortyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')),
+        vs4bet40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')),
+        vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
       });
       
       // 保存完了後、少し待ってからフラグをリセット
@@ -5138,6 +5180,41 @@ function MTTTrainingPage() {
                                                gtoData.frequencies?.['ALL IN'] || 
                                                gtoData.frequencies?.['ALLIN'] || 
                                                gtoData.frequencies?.['ALL-IN'] || 0;
+                                    
+                                    // カスタムレンジでオールインが正解なのに0%の場合の特別処理
+                                    if (frequency === 0 && (gtoData as any)?.isCustomRange && gtoData.correctAction === 'ALL_IN') {
+                                      // frequenciesから全てのキーを確認
+                                      const allKeys = Object.keys(gtoData.frequencies || {});
+                                      const allinRelatedKeys = allKeys.filter(key => 
+                                        key.toUpperCase().includes('ALL') || 
+                                        key.toLowerCase().includes('allin') ||
+                                        key.toLowerCase().includes('all_in') ||
+                                        key.toLowerCase().includes('all-in')
+                                      );
+                                      
+                                      console.log('🔥 オールイン0%問題修正試行:', {
+                                        allKeys,
+                                        allinRelatedKeys,
+                                        frequencies: gtoData.frequencies,
+                                        correctAction: gtoData.correctAction
+                                      });
+                                      
+                                      // 関連キーから最初の非ゼロ値を取得
+                                      for (const key of allinRelatedKeys) {
+                                        const val = gtoData.frequencies[key];
+                                        if (val && val > 0) {
+                                          frequency = val;
+                                          console.log('🔥 オールイン頻度修正成功:', { key, frequency });
+                                          break;
+                                        }
+                                      }
+                                      
+                                      // それでも0の場合は、correctActionがALL_INならば100%とする
+                                      if (frequency === 0) {
+                                        frequency = 100;
+                                        console.log('🔥 オールイン頻度強制設定:', { frequency });
+                                      }
+                                    }
                                   } else {
                                     frequency = gtoData.frequencies?.[actionKey] || 0;
                                   }
@@ -5177,6 +5254,34 @@ function MTTTrainingPage() {
                                                      gtoData.frequencies?.['ALL IN'] || 
                                                      gtoData.frequencies?.['ALLIN'] || 
                                                      gtoData.frequencies?.['ALL-IN'] || 0;
+                                          
+                                          // カスタムレンジでオールインが正解なのに0%の場合の特別処理
+                                          if (frequency === 0 && (gtoData as any)?.isCustomRange && gtoData.correctAction === 'ALL_IN') {
+                                            // frequenciesから全てのキーを確認
+                                            const allKeys = Object.keys(gtoData.frequencies || {});
+                                            const allinRelatedKeys = allKeys.filter(key => 
+                                              key.toUpperCase().includes('ALL') || 
+                                              key.toLowerCase().includes('allin') ||
+                                              key.toLowerCase().includes('all_in') ||
+                                              key.toLowerCase().includes('all-in')
+                                            );
+                                            
+                                            // 関連キーから最初の非ゼロ値を取得
+                                            for (const key of allinRelatedKeys) {
+                                              const val = gtoData.frequencies[key];
+                                              if (val && val > 0) {
+                                                frequency = val;
+                                                console.log('🔥 推奨頻度オールイン修正成功:', { key, frequency });
+                                                break;
+                                              }
+                                            }
+                                            
+                                            // それでも0の場合は、correctActionがALL_INならば100%とする
+                                            if (frequency === 0) {
+                                              frequency = 100;
+                                              console.log('🔥 推奨頻度オールイン強制設定:', { frequency });
+                                            }
+                                          }
                                         } else {
                                           frequency = gtoData.frequencies?.[actionKey] || 0;
                                         }

@@ -482,8 +482,17 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     // 頻度ベースの評価（frequencies情報がある場合）
     if (currentSpot.frequencies && Object.keys(currentSpot.frequencies).length > 0) {
-      // 選択したアクションの頻度を直接取得（既にパーセント形式）
-      const selectedFrequency = currentSpot.frequencies[selectedAction] || 0;
+      // 選択したアクションの頻度を取得（ALL INの場合は複数キーを試行）
+      let selectedFrequency = 0;
+      if (selectedAction === 'ALL IN') {
+        // ALL IN系の複数キーを試行
+        selectedFrequency = currentSpot.frequencies['ALL_IN'] || 
+                           currentSpot.frequencies['ALL IN'] || 
+                           currentSpot.frequencies['ALLIN'] || 
+                           currentSpot.frequencies['ALL-IN'] || 0;
+      } else {
+        selectedFrequency = currentSpot.frequencies[selectedAction] || 0;
+      }
       actionFrequency = selectedFrequency; // パーセントとして直接使用
       
       // 最大頻度のアクションを見つける
@@ -498,7 +507,10 @@ export const PokerTable: React.FC<PokerTableProps> = ({
       });
       
       // 頻度に基づいて評価
-      if (selectedAction === maxFrequencyAction) {
+      const isMaxFrequencyAction = selectedAction === maxFrequencyAction || 
+                                  (selectedAction === 'ALL IN' && 
+                                   ['ALL_IN', 'ALL IN', 'ALLIN', 'ALL-IN'].includes(maxFrequencyAction));
+      if (isMaxFrequencyAction) {
         // 最大頻度のアクションを選んだ場合は大正解（perfect）
         evaluationLevel = 'perfect';
       } else if (selectedFrequency >= 30) {

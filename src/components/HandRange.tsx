@@ -1199,7 +1199,35 @@ export const HAND_TEMPLATES = {
   'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
   'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s'],
   '際どい判断': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
-  '際どい判断2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33']
+  '際どい判断2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
+  'CO練習': [
+    // Axオフスーツ
+    'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
+    // Kxスーテッド
+    'K6s', 'K5s', 'K4s', 'K3s', 'K2s',
+    // Qxスーテッド
+    'Q6s', 'Q5s', 'Q4s', 'Q3s', 'Q2s',
+    // Jxスーテッド
+    'J7s', 'J6s', 'J5s',
+    // Txスーテッド
+    'T7s', 'T6s',
+    // 9xスーテッド
+    '97s', '96s',
+    // 8xスーテッド
+    '86s', '85s',
+    // 7xスーテッド
+    '75s',
+    // 6xスーテッド
+    '65s', '64s',
+    // 5xスーテッド
+    '54s', '53s',
+    // 4xスーテッド
+    '43s',
+    // ポケットペア
+    '44', '33', '22',
+    // オフスーツブロードウェイ
+    'T9o', 'J9o', 'J8o', '98o', 'Q9o', 'Q8o', 'K9o', 'K8o'
+  ]
 };
 
 // ハンドレンジセレクターコンポーネント
@@ -2025,7 +2053,6 @@ export const MTTRangeEditor: React.FC<{
       { name: 'CALL', freq: frequencies.CALL, symbol: 'C', color: 'text-green-200' },
       { name: 'FOLD', freq: frequencies.FOLD, symbol: 'F', color: 'text-blue-200' },
       { name: 'MIN', freq: frequencies.MIN, symbol: 'R', color: 'text-red-200' },
-      { name: 'RAISE', freq: frequencies.MIN, symbol: 'R', color: 'text-red-200' },
       { name: 'ALL_IN', freq: frequencies.ALL_IN, symbol: 'A', color: 'text-red-800' }
     ].filter(action => action.freq > 0);
 
@@ -2466,7 +2493,6 @@ const FrequencyModal: React.FC<{
   onSetNone?: () => void;
 }> = ({ hand, initialFrequencies, onSave, onClose, onSetNone }) => {
   const [frequencies, setFrequencies] = useState(initialFrequencies);
-  const [accordionOpen, setAccordionOpen] = useState<string | null>(null);
 
   // 頻度を更新する関数
   const updateFrequency = (action: string, value: number) => {
@@ -2611,7 +2637,7 @@ const FrequencyModal: React.FC<{
             {/* 単一アクション */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               <button
-                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 100, CALL: 0, FOLD: 0 })}
+                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 50, CALL: 0, FOLD: 0 })}
                 className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
                 style={{ 
                   backgroundColor: '#7f1d1d'
@@ -2619,10 +2645,10 @@ const FrequencyModal: React.FC<{
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6b1512'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7f1d1d'}
               >
-                ALL IN 100%
+                ALL IN 50%
               </button>
               <button
-                onClick={() => setFrequencies({ MIN: 100, ALL_IN: 0, CALL: 0, FOLD: 0 })}
+                onClick={() => setFrequencies({ MIN: 50, ALL_IN: 0, CALL: 0, FOLD: 0 })}
                 className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
                 style={{ 
                   backgroundColor: '#F44336'
@@ -2630,10 +2656,10 @@ const FrequencyModal: React.FC<{
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d32f2f'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F44336'}
               >
-                RAISE 100%
+                RAISE 50%
               </button>
               <button
-                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 100, FOLD: 0 })}
+                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 50, FOLD: 0 })}
                 className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
                 style={{ 
                   backgroundColor: '#4CAF50'
@@ -2641,10 +2667,10 @@ const FrequencyModal: React.FC<{
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#43A047'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4CAF50'}
               >
-                CALL 100%
+                CALL 50%
               </button>
               <button
-                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 100 })}
+                onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 50 })}
                 className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
                 style={{ 
                   backgroundColor: '#4A90E2'
@@ -2652,157 +2678,110 @@ const FrequencyModal: React.FC<{
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#357abd'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4A90E2'}
               >
-                FOLD 100%
+                FOLD 50%
               </button>
             </div>
             
-            {/* アコーディオンメニュー */}
-            <div className="space-y-2">
+            {/* 混合戦略クイック設定 */}
+            <div className="mt-4">
+              <div className="text-sm text-gray-300 mb-3">混合戦略:</div>
+              
               {/* RAISE/FOLD */}
-              <div className="border border-gray-600 rounded-lg">
-                <button
-                  onClick={() => setAccordionOpen(accordionOpen === 'raise-fold' ? null : 'raise-fold')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold flex justify-between items-center rounded-lg transition-all duration-200"
-                >
-                  <span>RAISE/FOLD</span>
-                  <span className={`transform transition-transform duration-200 ${accordionOpen === 'raise-fold' ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-                {accordionOpen === 'raise-fold' && (
-                  <div className="p-3 bg-gray-900 border-t border-gray-600">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
-                        <button
-                          key={raisePercent}
-                          onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 0, FOLD: 100 - raisePercent })}
-                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                          style={{
-                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4A90E2 ${raisePercent}%, #4A90E2 100%)`
-                          }}
-                        >
-                          {raisePercent}%/{100 - raisePercent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="mb-3">
+                <div className="text-xs text-gray-400 mb-2">RAISE/FOLD</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
+                    <button
+                      key={raisePercent}
+                      onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 0, FOLD: 100 - raisePercent })}
+                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                      style={{
+                        background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4A90E2 ${raisePercent}%, #4A90E2 100%)`
+                      }}
+                    >
+                      {raisePercent}%/{100 - raisePercent}%
+                    </button>
+                  ))}
+                </div>
               </div>
               
               {/* RAISE/CALL */}
-              <div className="border border-gray-600 rounded-lg">
-                <button
-                  onClick={() => setAccordionOpen(accordionOpen === 'raise-call' ? null : 'raise-call')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold flex justify-between items-center rounded-lg transition-all duration-200"
-                >
-                  <span>RAISE/CALL</span>
-                  <span className={`transform transition-transform duration-200 ${accordionOpen === 'raise-call' ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-                {accordionOpen === 'raise-call' && (
-                  <div className="p-3 bg-gray-900 border-t border-gray-600">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
-                        <button
-                          key={raisePercent}
-                          onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 100 - raisePercent, FOLD: 0 })}
-                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                          style={{
-                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4CAF50 ${raisePercent}%, #4CAF50 100%)`
-                          }}
-                        >
-                          {raisePercent}%/{100 - raisePercent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="mb-3">
+                <div className="text-xs text-gray-400 mb-2">RAISE/CALL</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
+                    <button
+                      key={raisePercent}
+                      onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 100 - raisePercent, FOLD: 0 })}
+                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                      style={{
+                        background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4CAF50 ${raisePercent}%, #4CAF50 100%)`
+                      }}
+                    >
+                      {raisePercent}%/{100 - raisePercent}%
+                    </button>
+                  ))}
+                </div>
               </div>
               
               {/* CALL/FOLD */}
-              <div className="border border-gray-600 rounded-lg">
-                <button
-                  onClick={() => setAccordionOpen(accordionOpen === 'call-fold' ? null : 'call-fold')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold flex justify-between items-center rounded-lg transition-all duration-200"
-                >
-                  <span>CALL/FOLD</span>
-                  <span className={`transform transition-transform duration-200 ${accordionOpen === 'call-fold' ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-                {accordionOpen === 'call-fold' && (
-                  <div className="p-3 bg-gray-900 border-t border-gray-600">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(callPercent => (
-                        <button
-                          key={callPercent}
-                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: callPercent, FOLD: 100 - callPercent })}
-                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                          style={{
-                            background: `linear-gradient(to right, #4CAF50 0%, #4CAF50 ${callPercent}%, #4A90E2 ${callPercent}%, #4A90E2 100%)`
-                          }}
-                        >
-                          {callPercent}%/{100 - callPercent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="mb-3">
+                <div className="text-xs text-gray-400 mb-2">CALL/FOLD</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(callPercent => (
+                    <button
+                      key={callPercent}
+                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: callPercent, FOLD: 100 - callPercent })}
+                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                      style={{
+                        background: `linear-gradient(to right, #4CAF50 0%, #4CAF50 ${callPercent}%, #4A90E2 ${callPercent}%, #4A90E2 100%)`
+                      }}
+                    >
+                      {callPercent}%/{100 - callPercent}%
+                    </button>
+                  ))}
+                </div>
               </div>
               
               {/* ALLIN/CALL */}
-              <div className="border border-gray-600 rounded-lg">
-                <button
-                  onClick={() => setAccordionOpen(accordionOpen === 'allin-call' ? null : 'allin-call')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold flex justify-between items-center rounded-lg transition-all duration-200"
-                >
-                  <span>ALLIN/CALL</span>
-                  <span className={`transform transition-transform duration-200 ${accordionOpen === 'allin-call' ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-                {accordionOpen === 'allin-call' && (
-                  <div className="p-3 bg-gray-900 border-t border-gray-600">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
-                        <button
-                          key={allinPercent}
-                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 100 - allinPercent, FOLD: 0 })}
-                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                          style={{
-                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4CAF50 ${allinPercent}%, #4CAF50 100%)`
-                          }}
-                        >
-                          {allinPercent}%/{100 - allinPercent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="mb-3">
+                <div className="text-xs text-gray-400 mb-2">ALLIN/CALL</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
+                    <button
+                      key={allinPercent}
+                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 100 - allinPercent, FOLD: 0 })}
+                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                      style={{
+                        background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4CAF50 ${allinPercent}%, #4CAF50 100%)`
+                      }}
+                    >
+                      {allinPercent}%/{100 - allinPercent}%
+                    </button>
+                  ))}
+                </div>
               </div>
               
               {/* ALLIN/FOLD */}
-              <div className="border border-gray-600 rounded-lg">
-                <button
-                  onClick={() => setAccordionOpen(accordionOpen === 'allin-fold' ? null : 'allin-fold')}
-                  className="w-full px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold flex justify-between items-center rounded-lg transition-all duration-200"
-                >
-                  <span>ALLIN/FOLD</span>
-                  <span className={`transform transition-transform duration-200 ${accordionOpen === 'allin-fold' ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-                {accordionOpen === 'allin-fold' && (
-                  <div className="p-3 bg-gray-900 border-t border-gray-600">
-                    <div className="grid grid-cols-3 gap-2">
-                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
-                        <button
-                          key={allinPercent}
-                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 0, FOLD: 100 - allinPercent })}
-                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                          style={{
-                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4A90E2 ${allinPercent}%, #4A90E2 100%)`
-                          }}
-                        >
-                          {allinPercent}%/{100 - allinPercent}%
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="mb-3">
+                <div className="text-xs text-gray-400 mb-2">ALLIN/FOLD</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
+                    <button
+                      key={allinPercent}
+                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 0, FOLD: 100 - allinPercent })}
+                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                      style={{
+                        background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4A90E2 ${allinPercent}%, #4A90E2 100%)`
+                      }}
+                    >
+                      {allinPercent}%/{100 - allinPercent}%
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+            
             <div className="text-xs text-gray-500 mt-2">
               💡 ワンクリックで一般的な頻度比率を設定できます
             </div>
