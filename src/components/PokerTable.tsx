@@ -1566,11 +1566,22 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             return (
                             <button
                               key={action}
-                              className={`px-4 py-2.5 rounded-lg text-white font-semibold whitespace-nowrap min-h-12 min-w-20 text-sm ${colorClass} transition-colors shadow-lg`}
+                              className={`px-4 py-2.5 rounded-lg text-white font-semibold min-h-12 min-w-20 text-sm ${colorClass} transition-colors shadow-lg flex flex-col items-center justify-center`}
                               onClick={() => onActionSelect && onActionSelect(action)}
                               disabled={cpuActionEnabled && !cpuActionComplete}
                             >
-                              {label}
+                              {(() => {
+                                if ((action === 'RAISE' || action === 'ALL IN') && label.includes(' ')) {
+                                  const [actionName, amount] = label.split(' ');
+                                  return (
+                                    <>
+                                      <span>{actionName}</span>
+                                      <span className="text-xs">{amount}</span>
+                                    </>
+                                  );
+                                }
+                                return label;
+                              })()}
                             </button>
                           );
                         })}
