@@ -891,6 +891,60 @@ const simulateMTTGTOData = (
         }
       }
       
+      // 15BBのvs3ベットの場合の特別な処理
+      if (stackSize === '15BB' && actionType === 'vs3bet' && !customHandData) {
+        console.log('🎯 15BB vs3ベット 特別処理開始');
+        const localRanges = localStorage.getItem('mtt-custom-ranges');
+        if (localRanges) {
+          try {
+            const parsedRanges = JSON.parse(localRanges);
+            console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
+              rangeKeys: Object.keys(parsedRanges),
+              vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
+              targetRangeKey: rangeKey,
+              fallbackRangeKey,
+              hasTargetRange: !!parsedRanges[rangeKey],
+              hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
+              targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
+              fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
+            });
+            
+            // 新しい形式のレンジキーを試行
+            if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
+              customHandData = parsedRanges[rangeKey][normalizedHandType];
+              usedRangeKey = rangeKey;
+              console.log('🎯 15BB vs3ベット 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
+            }
+            // フォールバック形式のレンジキーを試行
+            else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
+              customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
+              usedRangeKey = fallbackRangeKey;
+              console.log('🎯 15BB vs3ベット フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+            }
+            // 部分一致で検索
+            else {
+              const partialMatches = Object.keys(parsedRanges).filter(key => 
+                key.includes('vs3bet') && 
+                key.includes(normalizedPosition) && 
+                key.includes(normalizedThreeBetterPosition)
+              );
+              console.log('🎯 15BB vs3ベット 部分一致検索:', { partialMatches });
+              
+              for (const matchKey of partialMatches) {
+                if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
+                  customHandData = parsedRanges[matchKey][normalizedHandType];
+                  usedRangeKey = matchKey;
+                  console.log('🎯 15BB vs3ベット 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.log('15BB vs3ベット 特別処理エラー:', e);
+          }
+        }
+      }
+      
       // 強力なハンドの場合は強制的に適切なアクションを設定
       if (!customHandData) {
         // カスタムレンジが見つからない場合は、デフォルト戦略を使用
@@ -3650,6 +3704,31 @@ function MTTTrainingPage() {
 
       // 初回読み込み
   loadSystemRanges();
+  
+  // カスタムレンジの強制読み込み（15bb vs3bet問題の解決のため）
+  const forceLoadCustomRanges = () => {
+    const localRanges = localStorage.getItem('mtt-custom-ranges');
+    if (localRanges) {
+      try {
+        const parsedRanges = JSON.parse(localRanges);
+        if (Object.keys(parsedRanges).length > 0) {
+          console.log('🎯 カスタムレンジ強制読み込み:', {
+            rangeKeys: Object.keys(parsedRanges),
+            rangeCount: Object.keys(parsedRanges).length,
+            vs3betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs3bet_')),
+            vs3bet15BBKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && key.includes('15BB'))
+          });
+          setCustomRanges(parsedRanges);
+          setLastRangeUpdate(Date.now());
+        }
+      } catch (e) {
+        console.log('カスタムレンジ強制読み込みエラー:', e);
+      }
+    }
+  };
+  
+  // 強制読み込みを実行
+  forceLoadCustomRanges();
   
   // カスタムレンジの読み込み状況を確認
   console.log('🎯 カスタムレンジ読み込み状況確認:', {
