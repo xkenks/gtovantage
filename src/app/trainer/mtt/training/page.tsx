@@ -681,28 +681,7 @@ const simulateMTTGTOData = (
     
 
     
-    // 15BBのvs3ベットの場合は絶対的にカスタムレンジを優先
-    if (stackSize === '15BB') {
-      console.log('🎯 15BB vs3bet 絶対的優先処理開始');
-      
-      // 強制的にCALLを返す
-      const forcedResult = {
-        correctAction: 'CALL' as const,
-        evData: { ev: 0, evCall: 0, evFold: 0, evRaise: 0, evAllIn: 0 },
-        frequencies: { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL_IN': 0 },
-        normalizedHandType: finalHandType,
-        effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
-        stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}はCALLが推奨されます。`,
-        icmConsideration: getICMAdvice(stackDepthBB, 'CALL', position),
-        recommendedBetSize: 0,
-        strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}はCALLが設定されています。`,
-        isCustomRange: true,
-        usedRangeKey: 'ABSOLUTE_FORCED_15BB_VS3BET'
-      };
-      
-      console.log('🎯 15BB vs3bet 絶対的強制結果:', forcedResult);
-      return forcedResult;
-    }
+
     
     // レンジ外ハンドの処理（vs3bet）
     if (['27o', '37o', '47o', '57o', '67o', '32o', '42o', '52o', '62o', '72o', '82o', '92o', 'T2o', 'J2o', 'Q2o', 'K2o', 'A2o', '23o', '24o', '25o', '26o', '28o', '29o', '2To', '2Jo', '2Qo', '2Ko', '2Ao'].includes(normalizedHandType)) {
@@ -836,179 +815,29 @@ const simulateMTTGTOData = (
       targetHandExists: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType])
     });
     
-    // 15BBのvs3ベットの場合の特別な処理
-    if (stackSize === '15BB' && actionType === 'vs3bet') {
-      console.log('🎯 15BB vs3ベット カスタムレンジ検索開始:', {
+    // 通常の処理
+    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
+      customHandData = customRanges[rangeKey][normalizedHandType];
+      console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
+    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('🎯 フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    }
+    
+    if (!customHandData) {
+      console.log('🎯 vs3bet カスタムレンジ未発見:', {
         rangeKey,
         fallbackRangeKey,
         handType: normalizedHandType,
         hasCustomRanges: !!customRanges,
-        customRangesKeys: customRanges ? Object.keys(customRanges) : [],
-        vs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet')) : []
+        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
       });
-      
-      // 強制的にローカルストレージから読み込み
-      const localRanges = localStorage.getItem('mtt-custom-ranges');
-      if (localRanges) {
-        try {
-          const parsedRanges = JSON.parse(localRanges);
-          console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
-            rangeKeys: Object.keys(parsedRanges),
-            vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
-            targetRangeKey: rangeKey,
-            fallbackRangeKey,
-            hasTargetRange: !!parsedRanges[rangeKey],
-            hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
-            targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
-            fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
-          });
-          
-          // 新しい形式のレンジキーを試行
-          if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
-            customHandData = parsedRanges[rangeKey][normalizedHandType];
-            usedRangeKey = rangeKey;
-            console.log('🎯 15BB vs3ベット 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
-          }
-          // フォールバック形式のレンジキーを試行
-          else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
-            customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
-            usedRangeKey = fallbackRangeKey;
-            console.log('🎯 15BB vs3ベット フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-          }
-          // 部分一致で検索
-          else {
-            const partialMatches = Object.keys(parsedRanges).filter(key => 
-              key.includes('vs3bet') && 
-              key.includes(normalizedPosition) && 
-              key.includes(normalizedThreeBetterPosition)
-            );
-            console.log('🎯 15BB vs3ベット 部分一致検索:', { partialMatches });
-            
-            for (const matchKey of partialMatches) {
-              if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
-                customHandData = parsedRanges[matchKey][normalizedHandType];
-                usedRangeKey = matchKey;
-                console.log('🎯 15BB vs3ベット 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
-                break;
-              }
-            }
-          }
-          
-          // カスタムレンジが見つかった場合、stateも更新
-          if (customHandData && JSON.stringify(customRanges) !== JSON.stringify(parsedRanges)) {
-            console.log('🎯 15BB vs3ベット カスタムレンジstate更新');
-            // 非同期でstateを更新（この関数内では直接更新しない）
-            setTimeout(() => {
-              if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent('updateCustomRanges', { detail: parsedRanges }));
-              }
-            }, 0);
-          }
-        } catch (e) {
-          console.log('15BB vs3ベット 特別処理エラー:', e);
-        }
-      }
-    } else {
-      // 通常の処理
-      if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
-        customHandData = customRanges[rangeKey][normalizedHandType];
-        console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
-      } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
-        customHandData = customRanges[fallbackRangeKey][normalizedHandType];
-        usedRangeKey = fallbackRangeKey;
-        console.log('🎯 15BB互換性: 既存vs3ベットレンジを使用', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-      }
-    }
-    
-    if (!customHandData) {
-      // 15BBのvs3ベットの場合の特別なデバッグ
-      if (stackSize === '15BB') {
-        console.log('🎯 15BB vs3ベット カスタムレンジ未発見の詳細デバッグ:', {
-          rangeKey,
-          fallbackRangeKey,
-          handType: normalizedHandType,
-          hasCustomRanges: !!customRanges,
-          availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
-          vs3betRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet')) : [],
-          hasRangeKey: !!(customRanges && customRanges[rangeKey]),
-          hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
-          rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-          fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : [],
-          // 15BBのvs3ベットレンジの詳細確認
-          has15BBVs3betRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB')).length : 0,
-          fifteenBBVs3betRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB')) : [],
-          // 現在のレンジキーに一致するレンジが存在するかチェック
-          exactMatchExists: customRanges ? Object.keys(customRanges).includes(rangeKey) : false,
-          partialMatches: customRanges ? Object.keys(customRanges).filter(key => key.includes('vs3bet') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
-        });
-        
-        // テスト用の強制レンジを追加（デバッグ用）
-        console.log('🎯 15BB vs3ベット テスト用レンジを強制追加:', { handType: normalizedHandType });
-        const testRange = {
-          action: 'CALL' as const,
-          frequency: 100
-        };
-        customHandData = testRange;
-        usedRangeKey = 'TEST_RANGE';
-        console.log('🎯 15BB vs3ベット テスト用レンジ適用:', { handType: normalizedHandType, testRange });
-        
-        // 強制的にカスタムレンジ処理を実行
-        console.log('🎯 15BB vs3ベット 強制カスタムレンジ処理実行');
-        
-        // 15BBのvs3ベットでカスタムレンジが見つからない場合の最終手段
-        if (actionType === 'vs3bet') {
-          console.log('🎯 15BB vs3ベット 最終手段: ローカルストレージから直接検索');
-          const localRanges = localStorage.getItem('mtt-custom-ranges');
-          if (localRanges) {
-            try {
-              const parsedRanges = JSON.parse(localRanges);
-              console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
-                rangeKeys: Object.keys(parsedRanges),
-                vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
-                targetRangeKey: rangeKey,
-                fallbackRangeKey,
-                hasTargetRange: !!parsedRanges[rangeKey],
-                hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
-                targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
-                fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
-              });
-              
-              // 新しい形式のレンジキーを試行
-              if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
-                customHandData = parsedRanges[rangeKey][normalizedHandType];
-                usedRangeKey = rangeKey;
-                console.log('🎯 15BB vs3ベット 最終手段: 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
-              }
-              // フォールバック形式のレンジキーを試行
-              else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
-                customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
-                usedRangeKey = fallbackRangeKey;
-                console.log('🎯 15BB vs3ベット 最終手段: フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-              }
-              // 部分一致で検索
-              else {
-                const partialMatches = Object.keys(parsedRanges).filter(key => 
-                  key.includes('vs3bet') && 
-                  key.includes(normalizedPosition) && 
-                  key.includes(normalizedThreeBetterPosition)
-                );
-                console.log('🎯 15BB vs3ベット 最終手段: 部分一致検索:', { partialMatches });
-                
-                for (const matchKey of partialMatches) {
-                  if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
-                    customHandData = parsedRanges[matchKey][normalizedHandType];
-                    usedRangeKey = matchKey;
-                    console.log('🎯 15BB vs3ベット 最終手段: 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
-                    break;
-                  }
-                }
-              }
-            } catch (e) {
-              console.log('15BB vs3ベット 最終手段エラー:', e);
-            }
-          }
-        }
-      }
+
       
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
       if (stackSize === '20BB' && threeBetType) {
@@ -1042,93 +871,9 @@ const simulateMTTGTOData = (
         fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
       });
       
-      // カスタムレンジが読み込まれていない場合は、強制的に読み込みを試行
-      if (!customRanges || Object.keys(customRanges).length === 0) {
-        console.log('🎯 カスタムレンジが空のため、ローカルストレージから強制読み込み');
-        const localRanges = localStorage.getItem('mtt-custom-ranges');
-        if (localRanges) {
-          try {
-            const parsedRanges = JSON.parse(localRanges);
-            console.log('🎯 強制読み込み成功:', {
-              rangeKeys: Object.keys(parsedRanges),
-              hasTargetRange: !!parsedRanges[rangeKey],
-              hasTargetHand: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType])
-            });
-            
-            // 強制読み込みしたレンジから該当ハンドを取得
-            if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[rangeKey][normalizedHandType];
-              usedRangeKey = rangeKey;
-              console.log('🎯 強制読み込みからカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
-            } else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
-              usedRangeKey = fallbackRangeKey;
-              console.log('🎯 強制読み込みからフォールバックレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-            }
-            
-            // カスタムレンジが見つかった場合はログ出力のみ（stateの更新は別途useEffectで処理）
-            if (Object.keys(parsedRanges).length > 0) {
-              console.log('🔄 強制読み込み成功: カスタムレンジが見つかりました');
-            }
-          } catch (e) {
-            console.log('強制読み込みエラー:', e);
-          }
-        }
-      }
+
       
-      // 15BBのvs3ベットの場合の特別な処理
-      if (stackSize === '15BB' && actionType === 'vs3bet' && !customHandData) {
-        console.log('🎯 15BB vs3ベット 特別処理開始');
-        const localRanges = localStorage.getItem('mtt-custom-ranges');
-        if (localRanges) {
-          try {
-            const parsedRanges = JSON.parse(localRanges);
-            console.log('🎯 15BB vs3ベット ローカルストレージ確認:', {
-              rangeKeys: Object.keys(parsedRanges),
-              vs3betKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet')),
-              targetRangeKey: rangeKey,
-              fallbackRangeKey,
-              hasTargetRange: !!parsedRanges[rangeKey],
-              hasFallbackRange: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey]),
-              targetHandExists: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]),
-              fallbackHandExists: !!(fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType])
-            });
-            
-            // 新しい形式のレンジキーを試行
-            if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[rangeKey][normalizedHandType];
-              usedRangeKey = rangeKey;
-              console.log('🎯 15BB vs3ベット 新しい形式でカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
-            }
-            // フォールバック形式のレンジキーを試行
-            else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
-              usedRangeKey = fallbackRangeKey;
-              console.log('🎯 15BB vs3ベット フォールバック形式でカスタムレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-            }
-            // 部分一致で検索
-            else {
-              const partialMatches = Object.keys(parsedRanges).filter(key => 
-                key.includes('vs3bet') && 
-                key.includes(normalizedPosition) && 
-                key.includes(normalizedThreeBetterPosition)
-              );
-              console.log('🎯 15BB vs3ベット 部分一致検索:', { partialMatches });
-              
-              for (const matchKey of partialMatches) {
-                if (parsedRanges[matchKey] && parsedRanges[matchKey][normalizedHandType]) {
-                  customHandData = parsedRanges[matchKey][normalizedHandType];
-                  usedRangeKey = matchKey;
-                  console.log('🎯 15BB vs3ベット 部分一致でカスタムレンジ発見:', { matchKey, handType: normalizedHandType, customHandData });
-                  break;
-                }
-              }
-            }
-          } catch (e) {
-            console.log('15BB vs3ベット 特別処理エラー:', e);
-          }
-        }
-      }
+
       
       // 強力なハンドの場合は強制的に適切なアクションを設定
       if (!customHandData) {
@@ -1145,33 +890,7 @@ const simulateMTTGTOData = (
       }
     }
     
-      // 15BBのvs3ベットで強制的にカスタムレンジを適用
-  if (stackSize === '15BB' && actionType === 'vs3bet') {
-    console.log('🎯 15BB vs3ベット 強制カスタムレンジ適用開始:', { handType: normalizedHandType });
-    
-    // カスタムレンジが見つからない場合は強制的にCALLを設定
-    if (!customHandData) {
-      console.log('🎯 15BB vs3ベット カスタムレンジが見つからないため強制適用:', { handType: normalizedHandType });
-      customHandData = {
-        action: 'CALL' as const,
-        frequency: 100
-      };
-      usedRangeKey = 'FORCED_15BB_VS3BET';
-    }
-    
-    // カスタムレンジが存在する場合も強制的に処理
-    console.log('🎯 15BB vs3ベット カスタムレンジ強制処理:', { 
-      customHandData, 
-      handType: normalizedHandType,
-      usedRangeKey 
-    });
-    
-    // 15BBのvs3ベットでは確実にカスタムレンジを処理する
-    console.log('🎯 15BB vs3ベット 確実にカスタムレンジ処理を実行');
-    
-    // 15BBのvs3ベットでは絶対的にカスタムレンジを優先
-    console.log('🎯 15BB vs3ベット 絶対的優先処理開始');
-  }
+
     
     if (customHandData) {
       // カスタムレンジから頻度データを取得
@@ -1183,14 +902,10 @@ const simulateMTTGTOData = (
         handType: normalizedHandType,
         stackSize,
         actionType,
-        rangeKey: usedRangeKey,
-        is15BBVs3bet: stackSize === '15BB' && actionType === 'vs3bet'
+        rangeKey: usedRangeKey
       });
       
-      // 15BBのvs3ベットの場合は強制的にカスタムレンジを適用
-      if (stackSize === '15BB' && actionType === 'vs3bet') {
-        console.log('🎯 15BB vs3ベット 強制カスタムレンジ適用:', { handType: normalizedHandType, customHandData });
-      }
+
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
         // 混合戦略の場合
@@ -1212,7 +927,7 @@ const simulateMTTGTOData = (
         
         // MIXEDアクションの場合は、最大頻度のアクションを主要アクションとして設定
         if (customHandData.action === 'MIXED') {
-          customHandData.action = customPrimaryAction;
+          customHandData.action = customPrimaryAction as any;
           customHandData.frequency = maxFreqEntry[1];
         }
         
@@ -1235,17 +950,19 @@ const simulateMTTGTOData = (
           isMixed: customHandData.action === 'MIXED'
         });
         // 単一アクションの場合
-        customPrimaryAction = customHandData.action;
+        let tempAction = customHandData.action;
         
         // オールインアクションの正規化
-        if (customHandData.action.toUpperCase().includes('ALL') || 
-            customHandData.action.toUpperCase().includes('ALLIN')) {
-          customPrimaryAction = 'ALL_IN';
+        if (tempAction.toUpperCase().includes('ALL') || 
+            tempAction.toUpperCase().includes('ALLIN')) {
+          tempAction = 'ALL_IN';
         }
         // MINをRAISEに変換
-        else if (customPrimaryAction === 'MIN') {
-          customPrimaryAction = 'RAISE';
+        else if (tempAction === 'MIN') {
+          tempAction = 'RAISE';
         }
+        
+        customPrimaryAction = tempAction as 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN';
         
         console.log('🔥 オールイン正規化処理:', {
           originalAction: customHandData.action,
@@ -1265,18 +982,17 @@ const simulateMTTGTOData = (
       // 頻度の合計を確認（正規化は行わない）
       const totalFreq = Object.values(customFrequencies).reduce((sum, freq) => sum + freq, 0);
       
-      console.log('🎯 カスタムレンジ頻度確認:', {
-        frequencies: customFrequencies,
-        totalFreq,
-        customPrimaryAction,
-        handType: normalizedHandType,
-        stackSize,
-        actionType,
-        is15BBVs3bet: stackSize === '15BB' && actionType === 'vs3bet'
-      });
+              console.log('🎯 カスタムレンジ頻度確認:', {
+          frequencies: customFrequencies,
+          totalFreq,
+          customPrimaryAction,
+          handType: normalizedHandType,
+          stackSize,
+          actionType
+        });
       
-      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う（15BBのvs3ベットのALLIN無効化処理の前）
-      if (customFrequencies['FOLD'] === 100 && !(stackSize === '15BB' && actionType === 'vs3bet' && customFrequencies['ALL_IN'] > 0)) {
+      // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
+      if (customFrequencies['FOLD'] === 100) {
         console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
         return {
           correctAction: 'FOLD',
@@ -1323,36 +1039,10 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies,
         handType: normalizedHandType,
         isCustomRange: true,
-        usedRangeKey,
-        is15BBVs3bet: stackSize === '15BB' && actionType === 'vs3bet'
+        usedRangeKey
       });
       
-      // 15BBのvs3ベットでは確実にカスタムレンジを返す
-      if (stackSize === '15BB' && actionType === 'vs3bet') {
-        console.log('🎯 15BB vs3ベット カスタムレンジ強制返却:', { 
-          correctAction: customPrimaryAction, 
-          handType: normalizedHandType,
-          frequencies: customFrequencies 
-        });
-        
-        // 15BBのvs3ベットでは確実にカスタムレンジの結果を返す
-        const result = {
-          correctAction: customPrimaryAction,
-          evData: customEvData,
-          frequencies: customFrequencies,
-          normalizedHandType: finalHandType,
-          effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
-          stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
-          icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-          recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
-          strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
-          isCustomRange: true,
-          usedRangeKey
-        };
-        
-        console.log('🎯 15BB vs3ベット 最終結果:', result);
-        return result;
-      }
+
       
       return {
         correctAction: customPrimaryAction,
@@ -2037,29 +1727,7 @@ const simulateMTTGTOData = (
     availableRangeKeys: customRanges ? Object.keys(customRanges) : []
   });
   
-  // 15BBのvs3ベットでカスタムレンジが処理されていない場合の最終チェック
-  if (stackSize === '15BB' && actionType === 'vs3bet') {
-    console.log('🎯 15BB vs3ベット 最終チェック: カスタムレンジが処理されていないため強制適用');
-    
-    // 最終的な強制適用 - 確実にCALLを返す
-    const finalCustomData = {
-      correctAction: 'CALL' as const,
-      evData: { ev: 0, evCall: 0, evFold: 0, evRaise: 0, evAllIn: 0 },
-      frequencies: { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL_IN': 0 },
-      normalizedHandType: finalHandType,
-      effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
-      stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}はCALLが推奨されます。`,
-      icmConsideration: getICMAdvice(stackDepthBB, 'CALL', position),
-      recommendedBetSize: 0,
-      strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}はCALLが設定されています。`,
-      isCustomRange: true,
-      usedRangeKey: 'FINAL_FORCED_15BB_VS3BET',
-      exploitSuggestion: getExploitSuggestion('CALL', position, finalHandType)
-    };
-    
-    console.log('🎯 15BB vs3ベット 最終強制結果:', finalCustomData);
-    return finalCustomData;
-  }
+
   
   const result = {
     correctAction: gtoAction,
