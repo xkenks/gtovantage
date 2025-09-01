@@ -228,6 +228,28 @@ const simulateMTTGTOData = (
   openerPosition?: string,
   threeBetType?: string
 ) => {
+  console.log('🎯 simulateMTTGTOData 関数が呼び出されました！');
+  // カスタムレンジが空の場合は強制的に再読み込み
+  let effectiveCustomRanges = customRanges;
+  if (!customRanges || Object.keys(customRanges).length === 0) {
+    console.log('🔄 カスタムレンジが空のため、ローカルストレージから強制読み込み');
+    const localRanges = localStorage.getItem('mtt-custom-ranges');
+    if (localRanges) {
+      try {
+        const parsedRanges = JSON.parse(localRanges);
+        if (Object.keys(parsedRanges).length > 0) {
+          effectiveCustomRanges = parsedRanges;
+          console.log('✅ 強制読み込み成功:', {
+            rangeKeys: Object.keys(parsedRanges),
+            rangeCount: Object.keys(parsedRanges).length
+          });
+        }
+      } catch (e) {
+        console.error('強制読み込みエラー:', e);
+      }
+    }
+  }
+
   console.log('🎯 simulateMTTGTOData 開始:', {
     hand,
     position,
@@ -235,9 +257,10 @@ const simulateMTTGTOData = (
     actionType,
     openerPosition,
     threeBetType,
-    hasCustomRanges: !!customRanges,
-    customRangesKeys: customRanges ? Object.keys(customRanges) : [],
-    customRangesCount: customRanges ? Object.keys(customRanges).length : 0
+    hasCustomRanges: !!effectiveCustomRanges,
+    customRangesKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
+    customRangesCount: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).length : 0,
+    originalCustomRangesCount: customRanges ? Object.keys(customRanges).length : 0
   });
   // 手札のランク情報を取得
   const normalizedHandType = normalizeHandType(hand);
@@ -305,14 +328,26 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合は既存のキー形式を優先
-      rangeKey = position;
-      fallbackRangeKey = `${position}_15BB`;
+      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
+      rangeKey = `${position}_15BB`;
+      fallbackRangeKey = position;
+      console.log('🎯 15BB オープンレイズ レンジキー設定:', { 
+        stackSize, 
+        rangeKey, 
+        fallbackRangeKey,
+        handType: normalizedHandType 
+      });
     } else {
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `${position}_${stackSize}`;
       // 15BBレンジがある場合はフォールバックとして使用
       fallbackRangeKey = position;
+      console.log('🎯 その他スタックサイズ オープンレイズ レンジキー設定:', { 
+        stackSize, 
+        rangeKey,
+        fallbackRangeKey,
+        handType: normalizedHandType 
+      });
     }
     
     console.log('🔍 オープンレイズ レンジキー:', {
@@ -375,7 +410,7 @@ const simulateMTTGTOData = (
       let customPrimaryAction: string = 'FOLD';
       
       if (customHandData.mixedFrequencies) {
-        // 混合戦略の場合
+        // 混合戦略の場合 - 元の比率をそのまま保持
         const mixedFreq = customHandData.mixedFrequencies as { FOLD?: number; CALL?: number; RAISE?: number; ALL_IN?: number; MIN?: number; };
         customFrequencies = {
           'FOLD': mixedFreq.FOLD || 0,
@@ -384,11 +419,8 @@ const simulateMTTGTOData = (
           'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
-        // 最大頻度のアクションを主要アクションとする
-        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
-          curr[1] > max[1] ? curr : max
-        );
-        customPrimaryAction = maxFreqEntry[0];
+        // 混合戦略の場合は、元の比率を保持してMIXEDアクションとして扱う
+        customPrimaryAction = 'MIXED';
       } else {
         // 単一アクションの場合
         const actionMapping: { [key: string]: string } = {
@@ -437,13 +469,25 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies,
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのオープンレイズ戦略です。`,
-        stackSizeStrategy: positionAdvice,
-        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
-        strategicAnalysis: `カスタム${stackSize}オープンレイズ: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
-        exploitSuggestion: getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
+        stackSizeStrategy: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : positionAdvice,
+        icmConsideration: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'MIXED' 
+          ? 0 // 混合戦略の場合は推奨サイズなし
+          : customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        strategicAnalysis: customPrimaryAction === 'MIXED'
+          ? `カスタム${stackSize}オープンレイズ混合戦略: ${normalizedHandType}は混合戦略（FOLD: ${customFrequencies.FOLD}%, CALL: ${customFrequencies.CALL}%, RAISE: ${customFrequencies.RAISE}%, ALL_IN: ${customFrequencies.ALL_IN}%）が設定されています。`
+          : `カスタム${stackSize}オープンレイズ: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        exploitSuggestion: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : getExploitSuggestion(customPrimaryAction, position, normalizedHandType),
         isCustomRange: true, // カスタムレンジ使用を示すフラグ
-        usedRangeKey // デバッグ用
+        usedRangeKey, // デバッグ用
+        isMixedStrategy: customPrimaryAction === 'MIXED',
+        mixedFrequencies: customPrimaryAction === 'MIXED' ? customFrequencies : undefined
       };
     }
   }
@@ -485,12 +529,23 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合は既存のキー形式を優先
-      rangeKey = `vsopen_${position}_vs_${openerPosition}`;
-      fallbackRangeKey = `vsopen_${position}_vs_${openerPosition}_15BB`;
+      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
+      rangeKey = `vsopen_${position}_vs_${openerPosition}_15BB`;
+      fallbackRangeKey = `vsopen_${position}_vs_${openerPosition}`;
+      console.log('🎯 15BB vsopen レンジキー設定:', { 
+        stackSize, 
+        rangeKey, 
+        fallbackRangeKey,
+        handType: normalizedHandType 
+      });
     } else {
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `vsopen_${position}_vs_${openerPosition}_${stackSize}`;
+      console.log('🎯 その他スタックサイズ vsopen レンジキー設定:', { 
+        stackSize, 
+        rangeKey,
+        handType: normalizedHandType 
+      });
     }
     
     console.log('🔍 vs オープン分析:', {
@@ -535,7 +590,7 @@ const simulateMTTGTOData = (
       let customPrimaryAction = 'FOLD';
       
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
-        // 混合戦略の場合 - vs オープン用の頻度分布を使用
+        // 混合戦略の場合 - 元の比率をそのまま保持
         const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
         customFrequencies = {
           'FOLD': mixedFreq.FOLD || 0,
@@ -544,26 +599,16 @@ const simulateMTTGTOData = (
           'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
-        // 最大頻度のアクションを主要アクションとする
-        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
-          curr[1] > max[1] ? curr : max
-        );
-        customPrimaryAction = maxFreqEntry[0];
+        // 混合戦略の場合は、元の比率を保持してMIXEDアクションとして扱う
+        customPrimaryAction = 'MIXED';
         
-        // MIXEDアクションの場合は、最大頻度のアクションを主要アクションとして設定
-        if (customHandData.action === 'MIXED') {
-          customHandData.action = customPrimaryAction as "FOLD" | "CALL" | "RAISE" | "ALL_IN" | "MIXED";
-          customHandData.frequency = maxFreqEntry[1];
-        }
-        
-        console.log('🎯 vs open MIXEDアクション処理（修正版）:', {
+        console.log('🎯 vs open MIXEDアクション処理（比率保持版）:', {
           mixedFreq,
           customFrequencies,
           customPrimaryAction,
-          finalAction: customHandData.action,
-          finalFrequency: customHandData.frequency
+          handType: normalizedHandType
         });
-  } else {
+      } else {
         // 単一アクションの場合
         let originalAction = customHandData.action;
         customPrimaryAction = originalAction.replace('ALL_IN', 'ALL_IN');
@@ -619,14 +664,22 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies,
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${openerPosition}からのオープンに対する${position}ポジションでの設定済み戦略です。`,
-        stackSizeStrategy: vsOpenAdvice,
-        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
+        stackSizeStrategy: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : vsOpenAdvice,
+        icmConsideration: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'MIXED' 
+          ? 0 // 混合戦略の場合は推奨サイズなし
+          : customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? 2.2 : 0,
         openerInfo: getOpenerInfo(openerPosition),
         openRaiserPosition: openerPosition,
         openRaiseSize: currentOpenRaiseSize,
         isVsOpen: true,
-        isCustomRange: true // カスタムレンジ使用を示すフラグ
+        isCustomRange: true, // カスタムレンジ使用を示すフラグ
+        isMixedStrategy: customPrimaryAction === 'MIXED',
+        mixedFrequencies: customPrimaryAction === 'MIXED' ? customFrequencies : undefined
       };
     }
     
@@ -671,18 +724,6 @@ const simulateMTTGTOData = (
   
   // vs 3ベットの場合の特別処理
   if (actionType === 'vs3bet') {
-    console.log('🎯 vs3bet処理開始:', {
-      handType: normalizedHandType,
-      stackSize,
-      position,
-      hasCustomRanges: !!customRanges,
-      customRangesKeys: customRanges ? Object.keys(customRanges).slice(0, 10) : []
-    });
-    
-
-    
-
-    
     // レンジ外ハンドの処理（vs3bet）
     if (['27o', '37o', '47o', '57o', '67o', '32o', '42o', '52o', '62o', '72o', '82o', '92o', 'T2o', 'J2o', 'Q2o', 'K2o', 'A2o', '23o', '24o', '25o', '26o', '28o', '29o', '2To', '2Jo', '2Qo', '2Ko', '2Ao'].includes(normalizedHandType)) {
       console.log('🎯 レンジ外ハンド検出:', { actionType, normalizedHandType });
@@ -700,16 +741,48 @@ const simulateMTTGTOData = (
       };
     }
     
-    // vs3betでは3ベッターのポジションが必要（オープンレイザーに対する3ベッターの位置）
-    let threeBetterPosition = openerPosition; // URLパラメータで3ベッターが指定されている場合
-    if (!threeBetterPosition) {
-      // 3ベッターが指定されていない場合はランダムに選択（オープンレイザーより後のポジション）
-      const getValidThreeBetters = (openRaiserPos: string): string[] => {
-        const openRaiserIndex = getPositionIndex(openRaiserPos);
-        if (openRaiserIndex >= POSITION_ORDER.length - 1) return []; // 最後のポジションの場合、後のポジションは存在しない
-        return POSITION_ORDER.slice(openRaiserIndex + 1); // オープンレイザーより後のポジションのみ
-      };
-      
+    // vs3betでは3ベッターのポジションが必要（ヒーローに対する3ベッターの位置）
+    let threeBetterPosition: string;
+    
+    // 3ベッターのポジションを決定（常にヒーローより後のポジションから選択）
+    const getValidThreeBetters = (heroPos: string): string[] => {
+      const heroIndex = getPositionIndex(heroPos);
+      if (heroIndex >= POSITION_ORDER.length - 1) return []; // 最後のポジションの場合、後のポジションは存在しない
+      return POSITION_ORDER.slice(heroIndex + 1); // ヒーローより後のポジションのみ
+    };
+    
+    // openerPositionの検証と3ベッターポジションの決定
+    console.log('🔍 3ベッターポジション決定開始:', {
+      heroPosition: position,
+      openerPosition,
+      heroIndex: getPositionIndex(position),
+      validThreeBetters: getValidThreeBetters(position)
+    });
+    
+    // openerPositionの厳密な検証と3ベッターポジションの決定
+    let isOpenerPositionValid = false;
+    if (openerPosition && openerPosition !== position) {
+      isOpenerPositionValid = getValidThreeBetters(position).includes(openerPosition);
+              console.log('🔍 openerPosition検証:', {
+          openerPosition,
+          heroPosition: position,
+          isSameAsHero: openerPosition === position,
+          isValidPosition: isOpenerPositionValid,
+          openerPositionIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
+          heroIndex: getPositionIndex(position),
+          validThreeBetters: getValidThreeBetters(position)
+        });
+    }
+    
+    if (isOpenerPositionValid && openerPosition) {
+      threeBetterPosition = openerPosition;
+      console.log('✅ 有効なopenerPositionを使用:', {
+        heroPosition: position,
+        threeBetterPosition,
+        openerPosition
+      });
+    } else {
+      // openerPositionが無効または未設定の場合は、必ず新しく有効な3ベッターを選択
       const validThreeBetters = getValidThreeBetters(position);
       if (validThreeBetters.length === 0) {
         // 有効な3ベッターがいない場合はフォールド
@@ -719,31 +792,117 @@ const simulateMTTGTOData = (
           frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
           normalizedHandType: finalHandType,
           effectiveStackExplanation: '❌ 無効なvs3ベット設定: 有効な3ベッターが存在しません',
-          stackSizeStrategy: 'vs3ベットには、オープンレイザーより後のポジションの3ベッターが必要です。',
+          stackSizeStrategy: 'vs3ベットには、ヒーローより後のポジションの3ベッターが必要です。',
           icmConsideration: 'ポジション設定を確認してください。',
           recommendedBetSize: 0
         };
       }
       
-      threeBetterPosition = validThreeBetters[Math.floor(Math.random() * validThreeBetters.length)];
+      // ランダム選択を確実に行う
+      const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
+      threeBetterPosition = validThreeBetters[randomIndex];
+      
+      console.log('🔄 新しい3ベッターポジションを選択:', {
+        heroPosition: position,
+        threeBetterPosition,
+        validOptions: validThreeBetters,
+        randomIndex,
+        reason: openerPosition ? `openerPosition(${openerPosition})が無効` : 'openerPosition未設定',
+        openerPositionValidation: {
+          isSameAsHero: openerPosition === position,
+          isValidPosition: isOpenerPositionValid,
+          openerPositionIndex: openerPosition ? getPositionIndex(openerPosition) : -1
+        }
+      });
+      
+      // 選択されたポジションが有効か再確認
+      if (threeBetterPosition === position) {
+        console.error('❌ 新規選択でヒーローと同じポジションが選ばれました:', {
+          heroPosition: position,
+          selectedPosition: threeBetterPosition,
+          validThreeBetters,
+          randomIndex
+        });
+        
+        // 強制的に別のポジションを選択
+        const remainingOptions = validThreeBetters.filter(pos => pos !== position);
+        if (remainingOptions.length > 0) {
+          threeBetterPosition = remainingOptions[Math.floor(Math.random() * remainingOptions.length)];
+          console.log('🔄 強制修正で3ベッターポジションを再選択:', {
+            from: position,
+            to: threeBetterPosition,
+            remainingOptions
+          });
+        }
+      }
     }
     
-    // スタック固有のレンジキーを構築（オープンレイザー vs 3ベッターの形式）
+    // 最終確認：3ベッターのポジションが正しく設定されているか
+    if (threeBetterPosition === position) {
+      console.error('❌ 最終確認で3ベッターのポジションがヒーローと同じです:', {
+        heroPosition: position,
+        threeBetterPosition,
+        openerPosition,
+        heroIndex: getPositionIndex(position),
+        threeBetterIndex: getPositionIndex(threeBetterPosition),
+        reason: 'これは完全にありえない状況です。強制修正が必要です。'
+      });
+      
+      // 強制的にヒーローより後のポジションを選択
+      const validThreeBetters = POSITION_ORDER.slice(getPositionIndex(position) + 1);
+      if (validThreeBetters.length > 0) {
+        // ヒーローと同じポジションを除外して選択
+        const safeOptions = validThreeBetters.filter(pos => pos !== position);
+        if (safeOptions.length > 0) {
+          threeBetterPosition = safeOptions[Math.floor(Math.random() * safeOptions.length)];
+          console.log('🔄 最終強制修正完了:', {
+            from: position,
+            to: threeBetterPosition,
+            safeOptions,
+            reason: 'ヒーローと同じポジションが設定されていたため強制修正'
+          });
+        } else {
+          console.error('❌ 安全な3ベッターポジションが存在しません:', {
+            heroPosition: position,
+            validThreeBetters,
+            safeOptions
+          });
+        }
+      }
+    }
+    
+    console.log('🎯 vs3bet ポジション設定完了:', {
+      heroPosition: position,
+      threeBetterPosition,
+      openerPosition,
+      heroIndex: getPositionIndex(position),
+      threeBetterIndex: getPositionIndex(threeBetterPosition),
+      validThreeBetters: POSITION_ORDER.slice(getPositionIndex(position) + 1),
+      positionValidation: {
+        areDifferent: position !== threeBetterPosition,
+        heroIndexValid: getPositionIndex(position) >= 0,
+        threeBetterIndexValid: getPositionIndex(threeBetterPosition) >= 0,
+        threeBetterAfterHero: getPositionIndex(threeBetterPosition) > getPositionIndex(position)
+      }
+    });
+    
+    // スタック固有のレンジキーを構築（ヒーロー vs 3ベッターの形式）
     // UTG+1とUTG1の表記統一
     const normalizedPosition = position === 'UTG+1' ? 'UTG1' : position;
     const normalizedThreeBetterPosition = threeBetterPosition === 'UTG+1' ? 'UTG1' : threeBetterPosition;
     
-    // 15BBのvs3ベットの場合は特別な処理
+    // 15BBの場合は既存キーを優先し、新しいキーをフォールバックとして使用
     let rangeKey: string;
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合は新しい形式を優先し、既存形式をフォールバックとして使用
+      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
       rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`;
       fallbackRangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
-      console.log('🎯 15BB vs3ベット レンジキー設定:', { 
+      console.log('🎯 15BB vs3bet レンジキー設定:', { 
+        stackSize, 
         rangeKey, 
-        fallbackRangeKey, 
+        fallbackRangeKey,
         handType: normalizedHandType 
       });
     } else if (stackSize === '20BB' && threeBetType) {
@@ -755,8 +914,13 @@ const simulateMTTGTOData = (
         handType: normalizedHandType 
       });
     } else {
-      // その他のスタックサイズ
+      // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${stackSize}`;
+      console.log('🎯 その他スタックサイズ vs3bet レンジキー設定:', { 
+        stackSize, 
+        rangeKey,
+        handType: normalizedHandType 
+      });
     }
     
     console.log('🎯 レンジキー正規化:', {
@@ -765,7 +929,14 @@ const simulateMTTGTOData = (
       normalizedPosition,
       normalizedThreeBetterPosition,
       rangeKey,
-      fallbackRangeKey
+      fallbackRangeKey,
+      positionValidation: {
+        isHeroValid: position && position !== '',
+        isThreeBetterValid: threeBetterPosition && threeBetterPosition !== '',
+        areDifferent: position !== threeBetterPosition,
+        heroIndex: getPositionIndex(position),
+        threeBetterIndex: getPositionIndex(threeBetterPosition)
+      }
     });
     
     console.log('🔍 vs 3ベット分析:', {
@@ -773,32 +944,32 @@ const simulateMTTGTOData = (
       fallbackRangeKey,
       stackSize,
       handType: normalizedHandType,
-      hasCustomRanges: !!customRanges,
-      hasThisRange: !!(customRanges && customRanges[rangeKey]),
-      hasFallbackRange: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
-      hasThisHand: !!(customRanges && (
-        (customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) ||
-        (fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      hasCustomRanges: !!effectiveCustomRanges,
+      hasThisRange: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+      hasFallbackRange: !!(effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey]),
+      hasThisHand: !!(effectiveCustomRanges && (
+        (effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType]) ||
+        (fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey] && effectiveCustomRanges[fallbackRangeKey][normalizedHandType])
       )),
-      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      availableRangeKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
       // 詳細な検索結果
-      rangeKeyExists: !!(customRanges && customRanges[rangeKey]),
-      rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-      handInRangeKey: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]),
-      fallbackKeyExists: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
-      fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : [],
-      handInFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType])
+      rangeKeyExists: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+      rangeKeyData: effectiveCustomRanges && effectiveCustomRanges[rangeKey] ? Object.keys(effectiveCustomRanges[rangeKey]) : [],
+      handInRangeKey: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType]),
+      fallbackKeyExists: !!(effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey]),
+      fallbackKeyData: effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey] ? Object.keys(effectiveCustomRanges[fallbackRangeKey]) : [],
+      handInFallbackKey: !!(effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey] && effectiveCustomRanges[fallbackRangeKey][normalizedHandType])
     });
     
     // カスタムレンジの詳細デバッグ
     console.log('🎯 カスタムレンジ詳細デバッグ:', {
-      customRangesExists: !!customRanges,
-      customRangesKeys: customRanges ? Object.keys(customRanges) : [],
+      customRangesExists: !!effectiveCustomRanges,
+      customRangesKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
       targetRangeKey: rangeKey,
       targetHandType: normalizedHandType,
-      hasTargetRange: !!(customRanges && customRanges[rangeKey]),
-      targetRangeData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-      hasTargetHand: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType])
+      hasTargetRange: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+      targetRangeData: effectiveCustomRanges && effectiveCustomRanges[rangeKey] ? Object.keys(effectiveCustomRanges[rangeKey]) : [],
+      hasTargetHand: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType])
     });
     
     // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
@@ -809,106 +980,126 @@ const simulateMTTGTOData = (
       rangeKey,
       fallbackRangeKey,
       handType: normalizedHandType,
-      hasCustomRanges: !!customRanges,
-      customRangesKeys: customRanges ? Object.keys(customRanges) : [],
-      targetRangeExists: !!(customRanges && customRanges[rangeKey]),
-      targetHandExists: !!(customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType])
+      hasCustomRanges: !!effectiveCustomRanges,
+      customRangesKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
+      targetRangeExists: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+      targetHandExists: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType])
     });
     
-    // 通常の処理
-    if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
-      customHandData = customRanges[rangeKey][normalizedHandType];
-      console.log('🎯 vs3bet カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
-    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
-      customHandData = customRanges[fallbackRangeKey][normalizedHandType];
+    if (effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType]) {
+      customHandData = effectiveCustomRanges[rangeKey][normalizedHandType];
+      console.log('🎯 vs3bet カスタムレンジ発見 (優先キー):', { rangeKey, handType: normalizedHandType, customHandData });
+    } else if (fallbackRangeKey && effectiveCustomRanges && effectiveCustomRanges[fallbackRangeKey] && effectiveCustomRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = effectiveCustomRanges[fallbackRangeKey][normalizedHandType];
       usedRangeKey = fallbackRangeKey;
-      console.log('🎯 フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
-    }
-    
-    if (!customHandData) {
-      console.log('🎯 vs3bet カスタムレンジ未発見:', {
-        rangeKey,
-        fallbackRangeKey,
-        handType: normalizedHandType,
-        hasCustomRanges: !!customRanges,
-        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
-        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
-        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
-        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
-      });
-
-      
+      console.log('🎯 vs3bet フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } else {
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
       if (stackSize === '20BB' && threeBetType) {
         console.log('🎯 20BB タイプ別レンジ未発見の詳細デバッグ:', {
           threeBetType,
           rangeKey,
           normalizedHandType,
-          availableRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB')) : [],
-          matchingRangeKeys: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : [],
-          hasRangeKey: !!(customRanges && customRanges[rangeKey]),
-          rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+          availableRangeKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB')) : [],
+          matchingRangeKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : [],
+          hasRangeKey: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+          rangeKeyData: effectiveCustomRanges && effectiveCustomRanges[rangeKey] ? Object.keys(effectiveCustomRanges[rangeKey]) : [],
           // 20BBのタイプ別レンジの詳細確認
-          has20BBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')).length : 0,
-          has20BBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')).length : 0,
-          twentyBBRaiseRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('raise')) : [],
-          twentyBBAllinRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes('allin')) : [],
+          has20BBRaiseRanges: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')).length : 0,
+          has20BBAllinRanges: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')).length : 0,
+          twentyBBRaiseRanges: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')) : [],
+          twentyBBAllinRanges: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')) : [],
           // 現在のレンジキーに一致するレンジが存在するかチェック
-          exactMatchExists: customRanges ? Object.keys(customRanges).includes(rangeKey) : false,
-          partialMatches: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
+          exactMatchExists: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).includes(rangeKey) : false,
+          partialMatches: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.includes('20BB') && key.includes(normalizedPosition) && key.includes(normalizedThreeBetterPosition)) : []
         });
       }
       console.log('🎯 vs3bet カスタムレンジ未発見:', { 
         rangeKey, 
         fallbackRangeKey, 
         handType: normalizedHandType,
-        hasCustomRanges: !!customRanges,
-        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
-        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
-        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
-        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+        hasCustomRanges: !!effectiveCustomRanges,
+        availableRangeKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
+        hasRangeKey: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey]),
+        hasFallbackKey: !!(effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey]),
+        rangeKeyData: effectiveCustomRanges && effectiveCustomRanges[rangeKey] ? Object.keys(effectiveCustomRanges[rangeKey]) : [],
+        fallbackKeyData: effectiveCustomRanges && fallbackRangeKey && effectiveCustomRanges[fallbackRangeKey] ? Object.keys(effectiveCustomRanges[fallbackRangeKey]) : [],
+        // 15BB専用のデバッグ情報
+        ...(stackSize === '15BB' && {
+          vs3bet15BBKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.startsWith('vs3bet_') && !key.includes('_15BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB') && !key.includes('_100BB')) : [],
+          vs3bet15BBSpecificKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges).filter(key => key.startsWith('vs3bet_') && key.includes('_15BB')) : []
+        })
       });
       
-
+      // カスタムレンジが読み込まれていない場合は、強制的に読み込みを試行
+      if (!effectiveCustomRanges || Object.keys(effectiveCustomRanges).length === 0) {
+        console.log('🎯 カスタムレンジが空のため、ローカルストレージから強制読み込み');
+        const localRanges = localStorage.getItem('mtt-custom-ranges');
+        if (localRanges) {
+          try {
+            const parsedRanges = JSON.parse(localRanges);
+            console.log('🎯 強制読み込み成功:', {
+              rangeKeys: Object.keys(parsedRanges),
+              hasTargetRange: !!parsedRanges[rangeKey],
+              hasTargetHand: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType])
+            });
+            
+            // 強制読み込みしたレンジから該当ハンドを取得
+            if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
+              customHandData = parsedRanges[rangeKey][normalizedHandType];
+              usedRangeKey = rangeKey;
+              console.log('🎯 強制読み込みからカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
+            } else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
+              customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
+              usedRangeKey = fallbackRangeKey;
+              console.log('🎯 強制読み込みからフォールバックレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+            }
+            
+            // カスタムレンジが見つかった場合はログ出力のみ（stateの更新は別途useEffectで処理）
+            if (Object.keys(parsedRanges).length > 0) {
+              console.log('🔄 強制読み込み成功: カスタムレンジが見つかりました');
+            }
+          } catch (e) {
+            console.log('強制読み込みエラー:', e);
+          }
+        }
+      }
       
-
-      
-      // 強力なハンドの場合は強制的に適切なアクションを設定
-      if (!customHandData) {
-        // カスタムレンジが見つからない場合は、デフォルト戦略を使用
-        console.log('🎯 カスタムレンジ未発見 - デフォルト戦略を使用:', {
-          handType: normalizedHandType,
-          rangeKey,
-          hasCustomRanges: !!customRanges,
-          availableRanges: customRanges ? Object.keys(customRanges) : []
-        });
+              // カスタムレンジが見つからない場合は注意メッセージを表示
+        if (!customHandData) {
+          console.log('🎯 カスタムレンジ未発見 - 注意メッセージを表示:', {
+            handType: normalizedHandType,
+            rangeKey,
+            fallbackRangeKey,
+            hasCustomRanges: !!effectiveCustomRanges,
+            availableRanges: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : []
+          });
         
-        // カスタムレンジが見つからない場合は、nullを返してデフォルト戦略に委ねる
-        customHandData = null;
+        // カスタムレンジが設定されていない場合は注意メッセージを返す
+        return {
+          correctAction: 'FOLD',
+          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
+          normalizedHandType: finalHandType,
+          effectiveStackExplanation: `このハンド(${normalizedHandType})のカスタムレンジが設定されていません。`,
+          stackSizeStrategy: `管理画面でカスタムレンジを設定してください。`,
+          icmConsideration: `カスタムレンジが設定されていないため、FOLD 100%が推奨されます。`,
+          recommendedBetSize: 0,
+          isCustomRangeNotSet: true,
+          customRangeNotSetMessage: `このハンド(${normalizedHandType})のカスタムレンジが設定されていません。管理画面でレンジを設定してください。`,
+          targetRangeKey: rangeKey,
+          fallbackRangeKey: fallbackRangeKey
+        };
       }
     }
-    
-
     
     if (customHandData) {
       // カスタムレンジから頻度データを取得
       let customFrequencies = { 'FOLD': 0, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 };
       let customPrimaryAction = 'FOLD';
       
-      console.log('🎯 カスタムレンジ処理開始:', {
-        customHandData,
-        handType: normalizedHandType,
-        stackSize,
-        actionType,
-        rangeKey: usedRangeKey
-      });
-      
-
-      
       if (customHandData.action === 'MIXED' && customHandData.mixedFrequencies) {
-        // 混合戦略の場合
+        // 混合戦略の場合 - 元の比率をそのまま保持
         const mixedFreq = customHandData.mixedFrequencies as { FOLD: number; CALL: number; RAISE: number; ALL_IN: number; MIN?: number; };
         
         // 正確な頻度計算（正規化なしで元の値を保持）
@@ -919,26 +1110,14 @@ const simulateMTTGTOData = (
           'ALL_IN': mixedFreq.ALL_IN || 0
         };
         
-        // 最大頻度のアクションを主要アクションとする
-        const maxFreqEntry = Object.entries(customFrequencies).reduce((max, curr) => 
-          curr[1] > max[1] ? curr : max
-        );
-        customPrimaryAction = maxFreqEntry[0];
+        // 混合戦略の場合は、元の比率を保持してMIXEDアクションとして扱う
+        customPrimaryAction = 'MIXED';
         
-        // MIXEDアクションの場合は、最大頻度のアクションを主要アクションとして設定
-        if (customHandData.action === 'MIXED') {
-          customHandData.action = customPrimaryAction as any;
-          customHandData.frequency = maxFreqEntry[1];
-        }
-        
-        console.log('🎯 MIXEDアクション処理（修正版）:', {
+        console.log('🎯 MIXEDアクション処理（比率保持版）:', {
           mixedFreq,
           customFrequencies,
           customPrimaryAction,
-          finalAction: customHandData.action,
-          finalFrequency: customHandData.frequency,
           handType: normalizedHandType,
-          maxFrequency: maxFreqEntry[1],
           totalFreq: Object.values(customFrequencies).reduce((sum, freq) => sum + freq, 0)
         });
       } else {
@@ -949,30 +1128,24 @@ const simulateMTTGTOData = (
           originalFrequency: customHandData.frequency,
           isMixed: customHandData.action === 'MIXED'
         });
-        // 単一アクションの場合
-        let tempAction = customHandData.action;
+        // 単一アクションの場合 - カスタムレンジの設定をそのまま尊重
+        customPrimaryAction = customHandData.action;
         
-        // オールインアクションの正規化
-        if (tempAction.toUpperCase().includes('ALL') || 
-            tempAction.toUpperCase().includes('ALLIN')) {
-          tempAction = 'ALL_IN';
-        }
-        // MINをRAISEに変換
-        else if (tempAction === 'MIN') {
-          tempAction = 'RAISE';
+        // アクションの正規化（必要最小限のみ）
+        if (customPrimaryAction === 'MIN') {
+          customPrimaryAction = 'RAISE';
         }
         
-        customPrimaryAction = tempAction as 'FOLD' | 'CALL' | 'RAISE' | 'ALL_IN';
-        
-        console.log('🔥 オールイン正規化処理:', {
+        console.log('🎯 アクション正規化処理:', {
           originalAction: customHandData.action,
           normalizedAction: customPrimaryAction,
-          frequency: customHandData.frequency,
-          isAllInAction: customHandData.action.toUpperCase().includes('ALL')
+          frequency: customHandData.frequency
         });
         
+        // 頻度データを正しく設定
         const actionKey = customPrimaryAction as keyof typeof customFrequencies;
         customFrequencies[actionKey] = customHandData.frequency;
+        
         // 残りの頻度をFOLDに設定
         if (customHandData.frequency < 100) {
           customFrequencies['FOLD'] = 100 - customHandData.frequency;
@@ -982,14 +1155,12 @@ const simulateMTTGTOData = (
       // 頻度の合計を確認（正規化は行わない）
       const totalFreq = Object.values(customFrequencies).reduce((sum, freq) => sum + freq, 0);
       
-              console.log('🎯 カスタムレンジ頻度確認:', {
-          frequencies: customFrequencies,
-          totalFreq,
-          customPrimaryAction,
-          handType: normalizedHandType,
-          stackSize,
-          actionType
-        });
+      console.log('🎯 カスタムレンジ頻度確認:', {
+        frequencies: customFrequencies,
+        totalFreq,
+        customPrimaryAction,
+        handType: normalizedHandType
+      });
       
       // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
       if (customFrequencies['FOLD'] === 100) {
@@ -1007,8 +1178,6 @@ const simulateMTTGTOData = (
           exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
         };
       }
-      
-
 
       console.log('🎯 vs3bet カスタムレンジ処理完了:', {
         originalAction: customHandData.action,
@@ -1029,20 +1198,21 @@ const simulateMTTGTOData = (
         rangeKey: usedRangeKey,
         handType: normalizedHandType,
         customHandData,
+        originalAction: customHandData.action,
         primaryAction: customPrimaryAction,
         frequencies: customFrequencies,
-        correctAction: customPrimaryAction
-      });
-      
-      console.log('🎯 カスタムレンジ結果:', {
         correctAction: customPrimaryAction,
-        frequencies: customFrequencies,
-        handType: normalizedHandType,
-        isCustomRange: true,
-        usedRangeKey
+        actionNormalized: customHandData.action !== customPrimaryAction
       });
       
-
+      // アクションの検証（デバッグ用）
+      console.log('🎯 最終アクション検証:', {
+        handType: normalizedHandType,
+        originalAction: customHandData.action,
+        finalAction: customPrimaryAction,
+        isActionChanged: customHandData.action !== customPrimaryAction,
+        frequencies: customFrequencies
+      });
       
       return {
         correctAction: customPrimaryAction,
@@ -1050,72 +1220,60 @@ const simulateMTTGTOData = (
         frequencies: customFrequencies,
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `カスタムレンジ: ${position}ポジション${stackSize}でのvs 3ベット戦略です。`,
-        stackSizeStrategy: `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
-        icmConsideration: getICMAdvice(stackDepthBB, customPrimaryAction, position),
-        recommendedBetSize: customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
-        strategicAnalysis: `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
+        stackSizeStrategy: customPrimaryAction === 'MIXED' 
+          ? `vs 3ベット: カスタム設定により${normalizedHandType}は混合戦略（FOLD: ${customFrequencies.FOLD}%, CALL: ${customFrequencies.CALL}%, RAISE: ${customFrequencies.RAISE}%, ALL_IN: ${customFrequencies.ALL_IN}%）が設定されています。`
+          : `vs 3ベット: カスタム設定により${normalizedHandType}は${customPrimaryAction}が推奨されます。`,
+        icmConsideration: customPrimaryAction === 'MIXED' 
+          ? `混合戦略: 各アクションの比率に従ってランダムに選択してください。`
+          : getICMAdvice(stackDepthBB, customPrimaryAction, position),
+        recommendedBetSize: customPrimaryAction === 'MIXED' 
+          ? 0 // 混合戦略の場合は推奨サイズなし
+          : customPrimaryAction === 'ALL_IN' ? stackDepthBB : customPrimaryAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
+        strategicAnalysis: customPrimaryAction === 'MIXED'
+          ? `カスタムvs3ベット混合戦略: ${normalizedHandType}は混合戦略（FOLD: ${customFrequencies.FOLD}%, CALL: ${customFrequencies.CALL}%, RAISE: ${customFrequencies.RAISE}%, ALL_IN: ${customFrequencies.CALL}%）が設定されています。`
+          : `カスタムvs3ベット戦略: ${normalizedHandType}は${customPrimaryAction}が設定されています。`,
         isCustomRange: true,
-        usedRangeKey
+        isMixedStrategy: customPrimaryAction === 'MIXED',
+        mixedFrequencies: customPrimaryAction === 'MIXED' ? customFrequencies : undefined
       };
     }
     
-    // カスタムレンジがない場合のみデフォルト戦略を使用
-    console.log('🎯 vs3bet カスタムレンジなし - デフォルト戦略使用:', {
+    // カスタムレンジがない場合は注意メッセージを表示
+    console.log('🎯 vs3bet カスタムレンジなし - 注意メッセージ表示:', {
       handType: normalizedHandType,
       stackSize,
       hasCustomRanges: !!customRanges,
-      availableRangeKeys: customRanges ? Object.keys(customRanges) : []
+      availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+      // 15BB専用のデバッグ情報
+      ...(stackSize === '15BB' && {
+        vs3bet15BBKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && !key.includes('_15BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB') && !key.includes('_100BB')) : [],
+        vs3bet15BBSpecificKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.includes('_15BB')) : [],
+        targetRangeKey: `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`,
+        targetFallbackKey: `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`,
+        hasTargetRange: !!(customRanges && customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`]),
+        hasTargetFallback: !!(customRanges && customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`]),
+        targetRangeData: customRanges && customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`] ? 
+          Object.keys(customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`]) : null,
+        targetFallbackData: customRanges && customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`] ? 
+          Object.keys(customRanges[`vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`]) : null
+      })
     });
     
-    // デフォルト戦略（カスタムレンジがない場合のみ使用）
-    gtoAction = 'CALL';
-    frequencies = { 'FOLD': 0, 'CALL': 100, 'RAISE': 0, 'ALL_IN': 0 };
-    console.log('🎯 デフォルト戦略設定:', { 
-      handType: normalizedHandType, 
-      gtoAction, 
-      frequencies,
-      correctAction: gtoAction,
-      primaryFrequency: frequencies[gtoAction]
-    });
-    
-
-    
-    // 頻度の合計を確認（正規化は行わない）
-    const totalFreq = Object.values(frequencies).reduce((sum, freq) => sum + freq, 0);
-    
-    console.log('🎯 デフォルト戦略頻度確認:', {
-      handType: normalizedHandType,
-      gtoAction,
-      frequencies,
-      totalFreq
-    });
-    
-    console.log('🎯 vs3bet デフォルト戦略適用:', {
-      handType: normalizedHandType,
-      gtoAction,
-      frequencies,
-      stackSize
-    });
-    
-    evData = {
-      'FOLD': 0,
-      'CALL': gtoAction === 'CALL' ? 1.2 : -1.5,
-      'RAISE': gtoAction === 'RAISE' ? 2.8 : -2.0,
-      'ALL_IN': gtoAction === 'ALL_IN' ? 4.5 : -3.0
-    };
-    
+    // カスタムレンジが設定されていない場合は、強制的にALLINを返すのではなく、FOLDを推奨
     return {
-      correctAction: gtoAction,
-      evData: evData,
-      frequencies: frequencies,
+      correctAction: 'FOLD',
+      evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+      frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
       normalizedHandType: finalHandType,
-      effectiveStackExplanation: `${stackSize}スタックでのvs 3ベット戦略です。`,
-      stackSizeStrategy: `vs 3ベット: ${normalizedHandType}は${gtoAction}が推奨されます。`,
-      icmConsideration: getICMAdvice(stackDepthBB, gtoAction, position),
-      recommendedBetSize: gtoAction === 'ALL_IN' ? stackDepthBB : gtoAction === 'RAISE' ? Math.min(stackDepthBB * 0.7, 25) : 0,
-      strategicAnalysis: `vs3ベット戦略: ${normalizedHandType}は${gtoAction}が推奨されます。`,
-      exploitSuggestion: `vs 3ベットでは、相手の3ベット頻度と4ベットに対する反応を観察して調整しましょう。`,
-
+      effectiveStackExplanation: `このハンド(${normalizedHandType})のカスタムレンジが設定されていません。`,
+      stackSizeStrategy: `管理画面でカスタムレンジを設定してください。`,
+      icmConsideration: `カスタムレンジが設定されていないため、FOLD 100%が推奨されます。`,
+      recommendedBetSize: 0,
+      isCustomRange: false,
+      isCustomRangeNotSet: true,
+      customRangeNotSetMessage: `このハンド(${normalizedHandType})のカスタムレンジが設定されていません。管理画面でレンジを設定してください。`,
+      targetRangeKey: rangeKey,
+      fallbackRangeKey: fallbackRangeKey
     };
   }
   
@@ -1727,8 +1885,6 @@ const simulateMTTGTOData = (
     availableRangeKeys: customRanges ? Object.keys(customRanges) : []
   });
   
-
-  
   const result = {
     correctAction: gtoAction,
     evData: evData,
@@ -1971,7 +2127,9 @@ function MTTTrainingPage() {
       }
     } else if (actionType === 'vs3bet' && spot.threeBetterPosition) {
       // vs3ベットレンジの場合
-      const vs3betKey = `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
+      const vs3betKey = stackDepth === '15BB' 
+        ? `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}` 
+        : `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
       
       console.log('🎯 vs3ベットレンジキー生成:', {
         actionType,
@@ -1979,24 +2137,14 @@ function MTTTrainingPage() {
         threeBetterPosition: spot.threeBetterPosition,
         stackDepth,
         generatedKey: vs3betKey,
-        keyFormat: 'スタック固有形式'
+        is15BB: stackDepth === '15BB',
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
       });
-      
-      // 15BBのvs3ベットの場合の特別なデバッグログ
-      if (stackDepth === '15BB') {
-        console.log('🎯 15BB vs3ベット特別デバッグ:', {
-          heroPosition,
-          threeBetterPosition: spot.threeBetterPosition,
-          generatedKey: vs3betKey,
-          expectedKeyFormat: `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`,
-          keyMatches: vs3betKey === `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`
-        });
-      }
       
       // 各スタックサイズでのレンジキー生成例をログ出力
       const exampleKeys = {
         '10BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_10BB`,
-        '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_15BB`,
+        '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
         '20BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_20BB`,
         '30BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_30BB`,
         '40BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_40BB`,
@@ -2010,7 +2158,9 @@ function MTTTrainingPage() {
       return vs3betKey;
     } else if (actionType === 'vs4bet' && spot.openRaiserPosition) {
       // vs4ベットレンジの場合（4ベッターはopenRaiserPositionに格納）
-      const vs4betKey = `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`;
+      const vs4betKey = stackDepth === '15BB' 
+        ? `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}` 
+        : `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`;
       
       console.log('🎯 vs4ベットレンジキー生成:', {
         actionType,
@@ -2018,13 +2168,14 @@ function MTTTrainingPage() {
         fourBetterPosition: spot.openRaiserPosition,
         stackDepth,
         generatedKey: vs4betKey,
-        keyFormat: 'スタック固有形式'
+        is15BB: stackDepth === '15BB',
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
       });
       
       // 各スタックサイズでのレンジキー生成例をログ出力
       const exampleKeys = {
         '10BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_10BB`,
-        '15BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_15BB`,
+        '15BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}`,
         '20BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_20BB`,
         '30BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_30BB`,
         '40BB': `vs4bet_${heroPosition}_vs_${spot.openRaiserPosition}_40BB`,
@@ -2051,162 +2202,6 @@ function MTTTrainingPage() {
               actionType === 'vsopen' ? 'openRaiserPositionが未設定' : '不明'
     });
     return null;
-  };
-
-  // アクションボタンが表示されるかどうかを判定する関数
-         const shouldShowAction = (action: string): boolean => {
-         if (!spot || !spot.stackDepth) return true;
-         
-         const { actionType, stackDepth } = spot;
-         const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
-         
-         // 15BBの場合
-         if (stackSizeNum === 15 && actionType === 'vs3bet' && (action === 'RAISE' || action === 'ALL_IN')) {
-           return false;
-         }
-         
-         // 20BBの場合
-         if (stackSizeNum === 20 && actionType === 'vs3bet' && action === 'RAISE') {
-           return false;
-         }
-    
-    // 30BBの場合
-    if (stackSizeNum === 30) {
-      if (actionType === 'vs3bet' && action === 'RAISE') {
-        return false;
-      } else if (actionType === 'vs4bet' && (action === 'RAISE' || action === 'ALL_IN')) {
-        return false;
-      }
-    }
-    
-    // 40BBの場合
-    if (stackSizeNum === 40) {
-      if (actionType === 'vs3bet' && action === 'RAISE') {
-        return false;
-      } else if (actionType === 'vs4bet' && action === 'RAISE') {
-        return false;
-      }
-    }
-    
-    // 50BBの場合
-    if (stackSizeNum === 50 && actionType === 'vs4bet' && action === 'RAISE') {
-      return false;
-    }
-    
-    // 75BBの場合
-    if (stackSizeNum === 75 && actionType === 'vs4bet' && action === 'RAISE') {
-      return false;
-    }
-    
-    // 100BBの場合
-    if (stackSizeNum === 100 && actionType === 'vs4bet' && action === 'RAISE') {
-      return false;
-    }
-    
-    return true;
-  };
-
-  // アクションボタンの表示テキストを取得する関数
-  const getActionButtonText = (action: string): string => {
-    if (!spot || !spot.stackDepth) return action;
-    
-    const { actionType, heroPosition, stackDepth, threeBetterPosition, openRaiserPosition } = spot;
-    const stackSizeNum = parseInt(stackDepth.replace('BB', ''));
-    
-    if (action === 'FOLD') return 'FOLD';
-    if (action === 'CALL') return 'CALL';
-    
-    if (action === 'RAISE') {
-      // オープンレイズの場合
-      if (actionType === 'open' || actionType === 'openraise') {
-        const openRaiseAmounts: Record<string, number> = {
-          '10BB': 2.0, '15BB': 2.0, '20BB': 2.0, '30BB': 2.1, 
-          '40BB': 2.3, '50BB': 2.3, '75BB': 2.3, '100BB': 2.3
-        };
-        const amount = openRaiseAmounts[stackDepth] || 2.0;
-        return `RAISE ${amount}`;
-      }
-      
-      // vsオープンの場合
-      if (actionType === 'vsopen') {
-        // 15BBの場合はRAISEボタンが存在しない
-        if (stackSizeNum <= 15) return 'RAISE';
-        
-        // ヒーローのポジションに基づいてレイズ額を決定
-        const vsOpenAmounts: Record<string, { default: number; SB: number; BB: number }> = {
-          '20BB': { default: 5.0, SB: 5.5, BB: 6.0 },
-          '30BB': { default: 6.3, SB: 7.5, BB: 8.2 },
-          '40BB': { default: 6.8, SB: 8.6, BB: 9.2 },
-          '50BB': { default: 6.9, SB: 9.2, BB: 9.8 },
-          '75BB': { default: 8.0, SB: 10.0, BB: 10.3 },
-          '100BB': { default: 8.0, SB: 11.0, BB: 11.5 }
-        };
-        
-        const amounts = vsOpenAmounts[stackDepth];
-        if (!amounts) return 'RAISE';
-        
-        let amount: number;
-        if (heroPosition === 'SB') {
-          amount = amounts.SB;
-        } else if (heroPosition === 'BB') {
-          amount = amounts.BB;
-        } else {
-          amount = amounts.default;
-        }
-        
-        return `RAISE ${amount}`;
-      }
-      
-      // vs3ベットの場合
-      if (actionType === 'vs3bet') {
-        // 15BB、30BB、40BBの場合はRAISEボタンが存在しない
-        if (stackSizeNum <= 40) return 'RAISE';
-        
-        // 50BBの場合
-        if (stackSizeNum === 50) {
-          // 3ベッターのポジションを確認
-          if (threeBetterPosition === 'SB' || threeBetterPosition === 'BB') {
-            return 'RAISE'; // ALLINになるため、RAISEボタンは表示されない
-          }
-          return 'RAISE 16';
-        }
-        
-        // 75BB、100BBの場合
-        const vs3betAmounts: Record<string, { default: number; SB: number; BB: number }> = {
-          '75BB': { default: 20.9, SB: 21.2, BB: 22.0 },
-          '100BB': { default: 21.0, SB: 23.0, BB: 24.0 }
-        };
-        
-        const amounts = vs3betAmounts[stackDepth];
-        if (!amounts) return 'RAISE';
-        
-        // 3ベッターのポジションを確認
-        let amount: number;
-        if (threeBetterPosition === 'SB') {
-          amount = amounts.SB;
-        } else if (threeBetterPosition === 'BB') {
-          amount = amounts.BB;
-        } else {
-          amount = amounts.default;
-        }
-        
-        return `RAISE ${amount}`;
-      }
-      
-      // vs4ベットの場合
-      if (actionType === 'vs4bet') {
-        // 30BB、40BB、50BB、75BB、100BBの場合はRAISEボタンが存在しない
-        return 'RAISE';
-      }
-      
-      return 'RAISE';
-    }
-    
-    if (action === 'ALL_IN') {
-      return `ALLIN ${stackSizeNum}`;
-    }
-    
-    return action;
   };
 
   // ハンドタイプからカード配列を生成するヘルパー関数
@@ -2275,6 +2270,15 @@ function MTTTrainingPage() {
 
   // 新しいシナリオを生成
   const generateNewScenario = () => {
+    console.log('🎯 generateNewScenario 関数が呼び出されました！');
+    console.log('🎯 generateNewScenario 開始:', {
+      position,
+      stackSize,
+      actionType,
+      hasCustomRanges: !!customRanges,
+      customRangesCount: customRanges ? Object.keys(customRanges).length : 0
+    });
+    
     // アナリティクス: トレーニング開始を追跡
     gtoEvents.startTraining(position, stackSize, actionType);
     // 最新のカスタムレンジを強制的に読み込み
@@ -2292,30 +2296,7 @@ function MTTTrainingPage() {
             console.log('🔄 シナリオ生成時にカスタムレンジを同期更新');
           }
           
-          // 15BBのvs3ベットのレンジが存在しない場合、既存のvs3ベットレンジを15BB形式に変換
-          if (stackSize === '15BB' && actionType === 'vs3bet') {
-            const vs3bet15BBRanges = Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && key.includes('15BB'));
-            if (vs3bet15BBRanges.length === 0) {
-              const existingVs3betRanges = Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB'));
-              console.log('🎯 シナリオ生成時に15BB形式に変換:', existingVs3betRanges);
-              
-              const updatedRanges = { ...parsedRanges };
-              existingVs3betRanges.forEach(rangeKey => {
-                const new15BBKey = `${rangeKey}_15BB`;
-                if (!updatedRanges[new15BBKey]) {
-                  updatedRanges[new15BBKey] = parsedRanges[rangeKey];
-                  console.log('🎯 15BB形式に変換:', { original: rangeKey, new: new15BBKey });
-                }
-              });
-              
-              if (Object.keys(updatedRanges).length > Object.keys(parsedRanges).length) {
-                latestCustomRanges = updatedRanges;
-                setCustomRanges(updatedRanges);
-                localStorage.setItem('mtt-custom-ranges', JSON.stringify(updatedRanges));
-                console.log('🎯 シナリオ生成時に15BB形式のレンジを追加しました');
-              }
-            }
-          }
+
         }
       } catch (e) {
         console.log('最新カスタムレンジ取得エラー:', e);
@@ -2392,13 +2373,32 @@ function MTTTrainingPage() {
         }
       }
     } else if (actionType === 'vs3bet') {
-      // vs3betの場合、3ベッターをランダムに選択（オープンレイザーより後のポジション）
+      // vs3betの場合、3ベッターをランダムに選択（ヒーローより後のポジション）
+      console.log('🎯 vs3bet 3ベッターポジション設定開始:', {
+        heroPosition: position,
+        heroIndex: getPositionIndex(position),
+        urlThreeBetter: searchParams.get('threebetter')
+      });
+      
       const urlThreeBetter = searchParams.get('threebetter');
       if (urlThreeBetter) {
         const threeBetterIndex = getPositionIndex(urlThreeBetter);
         const positionIndex = getPositionIndex(position);
         if (threeBetterIndex > positionIndex) {
           openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
+          console.log('✅ URLパラメータから3ベッターポジション設定:', {
+            urlThreeBetter,
+            threeBetterIndex,
+            positionIndex,
+            isValid: threeBetterIndex > positionIndex
+          });
+        } else {
+          console.log('❌ URLパラメータの3ベッターポジションが無効:', {
+            urlThreeBetter,
+            threeBetterIndex,
+            positionIndex,
+            isValid: threeBetterIndex > positionIndex
+          });
         }
       }
       
@@ -2407,10 +2407,62 @@ function MTTTrainingPage() {
         if (positionIndex < POSITION_ORDER.length - 1) {
           const validThreeBetters = POSITION_ORDER.slice(positionIndex + 1);
           if (validThreeBetters.length > 0) {
-            openerPosition = validThreeBetters[Math.floor(Math.random() * validThreeBetters.length)];
+            // ランダム選択を確実に行う
+            const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
+            openerPosition = validThreeBetters[randomIndex];
+            
+            console.log('🔄 ランダムに3ベッターポジションを選択:', {
+              heroPosition: position,
+              heroIndex: positionIndex,
+              validThreeBetters,
+              randomIndex,
+              selected: openerPosition,
+              selectedIndex: getPositionIndex(openerPosition),
+              reason: 'URLパラメータが無効または未設定'
+            });
+            
+            // 選択されたポジションが有効か再確認
+            if (openerPosition === position) {
+              console.error('❌ ランダム選択でヒーローと同じポジションが選ばれました:', {
+                heroPosition: position,
+                selectedPosition: openerPosition,
+                validThreeBetters
+              });
+              
+              // 強制的に別のポジションを選択
+              const remainingOptions = validThreeBetters.filter(pos => pos !== position);
+              if (remainingOptions.length > 0) {
+                openerPosition = remainingOptions[Math.floor(Math.random() * remainingOptions.length)];
+                console.log('🔄 強制修正で3ベッターポジションを再選択:', {
+                  from: position,
+                  to: openerPosition,
+                  remainingOptions
+                });
+              }
+            }
+          } else {
+            console.error('❌ 有効な3ベッターポジションが存在しません:', {
+              heroPosition: position,
+              heroIndex: positionIndex,
+              positionOrderLength: POSITION_ORDER.length
+            });
           }
+        } else {
+          console.error('❌ ヒーローが最後のポジションのため、3ベッターが存在しません:', {
+            heroPosition: position,
+            heroIndex: positionIndex,
+            positionOrder: POSITION_ORDER
+          });
         }
       }
+      
+      console.log('🎯 vs3bet 3ベッターポジション設定完了:', {
+        heroPosition: position,
+        threeBetterPosition: openerPosition,
+        heroIndex: getPositionIndex(position),
+        threeBetterIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
+        isValid: openerPosition && openerPosition !== position && getPositionIndex(openerPosition) > getPositionIndex(position)
+      });
     } else if (actionType === 'vs4bet') {
       // vs4betの場合、4ベッターをランダムに選択（3ベッターより前のポジション）
       const urlFourBetter = searchParams.get('fourbetter');
@@ -2431,6 +2483,27 @@ function MTTTrainingPage() {
           }
         }
       }
+    }
+    
+    // 15BBのvs3ベット専用デバッグ（openerPosition確定後）
+    if (stackSize === '15BB' && actionType === 'vs3bet' && latestCustomRanges) {
+      console.log('🎯 15BB vs3ベット カスタムレンジ読み込み確認:', {
+        parsedRangesCount: Object.keys(latestCustomRanges).length,
+        vs3betKeys: Object.keys(latestCustomRanges).filter(key => key.startsWith('vs3bet_')),
+        targetRangeKey: `vs3bet_${position}_vs_${openerPosition}`,
+        targetFallbackKey: `vs3bet_${position}_vs_${openerPosition}_15BB`,
+        hasTargetRange: !!latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}`],
+        hasTargetFallback: !!latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`],
+        targetRangeData: latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}`] ? 
+          Object.keys(latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}`]) : null,
+        targetFallbackData: latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`] ? 
+          Object.keys(latestCustomRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`]) : null,
+        // 全vs3betキーの詳細確認
+        allVs3betKeys: Object.keys(latestCustomRanges).filter(key => key.startsWith('vs3bet_')),
+        // 15BB関連のキーの詳細確認
+        vs3bet15BBKeys: Object.keys(latestCustomRanges).filter(key => key.startsWith('vs3bet_') && !key.includes('_15BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB') && !key.includes('_100BB')),
+        vs3bet15BBSpecificKeys: Object.keys(latestCustomRanges).filter(key => key.startsWith('vs3bet_') && key.includes('_15BB'))
+      });
     }
     
     // 20BBの場合の3ベットタイプ決定
@@ -2459,6 +2532,18 @@ function MTTTrainingPage() {
       hasCustomRanges: !!customRanges,
       customRangesCount: customRanges ? Object.keys(customRanges).length : 0,
       customRangesKeys: customRanges ? Object.keys(customRanges) : [],
+      // 15BBのvs3ベット専用デバッグ
+      ...(stackSize === '15BB' && actionType === 'vs3bet' && {
+        vs3bet15BBRangeKey: `vs3bet_${position}_vs_${openerPosition}`,
+        vs3bet15BBFallbackKey: `vs3bet_${position}_vs_${openerPosition}_15BB`,
+        hasVs3bet15BBRange: !!(customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}`]),
+        hasVs3bet15BBFallback: !!(customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`]),
+        vs3bet15BBRangeData: customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}`] ? 
+          Object.keys(customRanges[`vs3bet_${position}_vs_${openerPosition}`]) : [],
+        vs3bet15BBFallbackData: customRanges && customRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`] ? 
+          Object.keys(customRanges[`vs3bet_${position}_vs_${openerPosition}_15BB`]) : [],
+        allVs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')) : []
+      }),
       // 20BBのレンジ詳細確認
       ...(stackSize === '20BB' && {
         has20BBRanges: customRanges ? Object.keys(customRanges).filter(key => key.includes('20BB')).length : 0,
@@ -2479,6 +2564,20 @@ function MTTTrainingPage() {
     
     // MTT特有のGTOデータをシミュレート（簡略化）
     // 最新のカスタムレンジを使用
+    console.log('🎯 generateNewScenario: simulateMTTGTOData呼び出し直前');
+    console.log('🎯 simulateMTTGTOData呼び出し直前:', {
+      newHand,
+      position,
+      stackSize,
+      actionType,
+      latestCustomRangesExists: !!latestCustomRanges,
+      latestCustomRangesKeys: latestCustomRanges ? Object.keys(latestCustomRanges) : [],
+      latestCustomRangesCount: latestCustomRanges ? Object.keys(latestCustomRanges).length : 0,
+      openerPosition,
+      threeBetType
+    });
+    
+    console.log('🎯 simulateMTTGTOData関数呼び出し開始');
     const data = simulateMTTGTOData(
       newHand, 
       position, 
@@ -2488,6 +2587,11 @@ function MTTTrainingPage() {
       openerPosition,
       threeBetType
     );
+    console.log('🎯 simulateMTTGTOData関数呼び出し完了:', {
+      dataExists: !!data,
+      dataCorrectAction: data?.correctAction,
+      dataIsCustomRange: (data as any)?.isCustomRange
+    });
     console.log('🎯 setGtoData直前:', {
       newHand,
       dataNormalizedHandType: data.normalizedHandType,
@@ -3045,7 +3149,19 @@ function MTTTrainingPage() {
         let threeBetterStack = stackValue;
         if (actionType === 'vs3bet' && openerPosition) {
           if (stackSize === '15BB') {
-            threeBetterStack = 0;
+            // 15BBのvs3ベットでは、実際の3ベットサイズに基づいてスタックを計算
+            const threeBetAmount = 15; // 15BBのvs3ベットは通常15BB
+                      if (openerPosition === 'SB') {
+            threeBetterStack = 14.5 - threeBetAmount; // 15 - 0.5 - 15 = -0.5 → 0
+          } else if (openerPosition === 'BB') {
+            // BBが3ベッターの場合、ブラインド分（1BB）は既にポットに投入されている
+            // 3ベットサイズは15BBだが、実際に追加で投入するのは14BB（15 - 1）
+            const additionalBet = threeBetAmount - 1; // 15 - 1 = 14BB
+            threeBetterStack = 15 - additionalBet; // 15 - 14 = 1BB
+          } else {
+            threeBetterStack = 15 - threeBetAmount; // 15 - 15 = 0
+          }
+            console.log(`🎯 15BB 3ベッタースタック計算: ${openerPosition} = ${threeBetterStack}`);
           } else if (stackSize === '20BB') {
             // 3ベッターのポジションに応じて3ベットサイズを決定
             const currentThreeBetType = (window as any).currentThreeBetType;
@@ -3538,27 +3654,9 @@ function MTTTrainingPage() {
         }
         
         // API読み込みが失敗した場合の処理
-        console.log('❌ APIからの読み込みに失敗しました。ローカルデータを優先的に使用します。');
+        console.log('❌ APIからの読み込みに失敗しました。ローカルデータまたはファイルデータを使用します。');
         
-        // ローカルデータを確認
-        const localRanges = localStorage.getItem('mtt-custom-ranges');
-        if (localRanges) {
-          try {
-            const parsedRanges = JSON.parse(localRanges);
-            if (Object.keys(parsedRanges).length > 0) {
-              setCustomRanges(parsedRanges);
-              console.log('✅ ローカルデータを使用しました:', {
-                rangeKeys: Object.keys(parsedRanges),
-                rangeCount: Object.keys(parsedRanges).length
-              });
-              return; // ローカルデータ使用時は終了
-            }
-          } catch (e) {
-            console.log('ローカルデータ解析エラー:', e);
-          }
-        }
-        
-        // ローカルデータがない場合のみ、データファイルから読み込み
+        // APIからの読み込みが失敗した場合、データファイルから直接読み込み
         console.log('ローカルデータがないため、データファイルから読み込みます...');
         const fileResponse = await fetch('/data/mtt-ranges.json');
         if (fileResponse.ok) {
@@ -3677,60 +3775,6 @@ function MTTTrainingPage() {
       // 初回読み込み
   loadSystemRanges();
   
-  // カスタムレンジの強制読み込み（15bb vs3bet問題の解決のため）
-  const forceLoadCustomRanges = () => {
-    const localRanges = localStorage.getItem('mtt-custom-ranges');
-    if (localRanges) {
-      try {
-        const parsedRanges = JSON.parse(localRanges);
-        if (Object.keys(parsedRanges).length > 0) {
-          console.log('🎯 カスタムレンジ強制読み込み:', {
-            rangeKeys: Object.keys(parsedRanges),
-            rangeCount: Object.keys(parsedRanges).length,
-            vs3betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs3bet_')),
-            vs3bet15BBKeys: Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && key.includes('15BB'))
-          });
-          setCustomRanges(parsedRanges);
-          setLastRangeUpdate(Date.now());
-          
-          // 15BBのvs3ベットのレンジが存在するか特別に確認
-          const vs3bet15BBRanges = Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && key.includes('15BB'));
-          if (vs3bet15BBRanges.length > 0) {
-            console.log('🎯 15BB vs3ベットレンジ発見:', vs3bet15BBRanges);
-          } else {
-            console.log('❌ 15BB vs3ベットレンジが見つかりません');
-            
-            // 15BBのvs3ベットのレンジが存在しない場合、既存のvs3ベットレンジを15BB形式に変換
-            const existingVs3betRanges = Object.keys(parsedRanges).filter(key => key.includes('vs3bet') && !key.includes('_15BB'));
-            console.log('🎯 既存のvs3ベットレンジを15BB形式に変換:', existingVs3betRanges);
-            
-            const updatedRanges = { ...parsedRanges };
-            existingVs3betRanges.forEach(rangeKey => {
-              const new15BBKey = `${rangeKey}_15BB`;
-              if (!updatedRanges[new15BBKey]) {
-                updatedRanges[new15BBKey] = parsedRanges[rangeKey];
-                console.log('🎯 15BB形式に変換:', { original: rangeKey, new: new15BBKey });
-              }
-            });
-            
-            if (Object.keys(updatedRanges).length > Object.keys(parsedRanges).length) {
-              setCustomRanges(updatedRanges);
-              localStorage.setItem('mtt-custom-ranges', JSON.stringify(updatedRanges));
-              console.log('🎯 15BB形式のレンジを追加しました');
-            }
-          }
-        }
-      } catch (e) {
-        console.log('カスタムレンジ強制読み込みエラー:', e);
-      }
-    } else {
-      console.log('❌ ローカルストレージにカスタムレンジが存在しません');
-    }
-  };
-  
-  // 強制読み込みを実行
-  forceLoadCustomRanges();
-  
   // カスタムレンジの読み込み状況を確認
   console.log('🎯 カスタムレンジ読み込み状況確認:', {
     hasCustomRanges: !!customRanges,
@@ -3739,8 +3783,31 @@ function MTTTrainingPage() {
     localStorageRanges: localStorage.getItem('mtt-custom-ranges') ? '存在' : 'なし',
     localStorageTimestamp: localStorage.getItem('mtt-ranges-timestamp') || 'なし',
     vs3betKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')) : [],
-    vs3betCount: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')).length : 0
+    vs3betCount: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_')).length : 0,
+    // 15BBのvs3ベット専用デバッグ
+    vs3bet15BBKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && !key.includes('_15BB') && !key.includes('_20BB') && !key.includes('_30BB') && !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB') && !key.includes('_100BB')) : [],
+    vs3bet15BBSpecificKeys: customRanges ? Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && key.includes('_15BB')) : []
   });
+  
+  // カスタムレンジが空の場合は強制的にローカルストレージから読み込み
+  if (!customRanges || Object.keys(customRanges).length === 0) {
+    console.log('🎯 カスタムレンジが空のため、強制読み込みを実行');
+    const localRanges = localStorage.getItem('mtt-custom-ranges');
+    if (localRanges) {
+      try {
+        const parsedRanges = JSON.parse(localRanges);
+        if (Object.keys(parsedRanges).length > 0) {
+          setCustomRanges(parsedRanges);
+          console.log('🎯 強制読み込み成功:', {
+            rangeKeys: Object.keys(parsedRanges),
+            rangeCount: Object.keys(parsedRanges).length
+          });
+        }
+      } catch (e) {
+        console.log('強制読み込みエラー:', e);
+      }
+    }
+  }
   
   // カスタムレンジの変更を監視（デバッグ用）
   console.log('🎯 カスタムレンジ変更監視開始:', {
@@ -3916,17 +3983,9 @@ function MTTTrainingPage() {
     }
     // vs3ベットレンジで15BBの場合の互換性も保つ (例: vs3bet_UTG_vs_BTN_15BB → vs3bet_UTG_vs_BTN)
     else if (position.startsWith('vs3bet_') && position.endsWith('_15BB')) {
-      // 15BBのvs3ベットは新しい形式と既存形式の両方を保存
-      newCustomRanges[position] = rangeData;
       const baseVs3BetKey = position.replace('_15BB', '');
       newCustomRanges[baseVs3BetKey] = rangeData; // 既存のvs3ベットレンジキーも更新
-      console.log('15BB vs3ベットレンジ保存（互換性あり）:', { position, baseVs3BetKey, stackSize });
-    }
-    // vs3ベットレンジで15BBの場合の既存キー形式も保存（互換性のため）
-    else if (position.startsWith('vs3bet_') && !position.endsWith('_15BB') && stackSize === '15BB') {
-      const newVs3BetKey = `${position}_15BB`;
-      newCustomRanges[newVs3BetKey] = rangeData; // 新しいvs3ベットレンジキーも更新
-      console.log('15BB互換性: 新しいvs3ベットレンジキーも更新', { newVs3BetKey, position });
+      console.log('15BB互換性: 既存vs3ベットレンジキーも更新', { baseVs3BetKey, position });
     }
     // vs4ベットレンジで15BBの場合の互換性も保つ (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
     else if (position.startsWith('vs4bet_') && position.endsWith('_15BB')) {
@@ -4349,14 +4408,6 @@ function MTTTrainingPage() {
       if (customRanges[baseVs3BetKey] && !customRanges[position]) {
         targetPosition = baseVs3BetKey;
         console.log('15BB互換性: 既存vs3ベットレンジキーを使用', { baseVs3BetKey, targetPosition });
-      }
-    }
-    // vs3ベットレンジで15BBの既存キー形式の場合、新しいキー形式も確認
-    else if (position.startsWith('vs3bet_') && !position.includes('_15BB') && stackSize === '15BB') {
-      const newVs3BetKey = `${position}_15BB`;
-      if (customRanges[newVs3BetKey] && !customRanges[position]) {
-        targetPosition = newVs3BetKey;
-        console.log('15BB互換性: 新しいvs3ベットレンジキーを使用', { newVs3BetKey, targetPosition });
       }
     }
     // vs4ベットレンジでの15BB互換性も確認 (例: vs4bet_BTN_vs_UTG_15BB → vs4bet_BTN_vs_UTG)
@@ -5304,52 +5355,42 @@ function MTTTrainingPage() {
                 <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
                     <div className={`grid gap-2 w-full ${(() => {
-                      // 表示されるアクション数をカウント
-                      let visibleActions = 2; // FOLDとCALLは常に表示
-                      
-                      if (shouldShowAction('RAISE') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin')) {
-                        visibleActions++;
+                      // CPUがオールインしている場合、2列のグリッドに変更
+                      if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
+                        return 'grid-cols-2';
                       }
-                      
-                      if (shouldShowAction('ALL_IN') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
-                          (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0))) {
-                        visibleActions++;
-                      }
-                      
-                      // アクション数に応じてグリッド列数を決定
-                      if (visibleActions === 2) return 'grid-cols-2';
-                      if (visibleActions === 3) return 'grid-cols-3';
+                      // その他の場合は4列のグリッド
                       return 'grid-cols-4';
                     })()}`}>
                       <button
-                        className="py-3 rounded-lg font-bold text-base shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
+                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
                         onClick={() => handleActionSelect('FOLD')}
                       >
-                        {getActionButtonText('FOLD')}
+                        FOLD
                       </button>
                       <button
-                        className="py-3 rounded-lg font-bold text-base shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
+                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
                         onClick={() => handleActionSelect('CALL')}
                       >
-                        {getActionButtonText('CALL')}
+                        CALL
                       </button>
-                      {/* RAISEボタン - 削除ロジックを適用 */}
-                      {shouldShowAction('RAISE') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') ? (
+                      {/* RAISEボタン - CPUがオールインしていない場合のみ表示 */}
+                      {!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin' ? (
                         <button
-                          className="py-3 rounded-lg font-bold text-base shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
+                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('RAISE')}
                         >
-                          {getActionButtonText('RAISE')}
+                          RAISE
                         </button>
                       ) : null}
-                      {/* ALL INボタン - 削除ロジックを適用 */}
-                      {shouldShowAction('ALL_IN') && (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                      {/* ALL INボタン - CPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
+                      {(!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
-                          className="py-3 rounded-lg font-bold text-base shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
+                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('ALL_IN')}
                         >
-                          {getActionButtonText('ALL_IN')}
+                          ALL IN
                         </button>
                       ) : null}
                     </div>
@@ -5460,9 +5501,10 @@ function MTTTrainingPage() {
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 {gtoData.correctAction === 'NONE' ? (
                                   <div className="col-span-2 p-4 bg-yellow-600/30 border border-yellow-500 rounded text-center">
-                                    <div className="text-yellow-300 font-bold mb-2">⚠️ GTO戦略なし</div>
+                                    <div className="text-yellow-300 font-bold mb-2">⚠️ アクション未設定</div>
                                     <div className="text-gray-300 text-sm">
-                                      このハンドにはGTO戦略上、推奨アクションが存在しません。
+                                      このハンドはアクションが設定されていません。<br/>
+                                      注意してください。
                                     </div>
                                   </div>
                                 ) : (

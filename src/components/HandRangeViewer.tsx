@@ -65,7 +65,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
     }
   };
 
-  // 頻度に応じた動的スタイルを取得（既存のHandRangeと同じロジック）
+  // 頻度に応じた動的スタイルを取得（カスタマイズレンジと同じ比率での視覚化）
   const getHandStyle = (hand: string) => {
     const frequencies = getHandFrequencies(hand);
     const actions = [
@@ -97,17 +97,43 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
       }
       return { background: nonZeroActions[0].color };
     }
-    // 混合戦略（2つ以上のアクションが0%超）
+    // 混合戦略（2つ以上のアクションが0%超）- カスタマイズレンジと同じ比率での視覚化
     if (nonZeroActions.length >= 2) {
       let gradientStops = [];
       let currentPosition = 0;
-      for (const a of actions) {
-        if (a.value > 0) {
-          gradientStops.push(`${a.color} ${currentPosition}% ${currentPosition + a.value}%`);
-          currentPosition += a.value;
-        }
+      
+      // アクションごとの色セグメントを作成（オールイン→レイズ→コール→フォールドの順）
+      if (frequencies.ALL_IN > 0) {
+        const allInColor = getActionColorHex('ALL_IN');
+        gradientStops.push(`${allInColor} ${currentPosition}% ${currentPosition + frequencies.ALL_IN}%`);
+        currentPosition += frequencies.ALL_IN;
       }
+      
+      if (frequencies.MIN > 0) {
+        const minColor = getActionColorHex('MIN');
+        gradientStops.push(`${minColor} ${currentPosition}% ${currentPosition + frequencies.MIN}%`);
+        currentPosition += frequencies.MIN;
+      }
+      
+      if (frequencies.CALL > 0) {
+        const callColor = getActionColorHex('CALL');
+        gradientStops.push(`${callColor} ${currentPosition}% ${currentPosition + frequencies.CALL}%`);
+        currentPosition += frequencies.CALL;
+      }
+      
+      if (frequencies.FOLD > 0) {
+        const foldColor = getActionColorHex('FOLD');
+        gradientStops.push(`${foldColor} ${currentPosition}% ${currentPosition + frequencies.FOLD}%`);
+        currentPosition += frequencies.FOLD;
+      }
+      
+      // FOLD部分（薄いグレーで表示）- カスタマイズレンジと同じ視覚化
+      if (frequencies.FOLD > 0) {
+        gradientStops.push(`rgba(75, 85, 99, 0.3) ${currentPosition}% 100%`);
+      }
+      
       const gradientStyle = `linear-gradient(90deg, ${gradientStops.join(', ')})`;
+      
       return {
         background: gradientStyle,
         border: '1px solid rgb(75, 85, 99)',
@@ -313,11 +339,45 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
               row.map((cell, colIndex) => (
                                                  <div
                   key={`${rowIndex}-${colIndex}`}
-                  className="text-white text-[10px] md:text-sm font-bold py-0.5 md:py-1 px-1 md:px-1.5 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex items-center justify-center hand-range-viewer-cell"
+                  className={`text-white text-[10px] md:text-sm font-bold py-0.5 md:py-1 px-1 md:px-1.5 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex flex-col items-center justify-center hand-range-viewer-cell relative ${
+                    (() => {
+                      const handInfo = rangeData[cell.hand];
+                      if (handInfo?.action === 'MIXED' && handInfo.mixedFrequencies) {
+                        const freq = handInfo.mixedFrequencies;
+                        const activeActions = Object.values(freq).filter(f => (f || 0) > 0);
+                        return activeActions.length > 1 ? 'ring-1 ring-purple-400 ring-opacity-60' : '';
+                      }
+                      return '';
+                    })()
+                  }`}
                   style={getHandStyle(cell.hand)}
                   data-has-range={!!rangeData[cell.hand]}
                 >
-                  {cell.hand}
+                  {/* ハンド名 */}
+                  <div className="text-[8px] md:text-xs font-bold leading-none">
+                    {cell.hand}
+                  </div>
+                  
+                  {/* 混合戦略の比率表示 */}
+                  {(() => {
+                    const handInfo = rangeData[cell.hand];
+                    if (handInfo?.action === 'MIXED' && handInfo.mixedFrequencies) {
+                      const freq = handInfo.mixedFrequencies;
+                      const ratios = [];
+                      
+                      if ((freq.ALL_IN || 0) > 0) ratios.push(`A${freq.ALL_IN || 0}%`);
+                      if ((freq.MIN || 0) > 0) ratios.push(`R${freq.MIN || 0}%`);
+                      if ((freq.CALL || 0) > 0) ratios.push(`C${freq.CALL || 0}%`);
+                      if ((freq.FOLD || 0) > 0) ratios.push(`F${freq.FOLD || 0}%`);
+                      
+                      return (
+                        <div className="text-[7px] leading-none mt-0.5">
+                          {ratios.join('')}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ))
             )}
