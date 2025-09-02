@@ -1939,6 +1939,9 @@ video {
 .bg-yellow-900\/30 {
   background-color: rgb(113 63 18 / 0.3);
 }
+.bg-blue-900\/30 {
+  background-color: rgb(30 58 138 / 0.3);
+}
 .bg-opacity-20 {
   --tw-bg-opacity: 0.2;
 }
@@ -2353,6 +2356,9 @@ video {
 .text-\[7px\] {
   font-size: 7px;
 }
+.text-\[8px\] {
+  font-size: 8px;
+}
 .text-\[9px\] {
   font-size: 9px;
 }
@@ -2375,12 +2381,6 @@ video {
 .text-xs {
   font-size: 0.75rem;
   line-height: 1rem;
-}
-.text-\[6px\] {
-  font-size: 6px;
-}
-.text-\[8px\] {
-  font-size: 8px;
 }
 .font-bold {
   font-weight: 700;

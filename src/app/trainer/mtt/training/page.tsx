@@ -888,7 +888,7 @@ const simulateMTTGTOData = (
       // ランダム選択を確実に行う
       const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
       threeBetterPosition = validThreeBetters[randomIndex];
-      setCurrentOpponentPosition(threeBetterPosition);
+      // setCurrentOpponentPosition(threeBetterPosition); // TODO: fix scope issue
       
       console.log('🔄 新しい3ベッターポジションを選択:', {
         heroPosition: position,
