@@ -1237,12 +1237,78 @@ export const HandRangeSelector: React.FC<{
   title?: string;
   onClose: () => void;
   onTemplateSelect?: (templateName: string) => void;
-}> = ({ onSelectHands, initialSelectedHands = [], title = "プレイするハンドを選択", onClose, onTemplateSelect }) => {
+  // NONEハンド除外用の新しいprops
+  position?: string;
+  stackSize?: string;
+  actionType?: string;
+  excludeNoneHands?: boolean;
+  customRanges?: Record<string, Record<string, HandInfo>>;
+}> = ({ 
+  onSelectHands, 
+  initialSelectedHands = [], 
+  title = "プレイするハンドを選択", 
+  onClose, 
+  onTemplateSelect, 
+  position, 
+  stackSize, 
+  actionType, 
+  excludeNoneHands = false,
+  customRanges = {}
+}) => {
+  // NONEアクションのハンドを取得する関数
+  const getNoneHands = (): string[] => {
+    if (!excludeNoneHands || !position || !stackSize || !actionType) {
+      return [];
+    }
+
+    try {
+      // スタックサイズを数値に変換
+      const stackDepthBB = parseInt(stackSize.replace('BB', ''));
+      
+      // レンジキーを構築
+      let rangeKey = '';
+      
+      if (actionType === 'open' || actionType === 'openraise') {
+        rangeKey = `open_${position}_${stackSize}`;
+      } else if (actionType === 'vsopen') {
+        // vsOpenの場合、対戦相手ポジションは動的なのでデフォルトを使用
+        rangeKey = `vsopen_${position}_vs_CO_${stackSize}`;
+      } else if (actionType === 'vs3bet') {
+        rangeKey = `vs3bet_${position}_vs_BTN_${stackSize}`;
+      } else if (actionType === 'vs4bet') {
+        rangeKey = `vs4bet_${position}_vs_CO_${stackSize}`;
+      }
+
+      // カスタムレンジまたはデフォルトレンジからNONEハンドを検索
+      let rangeData: Record<string, HandInfo> | null = null;
+      
+      if (customRanges[rangeKey]) {
+        rangeData = customRanges[rangeKey];
+      } else {
+        // デフォルトのMTTレンジを使用
+        rangeData = getMTTRange(position, stackDepthBB);
+      }
+
+      if (rangeData) {
+        return Object.entries(rangeData)
+          .filter(([hand, info]) => info.action === 'NONE')
+          .map(([hand]) => hand);
+      }
+    } catch (error) {
+      console.warn('NONEハンドの取得に失敗:', error);
+    }
+    
+    return [];
+  };
+
+  const noneHands = getNoneHands();
+  console.log('🚫 除外対象のNONEハンド:', noneHands.length, noneHands);
+
   // トレーニング用：全ハンドを選択可能にする（頻度データは不要）
   const allHands = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
   const trainingRangeData: Record<string, HandInfo> = {};
   
-  // 全169ハンドを生成
+  // 全169ハンドを生成（NONEハンド除外フィルター適用）
   for (let i = 0; i < 13; i++) {
     for (let j = 0; j < 13; j++) {
       let hand = '';
@@ -1256,6 +1322,12 @@ export const HandRangeSelector: React.FC<{
         // オフスーツ
         hand = allHands[j] + allHands[i] + 'o';
       }
+      
+      // NONEハンド除外が有効な場合は、NONEハンドをスキップ
+      if (excludeNoneHands && noneHands.includes(hand)) {
+        continue;
+      }
+      
       trainingRangeData[hand] = { action: 'RAISE', frequency: 100 };
     }
   }
@@ -1341,8 +1413,29 @@ export const HandRangeSelector: React.FC<{
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
         </div>
         
+        {/* NONEハンド除外情報 */}
+        {excludeNoneHands && (
+          <div className="mb-4 p-3 bg-blue-900/30 border border-blue-500/50 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-blue-300 font-semibold">レンジ外ハンド除外機能</span>
+            </div>
+            <div className="text-sm text-gray-300">
+              <div className="mb-1">
+                <span className="text-blue-300">設定:</span> {position} / {stackSize} / {actionType === 'openraise' ? 'オープンレイズ' : actionType === 'vsopen' ? 'vsオープン' : actionType === 'vs3bet' ? 'vs3ベット' : actionType === 'vs4bet' ? 'vs4ベット' : actionType}
+              </div>
+              <div>
+                <span className="text-blue-300">除外ハンド:</span> {noneHands.length}個のレンジ外ハンドを選択対象から除外中
+                {noneHands.length > 0 && (
+                  <span className="text-red-300 ml-2">({noneHands.slice(0, 5).join(', ')}{noneHands.length > 5 ? ', ...' : ''})</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-        
         {/* ハンドレンジグリッド */}
         <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
@@ -1878,7 +1971,7 @@ export const MTTRangeEditor: React.FC<{
       return style;
     }
     
-    // NONEアクションの特別処理
+    // NONEアクション（レンジ外ハンド）の特別処理
     if (rangeData[hand]?.action === 'NONE') {
       return { 
         background: 'rgb(156, 163, 175)', // gray-400
@@ -2036,7 +2129,7 @@ export const MTTRangeEditor: React.FC<{
 
   // ハンドセルの表示テキストを取得（頻度情報付き）
   const getHandDisplayText = (hand: string) => {
-    // NONEアクションの特別処理
+    // NONEアクション（レンジ外ハンド）の特別処理
     if (rangeData[hand]?.action === 'NONE') {
       return (
         <div className="text-center">

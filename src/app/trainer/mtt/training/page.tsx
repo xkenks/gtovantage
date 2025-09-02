@@ -133,6 +133,52 @@ const normalizeHandType = (hand: string[]): string => {
   return result;
 };
 
+// 現在のシナリオでハンドがNONEアクションかどうかをチェックする関数
+const isHandNoneAction = (
+  handType: string, 
+  position: string, 
+  stackSize: string, 
+  actionType: string,
+  customRanges: Record<string, Record<string, HandInfo>>
+): boolean => {
+  try {
+    // スタックサイズを数値に変換
+    const stackDepthBB = parseInt(stackSize.replace('BB', ''));
+    
+    // レンジキーを構築
+    let rangeKey = '';
+    
+    if (actionType === 'open' || actionType === 'openraise') {
+      rangeKey = `open_${position}_${stackSize}`;
+    } else if (actionType === 'vsopen') {
+      // vsOpenの場合、対戦相手ポジションは動的なのでデフォルトを使用
+      rangeKey = `vsopen_${position}_vs_CO_${stackSize}`;
+    } else if (actionType === 'vs3bet') {
+      rangeKey = `vs3bet_${position}_vs_BTN_${stackSize}`;
+    } else if (actionType === 'vs4bet') {
+      rangeKey = `vs4bet_${position}_vs_CO_${stackSize}`;
+    }
+
+    // カスタムレンジまたはデフォルトレンジからハンド情報を取得
+    let rangeData: Record<string, HandInfo> | null = null;
+    
+    if (customRanges[rangeKey]) {
+      rangeData = customRanges[rangeKey];
+    } else {
+      // デフォルトのMTTレンジを使用
+      rangeData = getMTTRange(position, stackDepthBB);
+    }
+
+    if (rangeData && rangeData[handType]) {
+      return rangeData[handType].action === 'NONE';
+    }
+  } catch (error) {
+    console.warn('NONEアクションチェックに失敗:', error);
+  }
+  
+  return false;
+};
+
 // MTT特有のICMランドを生成するユーティリティ関数
 const generateMTTHand = () => {
   const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
@@ -748,7 +794,26 @@ const simulateMTTGTOData = (
     const getValidThreeBetters = (heroPos: string): string[] => {
       const heroIndex = getPositionIndex(heroPos);
       if (heroIndex >= POSITION_ORDER.length - 1) return []; // 最後のポジションの場合、後のポジションは存在しない
-      return POSITION_ORDER.slice(heroIndex + 1); // ヒーローより後のポジションのみ
+      
+      // ヒーローより後のポジションから、ヒーローと同じポジションを除外
+      const allAfterHero = POSITION_ORDER.slice(heroIndex + 1);
+      const validPositions = allAfterHero.filter(pos => pos !== heroPos);
+      
+      console.log('🔍 getValidThreeBetters:', {
+        heroPos,
+        heroIndex,
+        positionOrder: POSITION_ORDER,
+        allAfterHero,
+        validPositions,
+        reason: 'ヒーローと同じポジションを除外',
+        validation: {
+          heroIndexValid: heroIndex >= 0,
+          hasAfterPositions: allAfterHero.length > 0,
+          hasValidPositions: validPositions.length > 0
+        }
+      });
+      
+      return validPositions;
     };
     
     // openerPositionの検証と3ベッターポジションの決定
@@ -756,30 +821,52 @@ const simulateMTTGTOData = (
       heroPosition: position,
       openerPosition,
       heroIndex: getPositionIndex(position),
-      validThreeBetters: getValidThreeBetters(position)
+      validThreeBetters: getValidThreeBetters(position),
+      positionOrder: POSITION_ORDER
     });
     
     // openerPositionの厳密な検証と3ベッターポジションの決定
     let isOpenerPositionValid = false;
     if (openerPosition && openerPosition !== position) {
-      isOpenerPositionValid = getValidThreeBetters(position).includes(openerPosition);
-              console.log('🔍 openerPosition検証:', {
-          openerPosition,
-          heroPosition: position,
-          isSameAsHero: openerPosition === position,
-          isValidPosition: isOpenerPositionValid,
-          openerPositionIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
-          heroIndex: getPositionIndex(position),
-          validThreeBetters: getValidThreeBetters(position)
-        });
+      // ヒーローより後のポジションかどうかを厳密にチェック
+      const heroIndex = getPositionIndex(position);
+      const openerIndex = getPositionIndex(openerPosition);
+      const validThreeBetters = getValidThreeBetters(position);
+      
+      isOpenerPositionValid = openerIndex > heroIndex && validThreeBetters.includes(openerPosition);
+      
+      console.log('🔍 openerPosition厳密検証:', {
+        openerPosition,
+        heroPosition: position,
+        isSameAsHero: openerPosition === position,
+        isAfterHero: openerIndex > heroIndex,
+        isValidPosition: isOpenerPositionValid,
+        openerPositionIndex: openerIndex,
+        heroIndex: heroIndex,
+        validThreeBetters: validThreeBetters,
+        positionOrder: POSITION_ORDER,
+        validation: {
+          isDifferentFromHero: openerPosition !== position,
+          isAfterHero: openerIndex > heroIndex,
+          isInValidThreeBetters: validThreeBetters.includes(openerPosition),
+          finalValidation: openerIndex > heroIndex && validThreeBetters.includes(openerPosition)
+        }
+      });
     }
     
+    // generateNewScenarioから渡されたopenerPositionを優先的に使用
     if (isOpenerPositionValid && openerPosition) {
       threeBetterPosition = openerPosition;
-      console.log('✅ 有効なopenerPositionを使用:', {
+      console.log('✅ generateNewScenarioから渡されたopenerPositionを使用:', {
         heroPosition: position,
         threeBetterPosition,
-        openerPosition
+        openerPosition,
+        source: 'generateNewScenario',
+        validation: {
+          isDifferentFromHero: openerPosition !== position,
+          isAfterHero: getPositionIndex(openerPosition) > getPositionIndex(position),
+          isValidPosition: isOpenerPositionValid
+        }
       });
     } else {
       // openerPositionが無効または未設定の場合は、必ず新しく有効な3ベッターを選択
@@ -801,6 +888,7 @@ const simulateMTTGTOData = (
       // ランダム選択を確実に行う
       const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
       threeBetterPosition = validThreeBetters[randomIndex];
+      setCurrentOpponentPosition(threeBetterPosition);
       
       console.log('🔄 新しい3ベッターポジションを選択:', {
         heroPosition: position,
@@ -816,50 +904,29 @@ const simulateMTTGTOData = (
       });
       
       // 選択されたポジションが有効か再確認
-      if (threeBetterPosition === position) {
-        console.error('❌ 新規選択でヒーローと同じポジションが選ばれました:', {
+      if (threeBetterPosition === position || getPositionIndex(threeBetterPosition) <= getPositionIndex(position)) {
+        console.error('❌ 新規選択で無効な3ベッターポジションが選ばれました:', {
           heroPosition: position,
           selectedPosition: threeBetterPosition,
+          heroIndex: getPositionIndex(position),
+          selectedIndex: getPositionIndex(threeBetterPosition),
           validThreeBetters,
-          randomIndex
+          randomIndex,
+          reason: 'ヒーローと同じポジション、またはヒーローより前のポジションが選択されました'
         });
         
-        // 強制的に別のポジションを選択
-        const remainingOptions = validThreeBetters.filter(pos => pos !== position);
-        if (remainingOptions.length > 0) {
-          threeBetterPosition = remainingOptions[Math.floor(Math.random() * remainingOptions.length)];
-          console.log('🔄 強制修正で3ベッターポジションを再選択:', {
-            from: position,
-            to: threeBetterPosition,
-            remainingOptions
-          });
-        }
-      }
-    }
-    
-    // 最終確認：3ベッターのポジションが正しく設定されているか
-    if (threeBetterPosition === position) {
-      console.error('❌ 最終確認で3ベッターのポジションがヒーローと同じです:', {
-        heroPosition: position,
-        threeBetterPosition,
-        openerPosition,
-        heroIndex: getPositionIndex(position),
-        threeBetterIndex: getPositionIndex(threeBetterPosition),
-        reason: 'これは完全にありえない状況です。強制修正が必要です。'
-      });
-      
-      // 強制的にヒーローより後のポジションを選択
-      const validThreeBetters = POSITION_ORDER.slice(getPositionIndex(position) + 1);
-      if (validThreeBetters.length > 0) {
-        // ヒーローと同じポジションを除外して選択
-        const safeOptions = validThreeBetters.filter(pos => pos !== position);
+        // 強制的に有効なポジションを選択
+        const safeOptions = validThreeBetters.filter(pos => 
+          pos !== position && getPositionIndex(pos) > getPositionIndex(position)
+        );
+        
         if (safeOptions.length > 0) {
           threeBetterPosition = safeOptions[Math.floor(Math.random() * safeOptions.length)];
-          console.log('🔄 最終強制修正完了:', {
-            from: position,
+          console.log('🔄 強制修正で3ベッターポジションを再選択:', {
+            from: '無効なポジション',
             to: threeBetterPosition,
             safeOptions,
-            reason: 'ヒーローと同じポジションが設定されていたため強制修正'
+            reason: '無効なポジションが選択されていたため強制修正'
           });
         } else {
           console.error('❌ 安全な3ベッターポジションが存在しません:', {
@@ -868,6 +935,67 @@ const simulateMTTGTOData = (
             safeOptions
           });
         }
+      }
+    }
+    
+    // 最終確認：3ベッターのポジションが正しく設定されているか
+    if (threeBetterPosition === position || getPositionIndex(threeBetterPosition) <= getPositionIndex(position)) {
+      console.error('❌ 最終確認で無効な3ベッターのポジションが設定されています:', {
+        heroPosition: position,
+        threeBetterPosition,
+        openerPosition,
+        heroIndex: getPositionIndex(position),
+        threeBetterIndex: getPositionIndex(threeBetterPosition),
+        reason: 'ヒーローと同じポジション、またはヒーローより前のポジションが設定されています。これは完全にありえない状況です。強制修正が必要です。'
+      });
+      
+      // 強制的にヒーローより後のポジションを選択
+      const validThreeBetters = POSITION_ORDER.slice(getPositionIndex(position) + 1).filter(pos => pos !== position);
+      if (validThreeBetters.length > 0) {
+        // ヒーローと同じポジションを除外して選択
+        const safeOptions = validThreeBetters.filter(pos => 
+          pos !== position && getPositionIndex(pos) > getPositionIndex(position)
+        );
+        
+        if (safeOptions.length > 0) {
+          threeBetterPosition = safeOptions[Math.floor(Math.random() * safeOptions.length)];
+          console.log('🔄 最終強制修正完了:', {
+            from: '無効なポジション',
+            to: threeBetterPosition,
+            safeOptions,
+            reason: '無効なポジションが設定されていたため強制修正'
+          });
+        } else {
+          console.error('❌ 安全な3ベッターポジションが存在しません:', {
+            heroPosition: position,
+            validThreeBetters,
+            safeOptions
+          });
+        }
+      }
+    }
+    
+    // 最終的な3ベッターポジションの有効性を確認
+    const finalValidation = threeBetterPosition !== position && getPositionIndex(threeBetterPosition) > getPositionIndex(position);
+    if (!finalValidation) {
+      console.error('❌ 最終検証で無効な3ベッターポジションが設定されています:', {
+        heroPosition: position,
+        threeBetterPosition,
+        heroIndex: getPositionIndex(position),
+        threeBetterIndex: getPositionIndex(threeBetterPosition),
+        reason: 'simulateMTTGTODataでの設定が無効です。これは完全にありえない状況です。'
+      });
+      
+      // 強制的に有効なポジションを設定
+      const validOptions = POSITION_ORDER.slice(getPositionIndex(position) + 1).filter(pos => pos !== position);
+      if (validOptions.length > 0) {
+        threeBetterPosition = validOptions[Math.floor(Math.random() * validOptions.length)];
+        console.log('🔄 simulateMTTGTOData最終強制修正:', {
+          from: '無効なポジション',
+          to: threeBetterPosition,
+          validOptions,
+          reason: '最終検証で無効なポジションが発見されたため強制修正'
+        });
       }
     }
     
@@ -1322,6 +1450,7 @@ const simulateMTTGTOData = (
       }
       
       fourBetterPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+      setCurrentOpponentPosition(fourBetterPosition);
     }
     
     // スタック固有のレンジキーを構築（3ベッター vs 4ベッターの形式）
@@ -2056,7 +2185,7 @@ function MTTTrainingPage() {
   const customHands = customHandsString ? decodeURIComponent(customHandsString).split(',').filter(hand => hand.trim() !== '') : [];
   
   // URLから相手のポジション情報を取得
-  const opponentPosition = searchParams.get('opener') || searchParams.get('threebetter') || searchParams.get('fourbetter') || null;
+  const opponentPositionParam = searchParams.get('opener') || searchParams.get('threebetter') || searchParams.get('fourbetter') || null;
   
   // ステート
   const [hand, setHand] = useState<string[]>([]);
@@ -2067,6 +2196,7 @@ function MTTTrainingPage() {
   const [spot, setSpot] = useState<Spot | null>(null);
   const [trainingCount, setTrainingCount] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
+  const [currentOpponentPosition, setCurrentOpponentPosition] = useState<string | null>(opponentPositionParam);
   
   // レンジエディター関連のstate
   const [showRangeEditor, setShowRangeEditor] = useState<boolean>(false);
@@ -2125,8 +2255,48 @@ function MTTTrainingPage() {
       } else {
         return `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`; // その他のスタックサイズ
       }
-    } else if (actionType === 'vs3bet' && spot.threeBetterPosition) {
+    } else if (actionType === 'vs3bet') {
       // vs3ベットレンジの場合
+      if (!spot.threeBetterPosition) {
+        console.error('❌ vs3ベットでthreeBetterPositionが未設定:', {
+          spot,
+          actionType,
+          heroPosition,
+          stackDepth,
+          availableKeys: Object.keys(spot),
+          spotKeys: Object.keys(spot).filter(key => key.includes('Position') || key.includes('position'))
+        });
+        
+        // 15BBの場合、スタックサイズなしのキーを探す
+        if (stackDepth === '15BB') {
+          const potentialKeys = Object.keys(customRanges).filter(key => 
+            key.includes('vs3bet') && 
+            key.includes(heroPosition || '') && 
+            !key.includes('_10BB') && 
+            !key.includes('_20BB') && 
+            !key.includes('_30BB') && 
+            !key.includes('_40BB') && 
+            !key.includes('_50BB') && 
+            !key.includes('_75BB') && 
+            !key.includes('_100BB')
+          );
+          
+          if (potentialKeys.length > 0) {
+            console.log('🔄 15BBでスタックサイズなしのキーを発見:', potentialKeys);
+            // 最初のキーから3ベッターポジションを抽出
+            const firstKey = potentialKeys[0];
+            const match = firstKey.match(/vs3bet_[^_]+_vs_([^_]+)/);
+            if (match) {
+              const extractedThreeBetter = match[1];
+              console.log('✅ 3ベッターポジションを抽出:', extractedThreeBetter);
+              return `vs3bet_${heroPosition}_vs_${extractedThreeBetter}`;
+            }
+          }
+        }
+        
+        return null;
+      }
+      
       const vs3betKey = stackDepth === '15BB' 
         ? `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}` 
         : `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
@@ -2138,7 +2308,18 @@ function MTTTrainingPage() {
         stackDepth,
         generatedKey: vs3betKey,
         is15BB: stackDepth === '15BB',
-        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式'
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式',
+        // 生成されたキーがカスタムレンジに存在するか確認
+        keyExists: customRanges[vs3betKey] ? '存在' : '不存在',
+        availableKeys: Object.keys(customRanges).filter(key => 
+          key.includes('vs3bet') && 
+          key.includes(heroPosition || '') && 
+          (stackDepth === '15BB' ? 
+            !key.includes('_10BB') && !key.includes('_20BB') && !key.includes('_30BB') && 
+            !key.includes('_40BB') && !key.includes('_50BB') && !key.includes('_75BB') && !key.includes('_100BB') :
+            key.includes(`_${stackDepth || ''}`)
+          )
+        )
       });
       
       // 各スタックサイズでのレンジキー生成例をログ出力
@@ -2326,10 +2507,29 @@ function MTTTrainingPage() {
       // URLパラメータで指定されたハンドを維持
       const handTypes = urlHands.split(',').filter(hand => hand.trim() !== '');
       if (handTypes.length > 0) {
-        const randomHandType = handTypes[Math.floor(Math.random() * handTypes.length)];
-        newHand = generateHandFromType(randomHandType);
-        handType = randomHandType;
-        console.log('🎯 URLパラメータハンドを維持:', { urlHands, selectedHandType: randomHandType });
+        // NONEアクションのハンドを除外する
+        const nonNoneUrlHands = handTypes.filter(hand => 
+          !isHandNoneAction(hand, position, stackSize, actionType, customRanges)
+        );
+        
+        console.log('🚫 URLハンドNONE除外フィルター:', {
+          originalUrlHands: handTypes.length,
+          filteredUrlHands: nonNoneUrlHands.length,
+          excludedCount: handTypes.length - nonNoneUrlHands.length
+        });
+        
+        if (nonNoneUrlHands.length > 0) {
+          // NONEではないURLハンドから選択
+          const randomHandType = nonNoneUrlHands[Math.floor(Math.random() * nonNoneUrlHands.length)];
+          newHand = generateHandFromType(randomHandType);
+          handType = randomHandType;
+          console.log('🎯 URLパラメータハンド(NONE除外後)を維持:', { urlHands, selectedHandType: randomHandType, nonNoneUrlHands });
+        } else {
+          // 全てのURLハンドがNONEの場合はランダム生成にフォールバック
+          console.warn('⚠️ URLパラメータハンドが全てNONEアクション。ランダム生成に切り替えます。');
+          newHand = generateMTTHand();
+          handType = normalizeHandType(newHand);
+        }
       } else {
         // 空の場合はランダム生成
         newHand = generateMTTHand();
@@ -2337,19 +2537,61 @@ function MTTTrainingPage() {
       }
     } else if (selectedTrainingHands.length > 0) {
       // 選択されたトレーニングハンドがある場合はその中からランダムに選ぶ
-      const randomHandType = selectedTrainingHands[Math.floor(Math.random() * selectedTrainingHands.length)];
+      // NONEアクションのハンドを除外する
+      const nonNoneHands = selectedTrainingHands.filter(hand => 
+        !isHandNoneAction(hand, position, stackSize, actionType, customRanges)
+      );
       
-      // ハンドタイプからカード配列を生成
-      newHand = generateHandFromType(randomHandType);
-      handType = randomHandType;
-      console.log('✅ selectedTrainingHands使用:', { randomHandType, selectedTrainingHands });
+      console.log('🚫 NONEハンド除外フィルター:', {
+        originalHands: selectedTrainingHands.length,
+        filteredHands: nonNoneHands.length,
+        excludedCount: selectedTrainingHands.length - nonNoneHands.length,
+        position,
+        stackSize,
+        actionType
+      });
+      
+      if (nonNoneHands.length > 0) {
+        // NONEではないハンドから選択
+        const randomHandType = nonNoneHands[Math.floor(Math.random() * nonNoneHands.length)];
+        
+        // ハンドタイプからカード配列を生成
+        newHand = generateHandFromType(randomHandType);
+        handType = randomHandType;
+        console.log('✅ selectedTrainingHands(NONE除外後)使用:', { randomHandType, nonNoneHands });
+      } else {
+        // 全てのハンドがNONEの場合はランダム生成にフォールバック
+        console.warn('⚠️ 選択されたハンドが全てNONEアクション。ランダム生成に切り替えます。');
+        newHand = generateMTTHand();
+        handType = normalizeHandType(newHand);
+      }
     } else if (customHands.length > 0) {
       // カスタムハンドが選択されている場合はその中からランダムに選ぶ
-      const randomHandType = customHands[Math.floor(Math.random() * customHands.length)];
+      // NONEアクションのハンドを除外する
+      const nonNoneCustomHands = customHands.filter(hand => 
+        !isHandNoneAction(hand, position, stackSize, actionType, customRanges)
+      );
       
-      // ハンドタイプからカード配列を生成
-      newHand = generateHandFromType(randomHandType);
-      handType = randomHandType;
+      console.log('🚫 カスタムハンドNONE除外フィルター:', {
+        originalCustomHands: customHands.length,
+        filteredCustomHands: nonNoneCustomHands.length,
+        excludedCount: customHands.length - nonNoneCustomHands.length
+      });
+      
+      if (nonNoneCustomHands.length > 0) {
+        // NONEではないカスタムハンドから選択
+        const randomHandType = nonNoneCustomHands[Math.floor(Math.random() * nonNoneCustomHands.length)];
+        
+        // ハンドタイプからカード配列を生成
+        newHand = generateHandFromType(randomHandType);
+        handType = randomHandType;
+        console.log('✅ customHands(NONE除外後)使用:', { randomHandType, nonNoneCustomHands });
+      } else {
+        // 全てのカスタムハンドがNONEの場合はランダム生成にフォールバック
+        console.warn('⚠️ カスタムハンドが全てNONEアクション。ランダム生成に切り替えます。');
+        newHand = generateMTTHand();
+        handType = normalizeHandType(newHand);
+      }
     } else {
       // カスタムハンドがない場合はランダム生成
       newHand = generateMTTHand();
@@ -2365,11 +2607,13 @@ function MTTTrainingPage() {
       const urlOpener = searchParams.get('opener');
       if (urlOpener && isValidVsOpenCombination(position, urlOpener)) {
         openerPosition = urlOpener;
+        setCurrentOpponentPosition(urlOpener);
       } else {
         // 指定されていない、または無効な場合はランダムに選択
         const validOpeners = getValidOpenerPositions(position);
         if (validOpeners.length > 0) {
           openerPosition = validOpeners[Math.floor(Math.random() * validOpeners.length)];
+          setCurrentOpponentPosition(openerPosition);
         }
       }
     } else if (actionType === 'vs3bet') {
@@ -2386,6 +2630,7 @@ function MTTTrainingPage() {
         const positionIndex = getPositionIndex(position);
         if (threeBetterIndex > positionIndex) {
           openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
+          setCurrentOpponentPosition(urlThreeBetter);
           console.log('✅ URLパラメータから3ベッターポジション設定:', {
             urlThreeBetter,
             threeBetterIndex,
@@ -2404,12 +2649,30 @@ function MTTTrainingPage() {
       
       if (!openerPosition) {
         const positionIndex = getPositionIndex(position);
+        console.log('🎯 3ベッターポジション選択開始:', {
+          heroPosition: position,
+          heroIndex: positionIndex,
+          totalPositions: POSITION_ORDER.length,
+          availablePositions: POSITION_ORDER.slice(positionIndex + 1)
+        });
+        
         if (positionIndex < POSITION_ORDER.length - 1) {
-          const validThreeBetters = POSITION_ORDER.slice(positionIndex + 1);
+          // ヒーローより後のポジションから、ヒーローと同じポジションを除外して選択
+          const allAfterHero = POSITION_ORDER.slice(positionIndex + 1);
+          const validThreeBetters = allAfterHero.filter(pos => pos !== position);
+          
+          console.log('🎯 有効な3ベッターポジション候補:', {
+            allAfterHero,
+            validThreeBetters,
+            heroPosition: position,
+            excludedPosition: position
+          });
+          
           if (validThreeBetters.length > 0) {
             // ランダム選択を確実に行う
             const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
             openerPosition = validThreeBetters[randomIndex];
+            setCurrentOpponentPosition(openerPosition);
             
             console.log('🔄 ランダムに3ベッターポジションを選択:', {
               heroPosition: position,
@@ -2418,25 +2681,49 @@ function MTTTrainingPage() {
               randomIndex,
               selected: openerPosition,
               selectedIndex: getPositionIndex(openerPosition),
-              reason: 'URLパラメータが無効または未設定'
+              reason: 'URLパラメータが無効または未設定',
+              validation: {
+                isDifferentFromHero: openerPosition !== position,
+                isAfterHero: getPositionIndex(openerPosition) > getPositionIndex(position),
+                isValid: true
+              }
             });
             
-            // 選択されたポジションが有効か再確認
-            if (openerPosition === position) {
-              console.error('❌ ランダム選択でヒーローと同じポジションが選ばれました:', {
+            // 選択されたポジションの有効性を再確認
+            const selectedIndex = getPositionIndex(openerPosition);
+            const heroIndex = getPositionIndex(position);
+            
+            if (openerPosition === position || selectedIndex <= heroIndex) {
+              console.error('❌ 選択された3ベッターポジションが無効です:', {
                 heroPosition: position,
                 selectedPosition: openerPosition,
-                validThreeBetters
+                heroIndex: heroIndex,
+                selectedIndex: selectedIndex,
+                validThreeBetters,
+                reason: 'ヒーローと同じポジション、またはヒーローより前のポジションが選択されました'
               });
               
-              // 強制的に別のポジションを選択
-              const remainingOptions = validThreeBetters.filter(pos => pos !== position);
-              if (remainingOptions.length > 0) {
-                openerPosition = remainingOptions[Math.floor(Math.random() * remainingOptions.length)];
+              // 強制的に有効なポジションを選択
+              const safeOptions = validThreeBetters.filter(pos => {
+                const posIndex = getPositionIndex(pos);
+                return pos !== position && posIndex > heroIndex;
+              });
+              
+              if (safeOptions.length > 0) {
+                const safeRandomIndex = Math.floor(Math.random() * safeOptions.length);
+                openerPosition = safeOptions[safeRandomIndex];
                 console.log('🔄 強制修正で3ベッターポジションを再選択:', {
-                  from: position,
+                  from: '無効なポジション',
                   to: openerPosition,
-                  remainingOptions
+                  safeOptions,
+                  safeRandomIndex,
+                  reason: '無効なポジションが選択されていたため強制修正'
+                });
+              } else {
+                console.error('❌ 安全な3ベッターポジションが存在しません:', {
+                  heroPosition: position,
+                  validThreeBetters,
+                  safeOptions
                 });
               }
             }
@@ -2444,7 +2731,10 @@ function MTTTrainingPage() {
             console.error('❌ 有効な3ベッターポジションが存在しません:', {
               heroPosition: position,
               heroIndex: positionIndex,
-              positionOrderLength: POSITION_ORDER.length
+              positionOrderLength: POSITION_ORDER.length,
+              allAfterHero,
+              validThreeBetters,
+              reason: 'ヒーローと同じポジションを除外した結果、有効なポジションが残りませんでした'
             });
           }
         } else {
@@ -2453,6 +2743,58 @@ function MTTTrainingPage() {
             heroIndex: positionIndex,
             positionOrder: POSITION_ORDER
           });
+        }
+      }
+      
+      // 最終的なopenerPositionの有効性を確認
+      if (openerPosition) {
+        const finalValidation = openerPosition !== position && getPositionIndex(openerPosition) > getPositionIndex(position);
+        if (!finalValidation) {
+          console.error('❌ 最終検証で無効なopenerPositionが設定されています:', {
+            heroPosition: position,
+            openerPosition,
+            heroIndex: getPositionIndex(position),
+            openerIndex: getPositionIndex(openerPosition),
+            reason: 'generateNewScenarioでの設定が無効です。強制修正が必要です。'
+          });
+          
+          // 強制的に有効なポジションを設定
+          const validOptions = POSITION_ORDER.slice(getPositionIndex(position) + 1).filter(pos => pos !== position);
+          if (validOptions.length > 0) {
+            openerPosition = validOptions[Math.floor(Math.random() * validOptions.length)];
+            console.log('🔄 generateNewScenario最終強制修正:', {
+              from: '無効なポジション',
+              to: openerPosition,
+              validOptions,
+              reason: '最終検証で無効なポジションが発見されたため強制修正'
+            });
+          }
+        }
+      }
+      
+      // 最終確認：openerPositionが正しく設定されているか
+      if (openerPosition) {
+        const finalCheck = openerPosition !== position && getPositionIndex(openerPosition) > getPositionIndex(position);
+        if (!finalCheck) {
+          console.error('❌ 最終確認で無効なopenerPositionが設定されています:', {
+            heroPosition: position,
+            openerPosition,
+            heroIndex: getPositionIndex(position),
+            openerIndex: getPositionIndex(openerPosition),
+            reason: 'これは完全にありえない状況です。強制修正が必要です。'
+          });
+          
+          // 強制的に有効なポジションを設定
+          const validOptions = POSITION_ORDER.slice(getPositionIndex(position) + 1).filter(pos => pos !== position);
+          if (validOptions.length > 0) {
+            openerPosition = validOptions[Math.floor(Math.random() * validOptions.length)];
+            console.log('🔄 generateNewScenario最終強制修正完了:', {
+              from: '無効なポジション',
+              to: openerPosition,
+              validOptions,
+              reason: '最終確認で無効なポジションが発見されたため強制修正'
+            });
+          }
         }
       }
       
@@ -2471,6 +2813,7 @@ function MTTTrainingPage() {
         const positionIndex = getPositionIndex(position);
         if (fourBetterIndex < positionIndex) {
           openerPosition = urlFourBetter; // vs4betでは4ベッターの情報をopenerPositionパラメータで渡す
+          setCurrentOpponentPosition(urlFourBetter);
         }
       }
       
@@ -2578,6 +2921,25 @@ function MTTTrainingPage() {
     });
     
     console.log('🎯 simulateMTTGTOData関数呼び出し開始');
+    console.log('🎯 simulateMTTGTOData呼び出しパラメータ:', {
+      newHand,
+      position,
+      stackSize,
+      actionType: actionType as string,
+      latestCustomRangesCount: latestCustomRanges ? Object.keys(latestCustomRanges).length : 0,
+      openerPosition,
+      threeBetType,
+      // vs3ベット専用のデバッグ情報
+      vs3betDebug: actionType === 'vs3bet' ? {
+        openerPosition,
+        openerPositionType: typeof openerPosition,
+        heroPosition: position,
+        heroIndex: getPositionIndex(position),
+        openerPositionIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
+        isValid: openerPosition && openerPosition !== position && getPositionIndex(openerPosition) > getPositionIndex(position)
+      } : null
+    });
+    
     const data = simulateMTTGTOData(
       newHand, 
       position, 
@@ -3151,16 +3513,14 @@ function MTTTrainingPage() {
           if (stackSize === '15BB') {
             // 15BBのvs3ベットでは、実際の3ベットサイズに基づいてスタックを計算
             const threeBetAmount = 15; // 15BBのvs3ベットは通常15BB
-                      if (openerPosition === 'SB') {
-            threeBetterStack = 14.5 - threeBetAmount; // 15 - 0.5 - 15 = -0.5 → 0
-          } else if (openerPosition === 'BB') {
-            // BBが3ベッターの場合、ブラインド分（1BB）は既にポットに投入されている
-            // 3ベットサイズは15BBだが、実際に追加で投入するのは14BB（15 - 1）
-            const additionalBet = threeBetAmount - 1; // 15 - 1 = 14BB
-            threeBetterStack = 15 - additionalBet; // 15 - 14 = 1BB
-          } else {
-            threeBetterStack = 15 - threeBetAmount; // 15 - 15 = 0
-          }
+            if (openerPosition === 'SB') {
+              threeBetterStack = 14.5 - threeBetAmount; // 15 - 0.5 - 15 = -0.5 → 0
+            } else if (openerPosition === 'BB') {
+              // BBが3ベッターの場合、15BBを3ベットするのでスタックは0になる
+              threeBetterStack = 0; // 15BB - 15BB = 0BB
+            } else {
+              threeBetterStack = 15 - threeBetAmount; // 15 - 15 = 0
+            }
             console.log(`🎯 15BB 3ベッタースタック計算: ${openerPosition} = ${threeBetterStack}`);
           } else if (stackSize === '20BB') {
             // 3ベッターのポジションに応じて3ベットサイズを決定
@@ -3224,15 +3584,26 @@ function MTTTrainingPage() {
           },
           'BB': { 
             active: true, 
-            stack: openerPosition === 'BB' ? threeBetterStack : (stackValue - 1), 
+            stack: (() => {
+              if (openerPosition === 'BB' && actionType === 'vs3bet' && stackSize === '15BB') {
+                // 15BBのvs3ベットでBBが3ベッターの場合、強制的にスタックを0にする
+                console.log('🎯 BBスタック強制修正: 15BB vs3ベットでBBが3ベッター、スタックを0に設定');
+                return 0;
+              } else if (openerPosition === 'BB') {
+                // BBが3ベッターの場合（その他のスタックサイズ）
+                return threeBetterStack;
+              } else {
+                // BBが3ベッターでない場合
+                return (stackValue - 1);
+              }
+            })(), 
             isHero: position === 'BB' 
           }
         };
         
         console.log(`🎯 根本的実装: actionType=${actionType}, openerPosition=${openerPosition}, threeBetterStack=${threeBetterStack}, threeBetSize=${threeBetSize}, stackSize=${stackSize}`);
         console.log(`🎯 ${openerPosition}のスタック: ${positions[openerPosition as keyof typeof positions]?.stack || 'N/A'}`);
-        console.log(`🎯 20BB vs3bet デバッグ: stackSize=${stackSize}, actionType=${actionType}, threeBetSize=${threeBetSize}, threeBetterStack=${threeBetterStack}`);
-        console.log(`🎯 20BB vs3bet 詳細デバッグ:`, {
+        console.log(`🎯 15BB vs3bet BBスタック計算デバッグ:`, {
           stackSize,
           actionType,
           threeBetSize,
@@ -3240,7 +3611,10 @@ function MTTTrainingPage() {
           openerPosition,
           stackValue,
           condition: actionType === 'vs3bet' && openerPosition,
-          stackCondition: stackSize === '20BB'
+          stackCondition: stackSize === '15BB',
+          bbStack: positions['BB']?.stack,
+          isBBThreeBetter: openerPosition === 'BB',
+          expectedBBStack: openerPosition === 'BB' ? threeBetterStack : (stackValue - 1)
         });
         
         return positions;
@@ -4460,12 +4834,12 @@ function MTTTrainingPage() {
     const selectedBase = action.split(' ')[0];
     const correctBase = gtoData?.correctAction?.split(' ')[0] || '';
     
-    // NONEアクションの特別処理
+    // NONEアクション（レンジ外ハンド）の特別処理
     if (correctBase === 'NONE') {
       console.log('🎯 NONEアクション検出:', {
         selectedAction: action,
         correctAction: correctBase,
-        message: 'このハンドはアクションが設定されていません'
+        message: 'このハンドはGTO戦略のレンジに含まれていないため、推奨アクションがありません'
       });
       setShowResults(true);
       setIsCorrect(false); // NONEの場合は不正解として扱う
@@ -4722,7 +5096,7 @@ function MTTTrainingPage() {
               {/* 相手のポジション情報を表示 */}
               {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
                 <span className="bg-orange-600/20 px-2 md:px-3 py-1 rounded-full border border-orange-500/30">
-                  {opponentPosition ? `vs${opponentPosition}` : 'vsランダム'}
+                  {currentOpponentPosition ? `vs${currentOpponentPosition}` : 'vsランダム'}
                 </span>
               )}
             </div>
@@ -5305,6 +5679,10 @@ function MTTTrainingPage() {
                   showResults={showResults}
                   onActionSelect={handleActionSelect}
                   availableActions={(() => {
+                    // 15BBのvs3ベットの場合、FOLD/CALLのみに制限
+                    if (spot && spot.actionType === 'vs3bet' && spot.stackDepth === '15BB') {
+                      return ['FOLD', 'CALL'];
+                    }
                     // CPUがオールインしている場合、ヒーローのアクションをFOLD/CALLのみに制限
                     if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
                       return ['FOLD', 'CALL'];
@@ -5355,6 +5733,10 @@ function MTTTrainingPage() {
                 <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
                     <div className={`grid gap-2 w-full ${(() => {
+                      // 15BBのvs3ベットの場合、2列のグリッドに変更
+                      if (spot && spot.actionType === 'vs3bet' && spot.stackDepth === '15BB') {
+                        return 'grid-cols-2';
+                      }
                       // CPUがオールインしている場合、2列のグリッドに変更
                       if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
                         return 'grid-cols-2';
@@ -5374,8 +5756,9 @@ function MTTTrainingPage() {
                       >
                         CALL
                       </button>
-                      {/* RAISEボタン - CPUがオールインしていない場合のみ表示 */}
-                      {!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin' ? (
+                      {/* RAISEボタン - 15BBのvs3ベットとCPUがオールインしていない場合のみ表示 */}
+                      {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
+                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('RAISE')}
@@ -5383,8 +5766,9 @@ function MTTTrainingPage() {
                           RAISE
                         </button>
                       ) : null}
-                      {/* ALL INボタン - CPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
-                      {(!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                      {/* ALL INボタン - 15BBのvs3ベットとCPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
+                      {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
+                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
@@ -5501,10 +5885,9 @@ function MTTTrainingPage() {
                               <div className="grid grid-cols-2 gap-2 text-sm">
                                 {gtoData.correctAction === 'NONE' ? (
                                   <div className="col-span-2 p-4 bg-yellow-600/30 border border-yellow-500 rounded text-center">
-                                    <div className="text-yellow-300 font-bold mb-2">⚠️ アクション未設定</div>
+                                    <div className="text-yellow-300 font-bold mb-2">⚠️ ハンドレンジ外</div>
                                     <div className="text-gray-300 text-sm">
-                                      このハンドはアクションが設定されていません。<br/>
-                                      注意してください。
+                                      このハンドはGTO戦略のレンジに含まれていないため、推奨アクションがありません。
                                     </div>
                                   </div>
                                 ) : (
@@ -5851,6 +6234,11 @@ function MTTTrainingPage() {
           onSelectHands={handleSelectTrainingHands}
           initialSelectedHands={selectedTrainingHands}
           onTemplateSelect={handleTemplateSelect}
+          position={position}
+          stackSize={stackSize}
+          actionType={actionType}
+          excludeNoneHands={true}
+          customRanges={customRanges}
         />
       )}
 
@@ -5966,7 +6354,7 @@ function MTTTrainingPage() {
         }
         
         // 現在のスポットから相手のポジション情報を取得
-        const currentOpponentPosition = opponentPosition || 
+        const spotOpponentPosition = currentOpponentPosition || 
           (spot?.openRaiserPosition) || 
           (spot?.threeBetterPosition) || 
           undefined;
@@ -5979,7 +6367,7 @@ function MTTTrainingPage() {
             position={position}
             stackSize={stackSize}
             actionType={actionType}
-            opponentPosition={currentOpponentPosition}
+            opponentPosition={spotOpponentPosition}
           />
         );
       })()}

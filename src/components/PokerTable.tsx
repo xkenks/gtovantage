@@ -727,11 +727,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           stack = 14.5 - threeBetSize; // 15 - 0.5 - threeBetSize
           console.log(`🎯 15BB vs3ベット SB: 14.5 - ${threeBetSize} = ${stack}`);
         } else if (position === 'BB') {
-          // BBが3ベッターの場合、ブラインド分（1BB）は既にポットに投入されている
-          // 3ベットサイズは15BBだが、実際に追加で投入するのは14BB（15 - 1）
-          const additionalBet = threeBetSize - 1; // 15 - 1 = 14BB
-          stack = 15 - additionalBet; // 15 - 14 = 1BB
-          console.log(`🎯 15BB vs3ベット BB: 15 - ${additionalBet} = ${stack} (3ベットサイズ: ${threeBetSize}, 追加投入: ${additionalBet})`);
+          // BBが3ベッターの場合、15BBを3ベットするのでスタックは0になる
+          stack = 0; // 15BB - 15BB = 0BB
+          console.log(`🎯 15BB vs3ベット BB: スタック = 0 (15BBを3ベット完了)`);
         } else {
           stack = 15 - threeBetSize; // その他のポジション
           console.log(`🎯 15BB vs3ベット その他: 15 - ${threeBetSize} = ${stack}`);

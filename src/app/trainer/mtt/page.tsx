@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AuthGuard } from '@/components/AuthGuard';
-import { HAND_TEMPLATES } from '@/components/HandRange';
+import { HAND_TEMPLATES, getMTTRange, HandInfo } from '@/components/HandRange';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HandData {
@@ -18,7 +18,21 @@ const SimpleHandRangeSelector: React.FC<{
   onClose: () => void;
   title?: string;
   initialSelectedHands?: string[];
-}> = ({ onSelectHands, onClose, title = "プレイするハンドを選択", initialSelectedHands = [] }) => {
+  // NONEハンド除外用の新しいprops
+  position?: string;
+  stackSize?: string;
+  actionType?: string;
+  excludeNoneHands?: boolean;
+}> = ({ 
+  onSelectHands, 
+  onClose, 
+  title = "プレイするハンドを選択", 
+  initialSelectedHands = [],
+  position,
+  stackSize,
+  actionType,
+  excludeNoneHands = false
+}) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartHand, setDragStartHand] = useState<string>('');
   const [dragStartRow, setDragStartRow] = useState<number>(-1);
@@ -26,6 +40,34 @@ const SimpleHandRangeSelector: React.FC<{
   const [dragStartSelected, setDragStartSelected] = useState<boolean>(false);
   const [dragDistance, setDragDistance] = useState<number>(0);
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
+  
+  // NONEアクションのハンドを取得する関数
+  const getNoneHands = (): string[] => {
+    if (!excludeNoneHands || !position || !stackSize || !actionType) {
+      return [];
+    }
+
+    try {
+      // スタックサイズを数値に変換
+      const stackDepthBB = parseInt(stackSize.replace('BB', ''));
+      
+      // デフォルトのMTTレンジからNONEハンドを検索
+      const rangeData = getMTTRange(position, stackDepthBB);
+
+      if (rangeData) {
+        return Object.entries(rangeData)
+          .filter(([hand, info]) => info.action === 'NONE')
+          .map(([hand]) => hand);
+      }
+    } catch (error) {
+      console.warn('NONEハンドの取得に失敗:', error);
+    }
+    
+    return [];
+  };
+
+  const noneHands = getNoneHands();
+  console.log('🚫 Simple除外対象のNONEハンド:', noneHands.length, noneHands);
   
   // レベルで選択されたハンドを取得する関数
   const getLevelHands = (level: number): string[] => {
@@ -44,7 +86,14 @@ const SimpleHandRangeSelector: React.FC<{
     
     // 指定されたレベルのハンドのみを返す（累積しない）
     if (levelHands[level as keyof typeof levelHands]) {
-      return levelHands[level as keyof typeof levelHands];
+      let hands = levelHands[level as keyof typeof levelHands];
+      
+      // NONEハンド除外が有効な場合は、NONEハンドを除外
+      if (excludeNoneHands && noneHands.length > 0) {
+        hands = hands.filter(hand => !noneHands.includes(hand));
+      }
+      
+      return hands;
     }
     
     return [];
@@ -764,6 +813,10 @@ export default function MTTTrainerPage() {
             title="MTTプリフロップトレーニング用ハンド範囲選択"
             onClose={() => setShowHandSelector(false)}
             initialSelectedHands={selectedHands}
+            position={position}
+            stackSize={stackSize}
+            actionType={actionType}
+            excludeNoneHands={true}
           />
         )}
       </div>
