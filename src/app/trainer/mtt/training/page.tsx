@@ -1024,14 +1024,34 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
-      rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`;
-      fallbackRangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
-      console.log('🎯 15BB vs3bet レンジキー設定:', { 
+      // 15BBの場合はオープンレイザーのアクション制約を考慮
+      // BTN: リンプ/オールインのみ（レイズなし）
+      // その他: レイズ/オールインあり
+      let openerAction = 'raise'; // デフォルトはレイズ
+      
+      if (normalizedPosition === 'BTN') {
+        // BTNの場合はリンプのみ（レイズなし）
+        openerAction = 'limp';
+      }
+      // 注：オールインアクションは別途実装予定
+      
+      // アクション別レンジキーを構築
+      rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${openerAction}_15BB`;
+      // フォールバック: アクションなしの15BBキーと従来キー
+      const fallbackRangeKey1 = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`;
+      const fallbackRangeKey2 = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
+      fallbackRangeKey = fallbackRangeKey1;
+      
+      console.log('🎯 15BB vs3bet アクション別レンジキー設定:', { 
         stackSize, 
+        openerAction,
+        position: normalizedPosition,
+        threeBetter: normalizedThreeBetterPosition,
         rangeKey, 
-        fallbackRangeKey,
-        handType: normalizedHandType 
+        fallbackRangeKey1,
+        fallbackRangeKey2,
+        handType: normalizedHandType,
+        isBTN: normalizedPosition === 'BTN'
       });
     } else if (stackSize === '20BB' && threeBetType) {
       // 20BBの場合は3ベットタイプを使用（レイズまたはオールイン）
@@ -1104,9 +1124,23 @@ const simulateMTTGTOData = (
     let customHandData = null;
     let usedRangeKey = rangeKey;
     
+    // 15BBの場合の複数フォールバック対応
+    let fallbackKeys: string[] = [];
+    if (stackSize === '15BB') {
+      // 15BBでは複数のフォールバックキーを試行
+      const baseKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
+      fallbackKeys = [
+        `${baseKey}_15BB`, // アクションなしの15BBキー
+        baseKey, // 従来の15BBキー
+      ];
+    } else if (fallbackRangeKey) {
+      fallbackKeys = [fallbackRangeKey];
+    }
+    
     console.log('🔍 Searching for custom range:', {
       rangeKey,
       fallbackRangeKey,
+      fallbackKeys,
       handType: normalizedHandType,
       hasCustomRanges: !!effectiveCustomRanges,
       customRangesKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
@@ -1114,14 +1148,28 @@ const simulateMTTGTOData = (
       targetHandExists: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType])
     });
     
+    // カスタムレンジを検索（優先キー → フォールバックキー）
     if (effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType]) {
       customHandData = effectiveCustomRanges[rangeKey][normalizedHandType];
+      usedRangeKey = rangeKey;
       console.log('🎯 vs3bet カスタムレンジ発見 (優先キー):', { rangeKey, handType: normalizedHandType, customHandData });
-    } else if (fallbackRangeKey && effectiveCustomRanges && effectiveCustomRanges[fallbackRangeKey] && effectiveCustomRanges[fallbackRangeKey][normalizedHandType]) {
-      customHandData = effectiveCustomRanges[fallbackRangeKey][normalizedHandType];
-      usedRangeKey = fallbackRangeKey;
-      console.log('🎯 vs3bet フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
+      // フォールバックキーを順次試行
+      for (const fallbackKey of fallbackKeys) {
+        if (effectiveCustomRanges && effectiveCustomRanges[fallbackKey] && effectiveCustomRanges[fallbackKey][normalizedHandType]) {
+          customHandData = effectiveCustomRanges[fallbackKey][normalizedHandType];
+          usedRangeKey = fallbackKey;
+          console.log('🎯 vs3bet カスタムレンジ発見 (フォールバックキー):', { 
+            fallbackKey, 
+            handType: normalizedHandType, 
+            customHandData,
+            triedKeys: fallbackKeys 
+          });
+          break;
+        }
+      }
+    
+    if (!customHandData) {
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
       if (stackSize === '20BB' && threeBetType) {
         console.log('🎯 20BB タイプ別レンジ未発見の詳細デバッグ:', {
@@ -5489,8 +5537,157 @@ function MTTTrainingPage() {
             </div>
           )}
 
-          {/* vs 3ベットレンジをカスタマイズ（20BB以外） */}
-          {isAdmin && actionType === 'vs3bet' && stackSize !== '20BB' && (
+          {/* 15BB vs3ベット専用: オープンレイザーアクション制約対応 */}
+          {isAdmin && actionType === 'vs3bet' && stackSize === '15BB' && (
+            <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-4 mb-4 border border-yellow-700/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">15BB vs3ベット専用: オープンレイザーアクション制約対応 <span className="text-xs bg-yellow-600 px-2 py-1 rounded">管理者限定</span></h3>
+                  <p className="text-sm text-gray-300">15BBスタックではオープンレイザーのアクションに制約があります</p>
+                  <div className="text-xs text-yellow-300 mt-1 space-y-1">
+                    <div>• <strong>UTG/LJ/HJ/CO/SB:</strong> レイズ・オールインのみ</div>
+                    <div>• <strong>BTN:</strong> リンプ・オールインのみ（レイズなし）</div>
+                    <div>• <strong>現在:</strong> レイズレンジを入力中（BTNのリンプレンジは完了済み）</div>
+                  </div>
+                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith('_15BB') || (!key.includes('_raise_') && !key.includes('_allin_') && !key.includes('_limp_') && stackSize === '15BB'))).length > 0 && (
+                    <div className="text-xs text-yellow-400 mt-1">
+                      15BBカスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith('_15BB') || (!key.includes('_raise_') && !key.includes('_allin_') && !key.includes('_limp_') && stackSize === '15BB'))).length}レンジ
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">15BBスタックでのオープンレイザー別アクション制約対応vs3ベットレンジ設定：</h4>
+                
+                {/* アクション制約の説明 */}
+                <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
+                  <div className="text-yellow-400 font-semibold mb-2">⚠️ 15BBオープンレイザーアクション制約</div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-gray-300">
+                    <div>
+                      <span className="text-blue-300 font-semibold">UTG/LJ/HJ/CO/SB:</span><br/>
+                      レイズ/オールインレンジ
+                    </div>
+                    <div>
+                      <span className="text-green-300 font-semibold">BTN:</span><br/>
+                      リンプ/オールインレンジ（レイズなし）
+                    </div>
+                    <div>
+                      <span className="text-orange-300 font-semibold">現在の入力:</span><br/>
+                      レイズレンジ（BTNリンプ完了済み）
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
+                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
+                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
+                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
+                      return POSITION_ORDER.slice(openRaiserIndex + 1);
+                    };
+                    
+                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
+                    if (validThreeBetters.length === 0) return null;
+                    
+                    // 15BBでのオープンレイザーアクション制約を判定
+                    const hasRaiseAction = openRaiserPos !== 'BTN'; // BTN以外はレイズあり
+                    const hasLimpAction = openRaiserPos === 'BTN' || openRaiserPos === 'SB'; // BTN/SBはリンプあり
+                    const hasAllInAction = true; // 全ポジションでオールインあり
+                    
+                    return (
+                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
+                        <div className="text-sm font-semibold text-yellow-400 mb-2">
+                          {openRaiserPos} (オープンレイザー)
+                          {openRaiserPos === 'BTN' && <span className="ml-1 text-xs text-green-400">[リンプ専用]</span>}
+                        </div>
+                        
+                        {/* オープンレイザーの利用可能アクション表示 */}
+                        <div className="text-xs text-gray-400 mb-2">
+                          利用可能: {[
+                            hasRaiseAction && 'レイズ',
+                            hasLimpAction && 'リンプ', 
+                            hasAllInAction && 'オールイン'
+                          ].filter(Boolean).join('・')}
+                        </div>
+                        
+                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {validThreeBetters.map(threeBetter => {
+                            // 現在はレイズレンジを設定中なので、レイズレンジキーを使用
+                            // BTNの場合は特別な処理（リンプレンジは既に完了）
+                            let rangeKey: string;
+                            let buttonText = threeBetter;
+                            let isSpecialCase = false;
+                            
+                            if (openRaiserPos === 'BTN') {
+                              // BTNの場合：リンプレンジは完了済み、現在はレイズレンジ入力中だがBTNにレイズはない
+                              rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_limp_15BB`;
+                              buttonText = `${threeBetter} (リンプ済み)`;
+                              isSpecialCase = true;
+                            } else {
+                              // その他のポジション：レイズレンジを入力中
+                              rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_raise_15BB`;
+                              buttonText = `${threeBetter} (レイズ)`;
+                            }
+                            
+                            // 15BBの場合は既存レンジキーも確認
+                            const fallbackRangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}`;
+                            const hasCustomRange = customRanges[rangeKey] || customRanges[fallbackRangeKey];
+                            
+                            return (
+                              <button
+                                key={threeBetter}
+                                onClick={() => {
+                                  if (isSpecialCase) {
+                                    // BTNの場合はリンプレンジが既に完了していることを通知
+                                    alert(`BTNのリンプレンジ vs ${threeBetter} は既に完了しています。\n\n15BBではBTNにレイズアクションはありません。\n現在はその他のポジションのレイズレンジを入力中です。`);
+                                    return;
+                                  }
+                                  handleOpenRangeEditor(rangeKey);
+                                }}
+                                disabled={isSpecialCase}
+                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                  isSpecialCase
+                                    ? 'bg-green-600/50 text-green-300 border-2 border-green-400/50 cursor-not-allowed'
+                                    : hasCustomRange
+                                    ? 'bg-orange-600 hover:bg-orange-700 text-white border-2 border-orange-400'
+                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
+                                }`}
+                                title={
+                                  isSpecialCase 
+                                    ? `BTN vs ${threeBetter}のリンプレンジは既に完了（15BBではBTNにレイズなし）`
+                                    : `${openRaiserPos} vs ${threeBetter}のレイズレンジ設定（15BB）`
+                                }
+                              >
+                                {buttonText}
+                                {hasCustomRange && ' ✓'}
+                                {isSpecialCase && ' 🔒'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* 15BB vs3ベット専用説明 */}
+                <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
+                  <div className="text-yellow-400 font-semibold mb-1">💡 15BB vs3ベット戦略の特徴</div>
+                  <div className="text-gray-300">
+                    • <strong>アクション制約:</strong> オープンレイザーのアクションが制限される（BTNはレイズなし）<br/>
+                    • <strong>現在の入力状況:</strong> レイズレンジを入力中（BTNのリンプレンジは既に完了済み）<br/>
+                    • <strong>レンジキー形式:</strong> vs3bet_[オープンレイザー]_vs_[3ベッター]_[アクション]_15BB<br/>
+                    • <strong>入力完了後:</strong> 15BBでの正確なvs3ベット戦略が利用可能になります
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* vs 3ベットレンジをカスタマイズ（20BB・15BB以外） */}
+          {isAdmin && actionType === 'vs3bet' && stackSize !== '20BB' && stackSize !== '15BB' && (
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
               <div className="flex items-center justify-between">
                 <div>
