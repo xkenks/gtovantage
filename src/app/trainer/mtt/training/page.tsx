@@ -1450,7 +1450,7 @@ const simulateMTTGTOData = (
       }
       
       fourBetterPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
-      setCurrentOpponentPosition(fourBetterPosition);
+      // setCurrentOpponentPosition(fourBetterPosition); // TODO: fix scope issue
     }
     
     // スタック固有のレンジキーを構築（3ベッター vs 4ベッターの形式）
