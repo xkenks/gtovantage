@@ -2068,6 +2068,125 @@ const simulateMTTGTOData = (
   return result;
 };
 
+// ベットサイズを計算する関数
+const calculateBetSize = (
+  stackDepth: string,
+  actionType: string,
+  heroPosition: string,
+  openerPosition?: string,
+  threeBetterPosition?: string
+): { raiseSize: number; allinSize: number } => {
+  const stackBB = parseInt(stackDepth.replace('BB', ''));
+  
+  // ALLINサイズは常にスタック全体
+  const allinSize = stackBB;
+  
+  let raiseSize = 0;
+  
+  if (actionType === 'openraise') {
+    // オープンレイズのサイズ
+    if (stackBB <= 15) {
+      raiseSize = heroPosition === 'SB' ? 2.5 : 2;
+    } else if (stackBB <= 20) {
+      raiseSize = 2;
+    } else if (stackBB <= 30) {
+      raiseSize = 2.1;
+    } else {
+      raiseSize = 2.3;
+    }
+  } else if (actionType === 'vsopen') {
+    // vs オープンレイズのサイズ
+    if (stackBB <= 15) {
+      // 15BBのvsオープンではRAISEアクションが存在しない
+      raiseSize = 0;
+    } else if (stackBB <= 20) {
+      if (heroPosition === 'SB') {
+        raiseSize = 5.5;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 6;
+      } else {
+        raiseSize = 5;
+      }
+    } else if (stackBB <= 30) {
+      if (heroPosition === 'SB') {
+        raiseSize = 7.5;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 8.2;
+      } else {
+        raiseSize = 6.3;
+      }
+    } else if (stackBB <= 40) {
+      if (heroPosition === 'SB') {
+        raiseSize = 8.6;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 9.2;
+      } else {
+        raiseSize = 6.8;
+      }
+    } else if (stackBB <= 50) {
+      if (heroPosition === 'SB') {
+        raiseSize = 9.2;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 9.8;
+      } else {
+        raiseSize = 6.9;
+      }
+    } else if (stackBB <= 75) {
+      if (heroPosition === 'SB') {
+        raiseSize = 10;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 10.3;
+      } else {
+        raiseSize = 8;
+      }
+    } else {
+      // 100BB
+      if (heroPosition === 'SB') {
+        raiseSize = 11;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 11.5;
+      } else {
+        raiseSize = 8;
+      }
+    }
+  } else if (actionType === 'vs3bet') {
+    // vs 3ベットのサイズ
+    if (stackBB <= 15 || stackBB === 20 || stackBB === 30 || stackBB === 40) {
+      // 15BB, 20BB, 30BB, 40BBではRAISEなし（ALLINのみ）
+      raiseSize = 0;
+    } else if (stackBB <= 50) {
+      if (threeBetterPosition === 'SB' || threeBetterPosition === 'BB') {
+        // 3ベッターがSB/BBの場合はALLINのみ
+        raiseSize = 0;
+      } else {
+        raiseSize = 16;
+      }
+    } else if (stackBB <= 75) {
+      if (threeBetterPosition === 'SB') {
+        raiseSize = 21.2;
+      } else if (threeBetterPosition === 'BB') {
+        raiseSize = 22;
+      } else {
+        raiseSize = 20.9;
+      }
+    } else {
+      // 100BB
+      if (threeBetterPosition === 'SB') {
+        raiseSize = 23;
+      } else if (threeBetterPosition === 'BB') {
+        raiseSize = 24;
+      } else {
+        raiseSize = 21;
+      }
+    }
+  } else if (actionType === 'vs4bet') {
+    // vs 4ベットではRAISEなし（CALL/ALLINのみ）
+    raiseSize = 0;
+  }
+  
+  return { raiseSize, allinSize };
+};
+
 // ポジション別のアドバイスを生成する関数
 const getPositionAdvice = (position: string, action: string, stackDepthBB: number): string => {
   const positionDescriptions = {
@@ -2205,7 +2324,7 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
+  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount, user: authUser } = useAuth();
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
@@ -2361,18 +2480,28 @@ function MTTTrainingPage() {
         return null;
       }
       
-      const vs3betKey = stackDepth === '15BB' 
-        ? `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}` 
-        : `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
+      // 20bbの場合は3ベットタイプを考慮
+      let vs3betKey: string;
+      if (stackDepth === '15BB') {
+        vs3betKey = `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`;
+      } else if (stackDepth === '20BB' && spot.threeBetType) {
+        vs3betKey = `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${spot.threeBetType}_20BB`;
+      } else {
+        vs3betKey = `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_${stackDepth}`;
+      }
       
       console.log('🎯 vs3ベットレンジキー生成:', {
         actionType,
         heroPosition,
         threeBetterPosition: spot.threeBetterPosition,
         stackDepth,
+        threeBetType: spot.threeBetType,
         generatedKey: vs3betKey,
         is15BB: stackDepth === '15BB',
-        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 'スタック固有形式',
+        is20BB: stackDepth === '20BB',
+        hasThreeBetType: !!spot.threeBetType,
+        keyFormat: stackDepth === '15BB' ? '15BB形式（スタックサイズなし）' : 
+                   (stackDepth === '20BB' && spot.threeBetType) ? '20BB 3ベットタイプ別形式' : 'スタック固有形式',
         // 生成されたキーがカスタムレンジに存在するか確認
         keyExists: customRanges[vs3betKey] ? '存在' : '不存在',
         availableKeys: Object.keys(customRanges).filter(key => 
@@ -2390,7 +2519,8 @@ function MTTTrainingPage() {
       const exampleKeys = {
         '10BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_10BB`,
         '15BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}`,
-        '20BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_20BB`,
+        '20BB_raise': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_raise_20BB`,
+        '20BB_allin': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_allin_20BB`,
         '30BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_30BB`,
         '40BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_40BB`,
         '50BB': `vs3bet_${heroPosition}_vs_${spot.threeBetterPosition}_50BB`,
@@ -6512,58 +6642,67 @@ function MTTTrainingPage() {
                 {!isMobile && (
                 <div className="border-t border-gray-700 pt-4 mb-4 h-[80px] flex items-center">
                   {!showResults ? (
-                    <div className={`grid gap-2 w-full ${(() => {
-                      // 15BBのvs3ベットの場合、2列のグリッドに変更
-                      if (spot && spot.actionType === 'vs3bet' && spot.stackDepth === '15BB') {
-                        return 'grid-cols-2';
-                      }
-                      // CPUがオールインしている場合、2列のグリッドに変更
-                      if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
-                        return 'grid-cols-2';
-                      }
-                      // 15BBでvsopenのCPUオールインの場合、2列のグリッドに変更
-                      if (spot && spot.actionType === 'vsopen' && spot.stackDepth === '15BB' && spot.openRaiseSize === 15.0) {
-                        return 'grid-cols-2';
-                      }
-                      // その他の場合は4列のグリッド
-                      return 'grid-cols-4';
-                    })()}`}>
-                      <button
-                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
-                        onClick={() => handleActionSelect('FOLD')}
-                      >
-                        FOLD
-                      </button>
-                      <button
-                        className="py-3 rounded-lg font-bold text-lg shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
-                        onClick={() => handleActionSelect('CALL')}
-                      >
-                        CALL
-                      </button>
-                      {/* RAISEボタン - 15BBのvs3ベット、CPUがオールイン、15BBでvsopenのCPUオールインの場合は非表示 */}
-                      {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
-                       (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) ? (
-                        <button
-                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
-                          onClick={() => handleActionSelect('RAISE')}
-                        >
-                          RAISE
-                        </button>
-                      ) : null}
-                      {/* ALL INボタン - 15BBのvs3ベット、CPUがオールイン、15BBでvsopenのCPUオールインの場合は非表示 */}
-                      {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
-                       (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
-                       (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
-                        <button
-                          className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
-                          onClick={() => handleActionSelect('ALL_IN')}
-                        >
-                          ALL IN
-                        </button>
-                      ) : null}
-                    </div>
+                    (() => {
+                      // ベットサイズを計算
+                      const betSizes = spot ? calculateBetSize(
+                        spot.stackDepth || '15BB',
+                        spot.actionType || 'openraise',
+                        spot.heroPosition || 'BTN',
+                        spot.openRaiserPosition,
+                        spot.threeBetterPosition
+                      ) : { raiseSize: 0, allinSize: 0 };
+                      
+                      // 利用可能なアクションボタン数を計算
+                      const hasRaise = betSizes.raiseSize > 0 && 
+                        (!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
+                        (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
+                        (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0);
+                      
+                      const hasAllin = (!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
+                        (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
+                        (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
+                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0));
+                      
+                      // グリッド列数を決定
+                      let gridCols = 2; // FOLD, CALL は常にある
+                      if (hasRaise) gridCols++;
+                      if (hasAllin) gridCols++;
+                      
+                      return (
+                        <div className={`grid gap-2 w-full grid-cols-${gridCols}`}>
+                          <button
+                            className="py-3 rounded-lg font-bold text-lg shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border border-gray-700"
+                            onClick={() => handleActionSelect('FOLD')}
+                          >
+                            FOLD
+                          </button>
+                          <button
+                            className="py-3 rounded-lg font-bold text-lg shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all border border-gray-700"
+                            onClick={() => handleActionSelect('CALL')}
+                          >
+                            CALL
+                          </button>
+                          {/* RAISEボタン - ベットサイズ付き */}
+                          {hasRaise && (
+                            <button
+                              className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
+                              onClick={() => handleActionSelect('RAISE')}
+                            >
+                              RAISE {betSizes.raiseSize}
+                            </button>
+                          )}
+                          {/* ALL INボタン - スタックサイズ付き */}
+                          {hasAllin && (
+                            <button
+                              className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
+                              onClick={() => handleActionSelect('ALL IN')}
+                            >
+                              ALLIN {betSizes.allinSize}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <div className="flex justify-center gap-4">
                       <button
@@ -7235,8 +7374,8 @@ function MTTTrainingPage() {
 
       {/* 管理者ログイン関連 - 画面一番下に配置 */}
       <div className="fixed bottom-4 left-4 z-50 hidden md:block">
-        {/* 管理者ログインボタン（未ログイン時のみ表示） - PC版 */}
-        {!isAdmin && (
+        {/* 管理者ログインボタン（マスターアカウントでログイン中の時のみ表示） - PC版 */}
+        {!isAdmin && authUser?.isMasterUser && (
           <button
             onClick={() => setShowAdminLogin(true)}
             className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-lg"
@@ -7273,8 +7412,8 @@ function MTTTrainingPage() {
 
       {/* モバイル版管理者ログイン関連 - 右下に配置 */}
       <div className="fixed bottom-2 right-2 z-50 md:hidden">
-        {/* 管理者ログインボタン（未ログイン時のみ表示） - モバイル版 */}
-        {!isAdmin && (
+        {/* 管理者ログインボタン（マスターアカウントでログイン中の時のみ表示） - モバイル版 */}
+        {!isAdmin && authUser?.isMasterUser && (
           <button
             onClick={() => setShowAdminLogin(true)}
             className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200 flex items-center gap-1 shadow-lg"

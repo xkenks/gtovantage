@@ -48,6 +48,16 @@ const MASTER_USER_EMAILS = [
   'master@gtovantage.com'
 ];
 
+// プレミアムユーザーアカウント
+const PREMIUM_ACCOUNTS = [
+  {
+    email: 'premium@gtovantage.com',
+    password: 'RsiKD76',
+    name: 'Premium User',
+    subscriptionStatus: 'premium' as const
+  }
+];
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,12 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // マスターアカウントの確保
-      const ensureMasterAccounts = () => {
+      // マスターアカウントとプレミアムアカウントの確保
+      const ensureSpecialAccounts = () => {
         try {
           const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
           let updated = false;
           
+          // マスターアカウントの確保
           MASTER_USER_EMAILS.forEach(email => {
             const existingUser = users.find((u: any) => u.email === email);
             if (!existingUser) {
@@ -94,18 +105,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             }
           });
+
+          // プレミアムアカウントの確保
+          PREMIUM_ACCOUNTS.forEach(({ email, password, name, subscriptionStatus }) => {
+            const existingUser = users.find((u: any) => u.email === email);
+            if (!existingUser) {
+              // プレミアムアカウントが存在しない場合は作成
+              const premiumUser = {
+                id: `premium-${Date.now()}`,
+                email,
+                name,
+                password: btoa(password + email), // ハッシュ化された形式で保存
+                createdAt: new Date().toISOString(),
+                emailVerified: true,
+                isMasterUser: false,
+                subscriptionStatus,
+                practiceCount: 0
+              };
+              users.push(premiumUser);
+              updated = true;
+              console.log(`✅ プレミアムアカウント作成: ${email}`);
+            } else {
+              // 既存のプレミアムアカウントを更新
+              const newHashedPassword = btoa(password + email);
+              if (existingUser.password !== newHashedPassword || existingUser.subscriptionStatus !== subscriptionStatus) {
+                existingUser.password = newHashedPassword;
+                existingUser.subscriptionStatus = subscriptionStatus;
+                existingUser.emailVerified = true;
+                existingUser.name = name;
+                updated = true;
+                console.log(`🔄 プレミアムアカウント更新: ${email}`);
+              }
+            }
+          });
           
           if (updated) {
             localStorage.setItem('gto-vantage-users', JSON.stringify(users));
-            console.log('✅ マスターアカウントの確保が完了しました');
+            console.log('✅ 特別アカウントの確保が完了しました');
           }
         } catch (error) {
-          console.error('マスターアカウント確保エラー:', error);
+          console.error('特別アカウント確保エラー:', error);
         }
       };
 
-      // マスターアカウントを確保
-      ensureMasterAccounts();
+      // 特別アカウントを確保
+      ensureSpecialAccounts();
 
       const savedUser = localStorage.getItem('gto-vantage-user');
       if (savedUser) {
