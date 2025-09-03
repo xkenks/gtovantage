@@ -179,21 +179,21 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Feature 3: Practical Training */}
+              {/* Feature 3: Preflop Training */}
               <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-6 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaChartLine className="text-2xl md:text-3xl text-white" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">実践的トレーニング</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">勝負を決める初手戦略</h3>
                 </div>
                 <p className="text-gray-300 leading-relaxed mb-6 text-center">
-                  実際のゲーム状況を再現したシナリオで、実戦で使えるスキルを習得。理論と実践の両方をバランスよく学習できます。
+                  プリフロップこそが勝負の分かれ道。正確なレンジ戦略で、ゲーム開始から圧倒的アドバンテージを構築。科学的根拠に基づいた最適解を身につけましょう。
                 </p>
                 <div className="text-center">
                   <div className="inline-flex items-center gap-3 bg-purple-800/30 px-4 py-2 rounded-full">
-                    <span className="text-purple-400 font-semibold">実戦対応</span>
-                    <span className="text-gray-300 text-sm">500+のシナリオ</span>
+                    <span className="text-purple-400 font-semibold">プリフロップGTO</span>
+                    <span className="text-gray-300 text-sm">完全習得</span>
                   </div>
                 </div>
               </div>

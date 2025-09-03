@@ -104,6 +104,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`認証試行: ユーザー名="${username}", IP: ${clientIP}`);
+    console.log(`🔍 認証詳細:`, {
+      入力ユーザー名: username,
+      入力パスワード長: password.length,
+      設定ユーザー名: ADMIN_CREDENTIALS.username,
+      設定パスワード長: ADMIN_CREDENTIALS.password.length,
+      ユーザー名一致: username === ADMIN_CREDENTIALS.username,
+      パスワード一致: password === ADMIN_CREDENTIALS.password,
+      入力パスワード: password, // デバッグ用（本番では削除）
+      設定パスワード: ADMIN_CREDENTIALS.password // デバッグ用（本番では削除）
+    });
 
     // 認証チェック
     if (username !== ADMIN_CREDENTIALS.username || password !== ADMIN_CREDENTIALS.password) {

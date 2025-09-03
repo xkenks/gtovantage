@@ -457,7 +457,14 @@ export default function MTTTrainerPage() {
     const heroIndex = positions.indexOf(heroPos);
     if (action === 'vsopen') {
       // vsオープン: オープンレイザーはヒーローより前
-      return heroIndex > 0 ? positions.slice(0, heroIndex) : [];
+      let validPositions = heroIndex > 0 ? positions.slice(0, heroIndex) : [];
+      
+      // 15BBでBBの場合、SBもオープナーとして追加
+      if (stackSize === '15BB' && heroPos === 'BB') {
+        validPositions.push('SB');
+      }
+      
+      return validPositions;
     }
     if (action === 'vs3bet') {
       // vs3ベット: 3ベッターはヒーローより後

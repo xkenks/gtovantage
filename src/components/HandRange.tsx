@@ -935,24 +935,22 @@ const HandRangeGrid: React.FC<{
     const actions = [
       { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
       { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
-      { key: 'RAISE', color: getActionColorHex('RAISE'), value: frequencies.MIN }, // MINをRAISEとして扱う
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
       { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
     ];
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
 
-    // フォールド100%
+    // フォールド100%（設定されていないハンドも含む）
     if (totalNonFold === 0) {
-      return { background: '#4A90E2 !important' }; // 青色（FOLD色）- !importantで優先
+      return { background: '#4A90E2' }; // 青色（FOLD色）
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
       if (nonZeroActions[0].key === 'FOLD') {
         return { 
-          background: '#4A90E2 !important',
-          backgroundColor: '#4A90E2 !important',
-          border: '1px solid rgb(75, 85, 99) !important'
+          background: '#4A90E2',
+          border: '1px solid rgb(75, 85, 99)'
         };
       }
       return { background: nonZeroActions[0].color };
@@ -961,12 +959,32 @@ const HandRangeGrid: React.FC<{
     if (nonZeroActions.length >= 2) {
       let gradientStops = [];
       let currentPosition = 0;
-      for (const a of actions) {
-        if (a.value > 0) {
-          gradientStops.push(`${a.color} ${currentPosition}% ${currentPosition + a.value}%`);
-          currentPosition += a.value;
-        }
+      
+      // アクションごとの色セグメントを作成（オールイン→レイズ→コール→フォールドの順）
+      if (frequencies.ALL_IN > 0) {
+        const allInColor = getActionColorHex('ALL_IN');
+        gradientStops.push(`${allInColor} ${currentPosition}% ${currentPosition + frequencies.ALL_IN}%`);
+        currentPosition += frequencies.ALL_IN;
       }
+      
+      if (frequencies.MIN > 0) {
+        const minColor = getActionColorHex('MIN');
+        gradientStops.push(`${minColor} ${currentPosition}% ${currentPosition + frequencies.MIN}%`);
+        currentPosition += frequencies.MIN;
+      }
+      
+      if (frequencies.CALL > 0) {
+        const callColor = getActionColorHex('CALL');
+        gradientStops.push(`${callColor} ${currentPosition}% ${currentPosition + frequencies.CALL}%`);
+        currentPosition += frequencies.CALL;
+      }
+      
+      if (frequencies.FOLD > 0) {
+        const foldColor = getActionColorHex('FOLD');
+        gradientStops.push(`${foldColor} ${currentPosition}% ${currentPosition + frequencies.FOLD}%`);
+        currentPosition += frequencies.FOLD;
+      }
+      
       const gradientStyle = `linear-gradient(90deg, ${gradientStops.join(', ')})`;
       return {
         background: gradientStyle,
@@ -976,11 +994,11 @@ const HandRangeGrid: React.FC<{
         backgroundRepeat: 'no-repeat'
       };
     }
-    // それ以外（念のため）
+    
+    // デフォルト（フォールド）
     return {
-      background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
-      backgroundColor: '#4A90E2 !important',
-      border: '1px solid rgb(75, 85, 99) !important'
+      background: '#4A90E2',
+      border: '1px solid rgb(75, 85, 99)'
     };
   };
 
@@ -1898,7 +1916,8 @@ export const MTTRangeEditor: React.FC<{
   onSaveRange: (position: string, rangeData: Record<string, HandInfo>) => void;
   onClose: () => void;
   initialRange?: Record<string, HandInfo>;
-}> = ({ position, stackSize, onSaveRange, onClose, initialRange }) => {
+  isSaving?: boolean;
+}> = ({ position, stackSize, onSaveRange, onClose, initialRange, isSaving = false }) => {
   const [selectedAction, setSelectedAction] = useState<'MIN' | 'ALL_IN' | 'CALL' | 'FOLD' | 'CLEAR'>('MIN');
   const [rangeData, setRangeData] = useState<Record<string, HandInfo>>(initialRange || {});
   const [isDragging, setIsDragging] = useState(false);
@@ -1956,21 +1975,19 @@ export const MTTRangeEditor: React.FC<{
     return { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 100 };
   };
 
+  // Hex色を取得（MTTRangeEditor用）
+  const getActionColorHex = (action: string) => {
+    switch (action) {
+      case 'MIN': return '#F44336'; // レイズ: 赤
+      case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
+      case 'CALL': return '#4CAF50'; // コール: 緑
+      case 'FOLD': return '#4A90E2'; // フォールド: 青
+      default: return '#6b7280';
+    }
+  };
+
   // 混合戦略の背景色とスタイルを取得（頻度比率で色をミックス）
   const getHandBackgroundStyle = (hand: string) => {
-    // ハンドが設定されていない場合（デフォルトフォールド）
-    if (!rangeData[hand]) {
-      console.log(`Hand: ${hand} - No data - Blue background (default) - rangeData keys:`, Object.keys(rangeData));
-      const style = { 
-        backgroundColor: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
-        background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
-        border: '1px solid rgb(75, 85, 99)',
-        color: 'white !important'
-      };
-      console.log(`Style for ${hand}:`, style);
-      return style;
-    }
-    
     // NONEアクション（レンジ外ハンド）の特別処理
     if (rangeData[hand]?.action === 'NONE') {
       return { 
@@ -1989,25 +2006,19 @@ export const MTTRangeEditor: React.FC<{
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
 
-    // デバッグログ
-    console.log(`Hand: ${hand}, Frequencies:`, frequencies, `TotalNonFold: ${totalNonFold}`);
-
-    // フォールド100%
+    // フォールド100%（設定されていないハンドも含む）
     if (totalNonFold === 0) {
-      console.log(`Hand: ${hand} - FOLD 100% - Blue background`);
       return { 
-        background: '#4A90E2 !important',
-        backgroundColor: '#4A90E2 !important',
-        border: '1px solid rgb(75, 85, 99) !important'
-      }; // 青色（FOLD色）- !importantで優先
+        background: '#4A90E2',
+        border: '1px solid rgb(75, 85, 99)'
+      };
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
       if (nonZeroActions[0].key === 'FOLD') {
         return { 
-          background: '#4A90E2 !important',
-          backgroundColor: '#4A90E2 !important',
-          border: '1px solid rgb(75, 85, 99) !important'
+          background: '#4A90E2',
+          border: '1px solid rgb(75, 85, 99)'
         };
       }
       return { background: nonZeroActions[0].color };
@@ -2042,11 +2053,6 @@ export const MTTRangeEditor: React.FC<{
         currentPosition += frequencies.FOLD;
       }
       
-      // FOLD部分（薄いグレーで表示）
-      if (frequencies.FOLD > 0) {
-        gradientStops.push(`rgba(75, 85, 99, 0.3) ${currentPosition}% 100%`);
-      }
-      
       const gradientStyle = `linear-gradient(90deg, ${gradientStops.join(', ')})`;
       
       return {
@@ -2058,10 +2064,10 @@ export const MTTRangeEditor: React.FC<{
       };
     }
     
+    // デフォルト（フォールド）
     return {
-      background: '#4A90E2 !important', // 青色（FOLD色）- !importantで優先
-      backgroundColor: '#4A90E2 !important',
-      border: '1px solid rgb(75, 85, 99) !important'
+      background: '#4A90E2',
+      border: '1px solid rgb(75, 85, 99)'
     };
   };
 
@@ -2113,17 +2119,6 @@ export const MTTRangeEditor: React.FC<{
       case 'CALL': return 'green-500';
       case 'FOLD': return 'blue-500';
       default: return 'gray-600';
-    }
-  };
-
-  // Hex色を取得
-  const getActionColorHex = (action: string) => {
-    switch (action) {
-      case 'MIN': return '#F44336'; // レイズ: 赤
-      case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
-      case 'CALL': return '#4CAF50'; // コール: 緑
-      case 'FOLD': return '#4A90E2'; // フォールド: 青
-      default: return '#6b7280';
     }
   };
 
@@ -2388,10 +2383,21 @@ export const MTTRangeEditor: React.FC<{
             {position.startsWith('vsopen_') ? (
               (() => {
                 const parts = position.split('_');
-                return `MTTレンジエディター - vsopen（ヒーロー: ${parts[1]} ／ オープンレイザー: ${parts[3]} ／ スタック: ${stackSize}BB）`;
+                const heroPos = parts[1];
+                const openerPos = parts[3];
+                const actionType = parts[4]; // allin, limp, または undefined
+                
+                let actionDesc = 'レイズ';
+                if (actionType === 'allin') {
+                  actionDesc = 'オールイン';
+                } else if (actionType === 'limp') {
+                  actionDesc = 'リンプ';
+                }
+                
+                return `カスタムレンジ設定 - ${heroPos}（あなた） vs ${openerPos}${actionDesc} （${stackSize}BB）`;
               })()
             ) : (
-              `MTTレンジエディター - ${position} (${stackSize}BB)`
+              `カスタムレンジ設定 - ${position} (${stackSize}BB)`
             )}
           </h2>
           <button 
@@ -2532,12 +2538,49 @@ export const MTTRangeEditor: React.FC<{
             </button>
             <button
               onClick={() => {
-                onSaveRange(position, rangeData);
-                onClose();
+                console.log('🔘 MTTRangeEditor 保存ボタンクリック:', { 
+                  position, 
+                  rangeDataSize: Object.keys(rangeData).length, 
+                  isSaving,
+                  rangeData: Object.keys(rangeData).slice(0, 5),
+                  onSaveRangeType: typeof onSaveRange
+                });
+                
+                // 強制的に保存を実行
+                try {
+                  onSaveRange(position, rangeData);
+                  console.log('✅ onSaveRange 実行完了');
+                  
+                  // 直接ローカルストレージにも保存（フォールバック）
+                  try {
+                    const currentRanges = JSON.parse(localStorage.getItem('mtt-custom-ranges') || '{}');
+                    currentRanges[position] = rangeData;
+                    localStorage.setItem('mtt-custom-ranges', JSON.stringify(currentRanges));
+                    localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
+                    console.log('✅ ローカルストレージに直接保存完了');
+                  } catch (storageError) {
+                    console.error('❌ ローカルストレージ保存失敗:', storageError);
+                  }
+                  
+                  // 保存成功のフィードバック
+                  alert(`✅ ${position}のレンジを保存しました\n\n設定されたハンド数: ${Object.keys(rangeData).length}`);
+                  
+                  if (!isSaving) {
+                    onClose();
+                  }
+                } catch (error) {
+                  console.error('❌ onSaveRange 実行エラー:', error);
+                  alert(`❌ 保存中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+                }
               }}
-              className="px-4 md:px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
+              disabled={isSaving}
+              className={`px-4 md:px-6 py-2 ${
+                isSaving 
+                  ? 'bg-gray-500 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800'
+              } text-white text-sm md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg`}
             >
-              保存 ✓
+              {isSaving ? '保存中...' : '保存 ✓'}
             </button>
           </div>
         </div>

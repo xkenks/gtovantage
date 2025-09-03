@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PokerTable, Spot } from '@/components/PokerTable';
 import Link from 'next/link';
@@ -23,20 +23,34 @@ const getPositionIndex = (position: string): number => {
 };
 
 // vs オープンで有効なオープンレイザーポジションを取得する関数
-const getValidOpenerPositions = (heroPosition: string): string[] => {
+const getValidOpenerPositions = (heroPosition: string, stackSize?: string): string[] => {
   const heroIndex = getPositionIndex(heroPosition);
   if (heroIndex <= 0) return []; // UTGまたは無効なポジションの場合、前のポジションは存在しない
   
-  return POSITION_ORDER.slice(0, heroIndex); // ヒーローより前のポジションのみ
+  let validPositions = POSITION_ORDER.slice(0, heroIndex); // ヒーローより前のポジションのみ
+  
+  // 15BBでBBの場合、SBもオープナーとして追加（重複チェック）
+  if (stackSize === '15BB' && heroPosition === 'BB' && !validPositions.includes('SB')) {
+    validPositions.push('SB');
+  }
+  
+  return validPositions;
 };
 
 // ポジション組み合わせが有効かチェックする関数
-const isValidVsOpenCombination = (heroPosition: string, openerPosition: string): boolean => {
+const isValidVsOpenCombination = (heroPosition: string, openerPosition: string, stackSize?: string): boolean => {
   const heroIndex = getPositionIndex(heroPosition);
   const openerIndex = getPositionIndex(openerPosition);
   
-  // オープンレイザーがヒーローより前のポジションである必要がある
-  return openerIndex < heroIndex && openerIndex >= 0 && heroIndex >= 0;
+  // 基本的なチェック：オープンレイザーがヒーローより前のポジションである必要がある
+  const basicValid = openerIndex < heroIndex && openerIndex >= 0 && heroIndex >= 0;
+  
+  // 15BBでBBの場合、SBからのオープンも許可
+  if (stackSize === '15BB' && heroPosition === 'BB' && openerPosition === 'SB') {
+    return true;
+  }
+  
+  return basicValid;
 };
 
 const generateRandomHand = (): string[] => {
@@ -541,11 +555,11 @@ const simulateMTTGTOData = (
   // vs オープンの場合の特別処理
   if (actionType === 'vsopen' && openerPosition) {
     // ポジション組み合わせの検証
-    if (!isValidVsOpenCombination(position, openerPosition)) {
+    if (!isValidVsOpenCombination(position, openerPosition, stackSize)) {
       console.error('❌ 無効なvsオープン組み合わせ:', {
         heroPosition: position,
         openerPosition,
-        validOpeners: getValidOpenerPositions(position),
+        validOpeners: getValidOpenerPositions(position, stackSize),
         reason: 'オープンレイザーはヒーローより前のポジションである必要があります'
       });
       
@@ -560,29 +574,33 @@ const simulateMTTGTOData = (
         frequencies: frequencies,
         normalizedHandType: finalHandType,
         effectiveStackExplanation: `❌ 無効なポジション組み合わせ: ${openerPosition} → ${position}`,
-        stackSizeStrategy: `${position}ポジションに対して、${openerPosition}からのオープンは無効です。有効なオープンレイザー: ${getValidOpenerPositions(position).join(', ')}`,
+        stackSizeStrategy: `${position}ポジションに対して、${openerPosition}からのオープンは無効です。有効なオープンレイザー: ${getValidOpenerPositions(position, stackSize).join(', ')}`,
         icmConsideration: 'vs オープンでは、オープンレイザーはヒーローより前のポジションである必要があります。',
         recommendedBetSize: 0,
         isInvalidCombination: true,
         errorMessage: `${openerPosition} から ${position} への vs オープンは不可能です。`,
-        validOpeners: getValidOpenerPositions(position)
+        validOpeners: getValidOpenerPositions(position, stackSize)
       };
     }
     
     // カスタムレンジが設定されている場合はそれを使用
-    // 15BBの場合は既存キーを優先し、新しいキーをフォールバックとして使用
+    // 15BBでオールイン・リンプ対応のレンジキー構築
     let rangeKey: string;
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
-      rangeKey = `vsopen_${position}_vs_${openerPosition}_15BB`;
-      fallbackRangeKey = `vsopen_${position}_vs_${openerPosition}`;
+      // 15BBの場合は、デフォルトでレイズキーを使用
+      // オールイン・リンプキーは独立したレンジとして扱う（フォールバック無効）
+      rangeKey = `vsopen_${position}_vs_${openerPosition}`;
+      fallbackRangeKey = null; // 15BBではフォールバック無効
+      
       console.log('🎯 15BB vsopen レンジキー設定:', { 
         stackSize, 
+        openerPosition,
         rangeKey, 
         fallbackRangeKey,
-        handType: normalizedHandType 
+        handType: normalizedHandType,
+        note: 'オールイン・リンプキーは管理画面で別途設定'
       });
     } else {
       // その他のスタックサイズは新しいキー形式を使用
@@ -888,7 +906,7 @@ const simulateMTTGTOData = (
       // ランダム選択を確実に行う
       const randomIndex = Math.floor(Math.random() * validThreeBetters.length);
       threeBetterPosition = validThreeBetters[randomIndex];
-      // setCurrentOpponentPosition(threeBetterPosition); // TODO: fix scope issue
+      // setCurrentOpponentPosition(threeBetterPosition); // TODO: コンポーネント内で呼ぶように修正
       
       console.log('🔄 新しい3ベッターポジションを選択:', {
         heroPosition: position,
@@ -1024,34 +1042,14 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合はオープンレイザーのアクション制約を考慮
-      // BTN: リンプ/オールインのみ（レイズなし）
-      // その他: レイズ/オールインあり
-      let openerAction = 'raise'; // デフォルトはレイズ
-      
-      if (normalizedPosition === 'BTN') {
-        // BTNの場合はリンプのみ（レイズなし）
-        openerAction = 'limp';
-      }
-      // 注：オールインアクションは別途実装予定
-      
-      // アクション別レンジキーを構築
-      rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${openerAction}_15BB`;
-      // フォールバック: アクションなしの15BBキーと従来キー
-      const fallbackRangeKey1 = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`;
-      const fallbackRangeKey2 = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
-      fallbackRangeKey = fallbackRangeKey1;
-      
-      console.log('🎯 15BB vs3bet アクション別レンジキー設定:', { 
+      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
+      rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_15BB`;
+      fallbackRangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
+      console.log('🎯 15BB vs3bet レンジキー設定:', { 
         stackSize, 
-        openerAction,
-        position: normalizedPosition,
-        threeBetter: normalizedThreeBetterPosition,
         rangeKey, 
-        fallbackRangeKey1,
-        fallbackRangeKey2,
-        handType: normalizedHandType,
-        isBTN: normalizedPosition === 'BTN'
+        fallbackRangeKey,
+        handType: normalizedHandType 
       });
     } else if (stackSize === '20BB' && threeBetType) {
       // 20BBの場合は3ベットタイプを使用（レイズまたはオールイン）
@@ -1124,23 +1122,9 @@ const simulateMTTGTOData = (
     let customHandData = null;
     let usedRangeKey = rangeKey;
     
-    // 15BBの場合の複数フォールバック対応
-    let fallbackKeys: string[] = [];
-    if (stackSize === '15BB') {
-      // 15BBでは複数のフォールバックキーを試行
-      const baseKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
-      fallbackKeys = [
-        `${baseKey}_15BB`, // アクションなしの15BBキー
-        baseKey, // 従来の15BBキー
-      ];
-    } else if (fallbackRangeKey) {
-      fallbackKeys = [fallbackRangeKey];
-    }
-    
     console.log('🔍 Searching for custom range:', {
       rangeKey,
       fallbackRangeKey,
-      fallbackKeys,
       handType: normalizedHandType,
       hasCustomRanges: !!effectiveCustomRanges,
       customRangesKeys: effectiveCustomRanges ? Object.keys(effectiveCustomRanges) : [],
@@ -1148,28 +1132,14 @@ const simulateMTTGTOData = (
       targetHandExists: !!(effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType])
     });
     
-    // カスタムレンジを検索（優先キー → フォールバックキー）
     if (effectiveCustomRanges && effectiveCustomRanges[rangeKey] && effectiveCustomRanges[rangeKey][normalizedHandType]) {
       customHandData = effectiveCustomRanges[rangeKey][normalizedHandType];
-      usedRangeKey = rangeKey;
       console.log('🎯 vs3bet カスタムレンジ発見 (優先キー):', { rangeKey, handType: normalizedHandType, customHandData });
+    } else if (fallbackRangeKey && effectiveCustomRanges && effectiveCustomRanges[fallbackRangeKey] && effectiveCustomRanges[fallbackRangeKey][normalizedHandType]) {
+      customHandData = effectiveCustomRanges[fallbackRangeKey][normalizedHandType];
+      usedRangeKey = fallbackRangeKey;
+      console.log('🎯 vs3bet フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
-      // フォールバックキーを順次試行
-      for (const fallbackKey of fallbackKeys) {
-        if (effectiveCustomRanges && effectiveCustomRanges[fallbackKey] && effectiveCustomRanges[fallbackKey][normalizedHandType]) {
-          customHandData = effectiveCustomRanges[fallbackKey][normalizedHandType];
-          usedRangeKey = fallbackKey;
-          console.log('🎯 vs3bet カスタムレンジ発見 (フォールバックキー):', { 
-            fallbackKey, 
-            handType: normalizedHandType, 
-            customHandData,
-            triedKeys: fallbackKeys 
-          });
-          break;
-        }
-      }
-    
-    if (!customHandData) {
       // 20BBの場合、タイプ別レンジが見つからない場合のデバッグ
       if (stackSize === '20BB' && threeBetType) {
         console.log('🎯 20BB タイプ別レンジ未発見の詳細デバッグ:', {
@@ -1498,7 +1468,7 @@ const simulateMTTGTOData = (
       }
       
       fourBetterPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
-      // setCurrentOpponentPosition(fourBetterPosition); // TODO: fix scope issue
+      // setCurrentOpponentPosition(fourBetterPosition); // TODO: コンポーネント内で呼ぶように修正
     }
     
     // スタック固有のレンジキーを構築（3ベッター vs 4ベッターの形式）
@@ -2268,6 +2238,21 @@ function MTTTrainingPage() {
   const [selectedTrainingHands, setSelectedTrainingHands] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
+  // isSavingフラグが長時間trueのままになることを防ぐ
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (isSaving) {
+      // 30秒後に自動的にフラグをリセット
+      timeoutId = setTimeout(() => {
+        console.log('⚠️ isSavingフラグを強制リセットしました（30秒タイムアウト）');
+        setIsSaving(false);
+      }, 30000);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isSaving]);
+  
   // ハンドレンジ表示用のstate
   const [showHandRange, setShowHandRange] = useState<boolean>(false);
   const [showHandRangeViewer, setShowHandRangeViewer] = useState<boolean>(false);
@@ -2653,12 +2638,12 @@ function MTTTrainingPage() {
     if (actionType === 'vsopen') {
       // URLパラメータでオープンレイザーが指定されている場合はそれを使用
       const urlOpener = searchParams.get('opener');
-      if (urlOpener && isValidVsOpenCombination(position, urlOpener)) {
+      if (urlOpener && isValidVsOpenCombination(position, urlOpener, stackSize)) {
         openerPosition = urlOpener;
         setCurrentOpponentPosition(urlOpener);
       } else {
         // 指定されていない、または無効な場合はランダムに選択
-        const validOpeners = getValidOpenerPositions(position);
+        const validOpeners = getValidOpenerPositions(position, stackSize);
         if (validOpeners.length > 0) {
           openerPosition = validOpeners[Math.floor(Math.random() * validOpeners.length)];
           setCurrentOpponentPosition(openerPosition);
@@ -3978,29 +3963,23 @@ function MTTTrainingPage() {
       
       // 保存中でない場合のみ処理を実行
       if (!isSaving) {
-        const localRanges = localStorage.getItem('mtt-custom-ranges');
+        // 統合ストレージシステムからデータを読み込み
+        const localRanges = await storageManager.loadRanges();
         const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
         
         // ローカルデータがある場合は一時的に設定（後でAPIと比較）
-        if (localRanges) {
-          try {
-            const parsedRanges = JSON.parse(localRanges);
-            if (Object.keys(parsedRanges).length > 0) {
-              setCustomRanges(parsedRanges);
-              console.log('🎯 ローカルストレージのデータを一時設定:', {
-                rangeKeys: Object.keys(parsedRanges),
-                rangeCount: Object.keys(parsedRanges).length,
-                vsopenKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_')),
-                vs3betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs3bet_')),
-                vs4betKeys: Object.keys(parsedRanges).filter(key => key.startsWith('vs4bet_')),
-                sampleVsopenRange: Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_'))[0] ? 
-                  Object.keys(parsedRanges[Object.keys(parsedRanges).filter(key => key.startsWith('vsopen_'))[0]]) : null
-              });
-              // ローカルデータがあってもAPIとの同期を続行
-            }
-          } catch (e) {
-            console.log('ローカルストレージ解析エラー:', e);
-          }
+        if (localRanges && Object.keys(localRanges).length > 0) {
+          setCustomRanges(localRanges);
+          console.log('🎯 統合ストレージからデータを一時設定:', {
+            rangeKeys: Object.keys(localRanges),
+            rangeCount: Object.keys(localRanges).length,
+            vsopenKeys: Object.keys(localRanges).filter(key => key.startsWith('vsopen_')),
+            vs3betKeys: Object.keys(localRanges).filter(key => key.startsWith('vs3bet_')),
+            vs4betKeys: Object.keys(localRanges).filter(key => key.startsWith('vs4bet_')),
+            sampleVsopenRange: Object.keys(localRanges).filter(key => key.startsWith('vsopen_'))[0] ? 
+              Object.keys(localRanges[Object.keys(localRanges).filter(key => key.startsWith('vsopen_'))[0]]) : null
+          });
+          // ローカルデータがあってもAPIとの同期を続行
         }
       }
       
@@ -4362,20 +4341,61 @@ function MTTTrainingPage() {
     }
   };
 
+  // シンプルな保存フラグ管理
+  
+  // シンプルなバッチ保存
+  const handleBatchSaveRanges = async (ranges: Array<{position: string, rangeData: Record<string, HandInfo>}>) => {
+    console.log('🎯 バッチ保存開始:', ranges.length, '個のレンジ');
+    
+    for (const { position, rangeData } of ranges) {
+      await handleSaveRange(position, rangeData);
+      // 各保存の間に少し待機
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log('✅ バッチ保存完了');
+  };
+
   const handleSaveRange = async (position: string, rangeData: Record<string, HandInfo>) => {
+    console.log('🔧 handleSaveRange 呼び出し:', { 
+      position, 
+      rangeDataValid: !!rangeData,
+      rangeDataSize: rangeData ? Object.keys(rangeData).length : 0,
+      isSaving,
+      timestamp: new Date().toISOString()
+    });
+
     // データの妥当性をチェック
     if (!validateRangeData(rangeData)) {
-      console.error('❌ レンジデータのバリデーションに失敗しました');
-      setIsSaving(false);
+      console.error('❌ レンジデータのバリデーションに失敗しました', { position, rangeData });
+      return;
+    }
+
+    // 保存中の場合は少し待ってから再試行
+    if (isSaving) {
+      console.log('⏳ 他の保存処理が実行中です。1秒後に再試行します:', { 
+        position, 
+        isSaving,
+        timestamp: new Date().toISOString()
+      });
+      
+      setTimeout(() => {
+        if (!isSaving) {
+          console.log('🔄 再試行: handleSaveRange', position);
+          handleSaveRange(position, rangeData);
+        } else {
+          console.error('❌ 保存の再試行に失敗しました。isSavingフラグを強制リセットします');
+          setIsSaving(false);
+          handleSaveRange(position, rangeData);
+        }
+      }, 1000);
       return;
     }
 
     console.log('🎯 保存開始:', { 
       position, 
       rangeDataKeys: Object.keys(rangeData), 
-      rangeDataSize: Object.keys(rangeData).length,
-      is20BB: position.includes('20BB'),
-      threeBetType: position.includes('raise') ? 'raise' : position.includes('allin') ? 'allin' : 'none'
+      rangeDataSize: Object.keys(rangeData).length
     });
     
     setIsSaving(true);
@@ -4429,28 +4449,23 @@ function MTTTrainingPage() {
       console.log('スタック固有レンジ保存', { position, stackSpecificKey });
     }
     
-    setCustomRanges(newCustomRanges);
-    
-    // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
-    setLastRangeUpdate(Date.now());
-    
-    // localStorageに安全に保存
     try {
-      const dataToSave = JSON.stringify(newCustomRanges);
+      setCustomRanges(newCustomRanges);
       
-      // データサイズをチェック（5MBを超える場合は警告）
-      if (dataToSave.length > 5 * 1024 * 1024) {
-        console.warn('⚠️ データサイズが大きすぎます:', dataToSave.length, 'bytes');
-      }
+      // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+      setLastRangeUpdate(Date.now());
       
-      localStorage.setItem('mtt-custom-ranges', dataToSave);
-      localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
-      console.log(`✅ ${position}ポジションのカスタムレンジを保存しました`);
+      // 統合ストレージシステムで安全に保存
+      const saveResult = await storageManager.saveRanges(newCustomRanges);
+      
+      if (saveResult.success) {
+        localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
+        console.log(`✅ ${position}ポジションのカスタムレンジを保存しました (${saveResult.method})`);
       console.log('🎯 保存詳細:', {
         position,
         rangeKeys: Object.keys(newCustomRanges),
         savedRangeKeys: Object.keys(rangeData),
-        localStorageSize: JSON.stringify(newCustomRanges).length,
+        storageMethod: saveResult.method,
         timestamp: new Date().toISOString(),
         // 20BBのレンジが正しく保存されているかを確認
         has20BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')).length,
@@ -4466,45 +4481,51 @@ function MTTTrainingPage() {
         vs4bet40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')),
         vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
       });
+        
+        // 管理者認証済みならAPIにも自動保存（全プレイヤーに即座に反映）
+        if (isAdmin && token) {
+          try {
+            const response = await fetch('/api/mtt-ranges', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                ranges: newCustomRanges,
+                metadata: {
+                  creator: 'MTT Admin System',
+                  timestamp: new Date().toISOString()
+                }
+              }),
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log(`✅ システム全体に自動保存完了: ${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンド`);
+            } else {
+              const error = await response.json();
+              console.error('システム保存エラー:', error.error || '保存に失敗しました');
+            }
+          } catch (error) {
+            console.error('システム保存エラー:', error);
+          }
+        }
+      } else {
+        console.error('❌ 統合ストレージ保存失敗:', saveResult.error);
+        alert(`❌ レンジの保存に失敗しました\n\nエラー: ${saveResult.error}`);
+      }
+    } catch (error) {
+      console.error('❌ レンジ保存エラー:', error);
+      alert(`❌ ${position}の保存中にエラーが発生しました\n\nエラー詳細: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsSaving(false);
+      console.log('🎯 保存処理完了:', position);
       
-      // 保存完了後、少し待ってからフラグをリセット
+      // 確実にフラグをリセットするための安全装置
       setTimeout(() => {
         setIsSaving(false);
-        console.log('🎯 保存フラグをリセットしました');
-      }, 2000);
-    } catch (error) {
-      console.error('❌ カスタムレンジの保存に失敗しました:', error);
-      setIsSaving(false);
-    }
-    
-    // 管理者認証済みならAPIにも自動保存（全プレイヤーに即座に反映）
-    if (isAdmin && token) {
-      try {
-        const response = await fetch('/api/mtt-ranges', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            ranges: newCustomRanges,
-            metadata: {
-              creator: 'MTT Admin System',
-              timestamp: new Date().toISOString()
-            }
-          }),
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log(`✅ システム全体に自動保存完了: ${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンド`);
-        } else {
-          const error = await response.json();
-          console.error('システム保存エラー:', error.error || '保存に失敗しました');
-        }
-      } catch (error) {
-        console.error('システム保存エラー:', error);
-      }
+      }, 100);
     }
   };
 
@@ -4527,31 +4548,498 @@ function MTTTrainingPage() {
     }
   };
 
+  // データ圧縮関数（重複除去とサイズ最適化）
+  const compressRangeData = (data: Record<string, any>) => {
+    // 1. 頻度データの重複除去（共通の頻度パターンを参照に）
+    const frequencyPatterns: Record<string, any> = {};
+    let patternId = 0;
+    
+    // 2. まず全てのハンドデータをスキャンして共通パターンを抽出
+    const processedData: Record<string, any> = {};
+    
+    Object.entries(data).forEach(([rangeKey, rangeValue]) => {
+      if (typeof rangeValue === 'object' && rangeValue !== null) {
+        const processedRange: Record<string, any> = {};
+        
+        Object.entries(rangeValue).forEach(([hand, handInfo]: [string, any]) => {
+          if (handInfo && typeof handInfo === 'object') {
+            const handString = JSON.stringify(handInfo);
+            
+            // 既存のパターンを探す
+            let existingPatternId = Object.keys(frequencyPatterns).find(
+              id => JSON.stringify(frequencyPatterns[id]) === handString
+            );
+            
+            if (!existingPatternId) {
+              existingPatternId = `p${patternId++}`;
+              frequencyPatterns[existingPatternId] = handInfo;
+            }
+            
+            processedRange[hand] = { ref: existingPatternId };
+          } else {
+            processedRange[hand] = handInfo;
+          }
+        });
+        
+        processedData[rangeKey] = processedRange;
+      } else {
+        processedData[rangeKey] = rangeValue;
+      }
+    });
+    
+    return {
+      patterns: frequencyPatterns,
+      ranges: processedData,
+      meta: {
+        originalSize: JSON.stringify(data).length,
+        compressedSize: JSON.stringify({ patterns: frequencyPatterns, ranges: processedData }).length,
+        compressionRatio: JSON.stringify(data).length / JSON.stringify({ patterns: frequencyPatterns, ranges: processedData }).length
+      }
+    };
+  };
+
+  // データ展開関数
+  const decompressRangeData = (compressedData: any) => {
+    if (!compressedData.patterns || !compressedData.ranges) {
+      // 圧縮されていないデータの場合はそのまま返す
+      return compressedData;
+    }
+    
+    const { patterns, ranges } = compressedData;
+    const decompressedData: Record<string, any> = {};
+    
+    Object.entries(ranges).forEach(([rangeKey, rangeValue]: [string, any]) => {
+      if (typeof rangeValue === 'object' && rangeValue !== null) {
+        const decompressedRange: Record<string, any> = {};
+        
+        Object.entries(rangeValue).forEach(([hand, handInfo]: [string, any]) => {
+          if (handInfo && handInfo.ref && patterns[handInfo.ref]) {
+            decompressedRange[hand] = patterns[handInfo.ref];
+          } else {
+            decompressedRange[hand] = handInfo;
+          }
+        });
+        
+        decompressedData[rangeKey] = decompressedRange;
+      } else {
+        decompressedData[rangeKey] = rangeValue;
+      }
+    });
+    
+    return decompressedData;
+  };
+
+  // IndexedDB管理クラス
+  class IndexedDBManager {
+    private dbName = 'GTOVantageDB';
+    private dbVersion = 1;
+    private storeName = 'mttRanges';
+
+    // IndexedDBを開く
+    private async openDB(): Promise<IDBDatabase> {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.dbName, this.dbVersion);
+        
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains(this.storeName)) {
+            db.createObjectStore(this.storeName, { keyPath: 'id' });
+          }
+        };
+      });
+    }
+
+    // データを保存
+    async saveRanges(ranges: Record<string, any>): Promise<void> {
+      const db = await this.openDB();
+      const transaction = db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      
+      const data = {
+        id: 'current',
+        ranges,
+        timestamp: new Date().toISOString(),
+        version: 'v1.0'
+      };
+      
+      return new Promise((resolve, reject) => {
+        const request = store.put(data);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // データを読み込み
+    async loadRanges(): Promise<Record<string, any> | null> {
+      try {
+        const db = await this.openDB();
+        const transaction = db.transaction([this.storeName], 'readonly');
+        const store = transaction.objectStore(this.storeName);
+        
+        return new Promise((resolve, reject) => {
+          const request = store.get('current');
+          request.onsuccess = () => {
+            const result = request.result;
+            resolve(result ? result.ranges : null);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('IndexedDB読み込みエラー:', error);
+        return null;
+      }
+    }
+
+    // データサイズを取得
+    async getStorageInfo(): Promise<{ sizeEstimate?: number; quotaEstimate?: number; usageDetails?: any }> {
+      try {
+        if ('storage' in navigator && 'estimate' in navigator.storage) {
+          const estimate = await navigator.storage.estimate();
+          return {
+            sizeEstimate: estimate.usage,
+            quotaEstimate: estimate.quota,
+            usageDetails: (estimate as any).usageDetails
+          };
+        }
+        return {};
+      } catch (error) {
+        console.error('Storage API エラー:', error);
+        return {};
+      }
+    }
+
+    // データを削除
+    async clearRanges(): Promise<void> {
+      const db = await this.openDB();
+      const transaction = db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      
+      return new Promise((resolve, reject) => {
+        const request = store.delete('current');
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+  }
+
+  // IndexedDBマネージャーのインスタンス
+  const idbManager = new IndexedDBManager();
+
+  // 高度なストレージ管理システム
+  const storageManager = {
+    // localStorage容量情報を取得
+    getLocalStorageInfo: () => {
+      let totalSize = 0;
+      let itemCount = 0;
+      
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const itemSize = localStorage.getItem(key)?.length || 0;
+          totalSize += itemSize;
+          itemCount++;
+        }
+      }
+      
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      const estimatedLimit = 5; // 一般的な制限値（MB）
+      const usagePercent = ((totalSize / (estimatedLimit * 1024 * 1024)) * 100).toFixed(1);
+      
+      return {
+        totalSizeBytes: totalSize,
+        totalSizeMB,
+        itemCount,
+        estimatedLimitMB: estimatedLimit,
+        usagePercent: parseFloat(usagePercent),
+        isNearLimit: parseFloat(usagePercent) > 80
+      };
+    },
+
+    // 統合ストレージ情報を取得
+    getStorageInfo: async () => {
+      const localStorage = storageManager.getLocalStorageInfo();
+      const indexedDB = await idbManager.getStorageInfo();
+      
+      return {
+        localStorage,
+        indexedDB: {
+          sizeEstimateMB: indexedDB.sizeEstimate ? (indexedDB.sizeEstimate / (1024 * 1024)).toFixed(2) : 'N/A',
+          quotaEstimateMB: indexedDB.quotaEstimate ? (indexedDB.quotaEstimate / (1024 * 1024)).toFixed(2) : 'N/A',
+          usagePercent: (indexedDB.sizeEstimate && indexedDB.quotaEstimate) ? 
+            ((indexedDB.sizeEstimate / indexedDB.quotaEstimate) * 100).toFixed(2) : 'N/A',
+          available: indexedDB.quotaEstimate ? 
+            ((indexedDB.quotaEstimate - (indexedDB.sizeEstimate || 0)) / (1024 * 1024)).toFixed(2) : 'N/A'
+        }
+      };
+    },
+
+    // データを保存（自動フォールバック）
+    saveRanges: async (ranges: Record<string, any>): Promise<{ method: string; success: boolean; error?: string }> => {
+      const dataString = JSON.stringify(ranges);
+      const dataSize = new Blob([dataString]).size;
+      const dataSizeMB = (dataSize / (1024 * 1024)).toFixed(2);
+      
+      console.log('🗄️ 統合ストレージ保存開始:', {
+        rangeCount: Object.keys(ranges).length,
+        dataSizeMB,
+        strategy: 'Auto-fallback: IndexedDB → Compressed → Normal'
+      });
+
+      // 1. IndexedDBを最優先で試行
+      try {
+        await idbManager.saveRanges(ranges);
+        console.log('✅ IndexedDB保存成功 (無制限容量)');
+        
+        // IndexedDB成功時はlocalStorageも同期（フォールバック用）
+        try {
+          localStorage.setItem('mtt-custom-ranges', dataString);
+          localStorage.removeItem('mtt-custom-ranges-compressed');
+          localStorage.removeItem('mtt-custom-ranges-format');
+        } catch {
+          // localStorageが失敗してもIndexedDBは成功なのでOK
+        }
+        
+        return { method: 'IndexedDB', success: true };
+      } catch (idbError) {
+        console.log('⚠️ IndexedDB保存失敗、localStorageを試行:', idbError);
+      }
+
+      // 2. localStorage通常保存を試行
+      try {
+        localStorage.setItem('mtt-custom-ranges', dataString);
+        localStorage.removeItem('mtt-custom-ranges-compressed');
+        localStorage.removeItem('mtt-custom-ranges-format');
+        console.log('✅ localStorage通常保存成功');
+        return { method: 'localStorage', success: true };
+      } catch (localError) {
+        console.log('⚠️ localStorage通常保存失敗、圧縮保存を試行:', localError);
+      }
+
+      // 3. localStorage圧縮保存を試行
+      try {
+        const compressed = compressRangeData(ranges);
+        const compressedString = JSON.stringify(compressed);
+        const compressedSize = new Blob([compressedString]).size;
+        const compressedSizeMB = (compressedSize / (1024 * 1024)).toFixed(2);
+        
+        localStorage.setItem('mtt-custom-ranges-compressed', compressedString);
+        localStorage.setItem('mtt-custom-ranges-format', 'compressed');
+        localStorage.removeItem('mtt-custom-ranges');
+        
+        console.log(`✅ localStorage圧縮保存成功: ${dataSizeMB}MB → ${compressedSizeMB}MB`);
+        return { method: 'localStorage-compressed', success: true };
+      } catch (compressedError) {
+        console.error('❌ 全てのストレージ保存方法が失敗:', compressedError);
+        return { 
+          method: 'none', 
+          success: false, 
+          error: `全ての保存方法が失敗: データサイズ(${dataSizeMB}MB)が制限を超えています` 
+        };
+      }
+    },
+
+    // データを読み込み（自動フォールバック）
+    loadRanges: async (): Promise<Record<string, any> | null> => {
+      console.log('🗄️ 統合ストレージ読み込み開始');
+
+      // 1. IndexedDBから読み込み試行
+      try {
+        const idbData = await idbManager.loadRanges();
+        if (idbData && Object.keys(idbData).length > 0) {
+          console.log('✅ IndexedDBから読み込み成功:', Object.keys(idbData).length + '個のレンジ');
+          return idbData;
+        }
+      } catch (idbError) {
+        console.log('⚠️ IndexedDB読み込み失敗:', idbError);
+      }
+
+      // 2. localStorage圧縮データから読み込み試行
+      const storageFormat = localStorage.getItem('mtt-custom-ranges-format');
+      if (storageFormat === 'compressed') {
+        try {
+          const compressedData = localStorage.getItem('mtt-custom-ranges-compressed');
+          if (compressedData) {
+            const parsed = JSON.parse(compressedData);
+            const decompressed = decompressRangeData(parsed);
+            console.log('✅ localStorage圧縮データから読み込み成功:', Object.keys(decompressed).length + '個のレンジ');
+            return decompressed;
+          }
+        } catch (error) {
+          console.log('⚠️ localStorage圧縮データ読み込み失敗:', error);
+        }
+      }
+
+      // 3. localStorage通常データから読み込み試行
+      try {
+        const normalData = localStorage.getItem('mtt-custom-ranges');
+        if (normalData) {
+          const parsed = JSON.parse(normalData);
+          console.log('✅ localStorage通常データから読み込み成功:', Object.keys(parsed).length + '個のレンジ');
+          return parsed;
+        }
+      } catch (error) {
+        console.log('⚠️ localStorage通常データ読み込み失敗:', error);
+      }
+
+      console.log('⚠️ 全てのストレージからデータが見つかりませんでした');
+      return null;
+    }
+  };
+
   // JSONファイルからカスタムレンジをインポート
   const handleImportRanges = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // 現在のストレージ使用状況を確認
+    console.log('📁 インポート開始:', { 
+      fileName: file.name, 
+      fileSize: file.size, 
+      fileType: file.type,
+      lastModified: new Date(file.lastModified).toISOString()
+    });
+
+    // 統合ストレージ情報を取得して表示
+    storageManager.getStorageInfo().then(storageInfo => {
+      console.log('💾 現在のストレージ状況:', storageInfo);
+    });
+
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const importedRanges = JSON.parse(e.target?.result as string);
+        const fileContent = e.target?.result as string;
+        console.log('📄 ファイル内容読み込み完了:', { 
+          contentLength: fileContent?.length,
+          contentPreview: fileContent?.substring(0, 200) + (fileContent?.length > 200 ? '...' : ''),
+          contentEnd: fileContent?.length > 200 ? '...' + fileContent?.substring(fileContent.length - 100) : '',
+          hasValidJSON: (() => {
+            try {
+              JSON.parse(fileContent);
+              return true;
+            } catch {
+              return false;
+            }
+          })()
+        });
+        
+        const importedRanges = JSON.parse(fileContent);
+        console.log('🔍 JSON解析完了:', {
+          type: typeof importedRanges,
+          isNull: importedRanges === null,
+          isArray: Array.isArray(importedRanges),
+          keys: typeof importedRanges === 'object' && importedRanges !== null ? Object.keys(importedRanges).slice(0, 10) : [],
+          totalKeys: typeof importedRanges === 'object' && importedRanges !== null ? Object.keys(importedRanges).length : 0
+        });
         
         // データの妥当性をチェック
-        if (typeof importedRanges === 'object' && importedRanges !== null) {
-          setCustomRanges(importedRanges);
-          localStorage.setItem('mtt-custom-ranges', JSON.stringify(importedRanges));
-          // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
-          setLastRangeUpdate(Date.now());
-          alert('レンジを正常にインポートしました。');
+        if (typeof importedRanges === 'object' && importedRanges !== null && !Array.isArray(importedRanges)) {
+          console.log('✅ データ妥当性チェック通過');
+          
+          // localStorage容量チェック
+          const dataString = JSON.stringify(importedRanges);
+          const dataSize = new Blob([dataString]).size;
+          const dataSizeMB = (dataSize / (1024 * 1024)).toFixed(2);
+          
+          console.log('💾 データサイズ情報:', {
+            rangeCount: Object.keys(importedRanges).length,
+            dataSizeBytes: dataSize,
+            dataSizeMB: dataSizeMB,
+            estimatedLocalStorageLimit: '5-10MB'
+          });
+          
+          try {
+            // まずStateを更新
+            setCustomRanges(importedRanges);
+            
+            // 統合ストレージシステムで保存
+            const saveResult = await storageManager.saveRanges(importedRanges);
+            
+            // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
+            setLastRangeUpdate(Date.now());
+            
+            if (saveResult.success) {
+              let successMessage = `✅ レンジを正常にインポートしました！\n\n`;
+              successMessage += `📊 インポート結果:\n`;
+              successMessage += `・レンジ数: ${Object.keys(importedRanges).length}個\n`;
+              successMessage += `・データサイズ: ${dataSizeMB}MB\n`;
+              successMessage += `・保存方式: ${saveResult.method}\n\n`;
+              
+              switch (saveResult.method) {
+                case 'IndexedDB':
+                  successMessage += `🚀 IndexedDB保存成功！\n`;
+                  successMessage += `・容量制限: 実質無制限（数GB対応）\n`;
+                  successMessage += `・パフォーマンス: 高速アクセス\n`;
+                  successMessage += `・将来対応: 大規模データに完全対応`;
+                  break;
+                case 'localStorage':
+                  successMessage += `💾 localStorage保存成功！\n`;
+                  successMessage += `・データ形式: 通常（圧縮なし）\n`;
+                  successMessage += `・アクセス速度: 高速`;
+                  break;
+                case 'localStorage-compressed':
+                  successMessage += `📦 localStorage圧縮保存成功！\n`;
+                  successMessage += `・データ形式: 圧縮済み\n`;
+                  successMessage += `・容量削減: 自動最適化`;
+                  break;
+              }
+              
+              alert(successMessage);
+              console.log('✅ インポート完了:', saveResult);
+            } else {
+              // 保存失敗だがStateは更新済み
+              alert(`⚠️ データ読み込みは成功しましたが、永続保存に失敗しました。\n\n` +
+                `エラー: ${saveResult.error}\n\n` +
+                `📊 現在の状況:\n` +
+                `・レンジ数: ${Object.keys(importedRanges).length}個\n` +
+                `・データサイズ: ${dataSizeMB}MB\n` +
+                `・利用可能性: セッション中のみ\n\n` +
+                `💡 推奨対策:\n` +
+                `1. 管理者権限でシステム全体に保存\n` +
+                `2. 不要なレンジを削除してサイズを削減\n` +
+                `3. ブラウザのストレージをクリア`);
+            }
+          } catch (error) {
+            console.error('❌ インポート処理エラー:', {
+              error,
+              errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+              errorMessage: error instanceof Error ? error.message : String(error),
+              errorStack: error instanceof Error ? error.stack : undefined
+            });
+            alert(`❌ インポート処理中にエラーが発生しました\n\nエラータイプ: ${error instanceof Error ? error.constructor.name : 'Unknown'}\nエラー詳細: ${error instanceof Error ? error.message : String(error)}`);
+          }
         } else {
-          throw new Error('無効なファイル形式です。');
+          console.error('❌ データ妥当性チェック失敗:', {
+            type: typeof importedRanges,
+            isNull: importedRanges === null,
+            isArray: Array.isArray(importedRanges)
+          });
+          throw new Error('無効なファイル形式です。オブジェクト形式のJSONファイルが必要です。');
         }
       } catch (error) {
-        console.error('レンジのインポートに失敗しました:', error);
-        alert('ファイルの読み込みに失敗しました。正しいフォーマットのファイルか確認してください。');
+        console.error('❌ レンジのインポートに失敗しました:', {
+          error,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          fileName: file.name,
+          fileSize: file.size
+        });
+        
+        if (error instanceof SyntaxError) {
+          alert(`JSON解析エラーが発生しました。\n\nファイル: ${file.name}\nエラータイプ: ${error instanceof Error ? error.constructor.name : 'Unknown'}\nエラー詳細: ${error instanceof Error ? error.message : String(error)}\n\n対処法:\n1. JSONファイルの形式を確認\n2. 文字エンコーディングを確認\n3. ファイルが破損していないか確認`);
+        } else {
+          alert(`ファイル読み込みエラーが発生しました。\n\nファイル: ${file.name}\nエラータイプ: ${error instanceof Error ? error.constructor.name : 'Unknown'}\nエラー詳細: ${error instanceof Error ? error.message : String(error)}\n\n対処法:\n1. 正しいJSONファイルか確認\n2. ファイルサイズを確認\n3. ブラウザを再読み込み`);
+        }
       }
     };
+    
+    reader.onerror = (error) => {
+      console.error('❌ ファイル読み込みエラー:', error);
+      alert('ファイルの読み込み中にエラーが発生しました。');
+    };
+    
     reader.readAsText(file);
     
     // ファイル選択をリセット
@@ -4622,16 +5110,35 @@ function MTTTrainingPage() {
       isAdmin,
       hasToken: !!token,
       customRangesCount: Object.keys(customRanges).length,
-      sampleRange: Object.keys(customRanges)[0] ? customRanges[Object.keys(customRanges)[0]] : null
+      sampleRangeKeys: Object.keys(customRanges).slice(0, 5),
+      totalHands: Object.values(customRanges).reduce((total, range) => {
+        return total + (typeof range === 'object' && range !== null ? Object.keys(range).length : 0);
+      }, 0)
     });
 
     if (!isAdmin || !token) {
-      alert('❌ 管理者権限が必要です。');
+      alert('❌ 管理者権限が必要です。\n\n管理者としてログインしてください。');
       return;
     }
 
     if (Object.keys(customRanges).length === 0) {
-      alert('保存するレンジデータがありません。');
+      alert('❌ 保存するレンジデータがありません。\n\nまず、データをインポートまたはレンジを作成してください。');
+      return;
+    }
+
+    const confirmation = confirm(
+      `システム全体への保存を実行しますか？\n\n` +
+      `保存内容:\n` +
+      `・レンジ数: ${Object.keys(customRanges).length}個\n` +
+      `・総ハンド数: ${Object.values(customRanges).reduce((total, range) => {
+        return total + (typeof range === 'object' && range !== null ? Object.keys(range).length : 0);
+      }, 0)}個\n\n` +
+      `⚠️ この操作により、システム全体のレンジデータが更新され、\n` +
+      `すべてのユーザーに影響します。`
+    );
+
+    if (!confirmation) {
+      console.log('🎯 システム保存をキャンセルしました');
       return;
     }
 
@@ -4644,7 +5151,11 @@ function MTTTrainingPage() {
         }
       };
 
-      console.log('🎯 リクエストボディ:', requestBody);
+      console.log('🎯 システム保存リクエスト詳細:', {
+        rangeCount: Object.keys(customRanges).length,
+        bodySize: JSON.stringify(requestBody).length,
+        authorization: `Bearer ${token.substring(0, 10)}...`
+      });
 
       const response = await fetch('/api/mtt-ranges', {
         method: 'POST',
@@ -4655,28 +5166,66 @@ function MTTTrainingPage() {
         body: JSON.stringify(requestBody),
       });
 
-      console.log('🎯 レスポンス:', {
+      console.log('🎯 システム保存レスポンス:', {
         status: response.status,
         statusText: response.statusText,
-        ok: response.ok
+        ok: response.ok,
+        url: response.url
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log('🎯 システム保存完了（ローカルストレージは保持）:', {
-          savedRangeKeys: Object.keys(customRanges),
+        console.log('🎯 システム保存完了:', {
+          savedRangeKeys: Object.keys(customRanges).slice(0, 10),
           savedRangeCount: Object.keys(customRanges).length,
-          systemMetadata: result.metadata
+          systemMetadata: result.metadata,
+          responseResult: result
         });
-        alert(`✅ システム全体に保存完了！\n${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンドを保存しました。\n（ローカルデータは保持されます）`);
+        
+        // 保存成功後にシステムから再読み込みして確認
+        try {
+          const verifyResponse = await fetch('/api/mtt-ranges', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            console.log('🔍 保存後確認:', {
+              systemRangeCount: verifyData.rangesCount || Object.keys(verifyData.ranges || {}).length,
+              lastUpdated: verifyData.lastUpdated
+            });
+          }
+        } catch (verifyError) {
+          console.log('保存後確認エラー:', verifyError);
+        }
+        
+        alert(`✅ システム全体に保存完了！\n\n` +
+          `保存されたデータ:\n` +
+          `・レンジ数: ${result.metadata.totalPositions}個\n` +
+          `・ハンド数: ${result.metadata.totalHands}個\n` +
+          `・更新日時: ${new Date(result.metadata.timestamp).toLocaleString()}\n\n` +
+          `すべてのユーザーがこのデータを利用できます。`);
       } else {
-        const error = await response.json();
-        console.error('🎯 エラーレスポンス:', error);
-        throw new Error(error.error || '保存に失敗しました');
+        const errorText = await response.text();
+        let errorObj;
+        try {
+          errorObj = JSON.parse(errorText);
+        } catch {
+          errorObj = { error: errorText };
+        }
+        console.error('🎯 システム保存エラーレスポンス:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          errorObj
+        });
+        throw new Error(errorObj.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('システム保存エラー:', error);
-      alert(`❌ システムへの保存に失敗しました: ${(error as Error).message}`);
+      console.error('❌ システム保存エラー:', error);
+      alert(`❌ システムへの保存に失敗しました\n\nエラー詳細: ${(error as Error).message}\n\n対処法:\n1. 管理者権限を確認\n2. インターネット接続を確認\n3. ブラウザコンソールでエラー詳細を確認`);
     }
   };
 
@@ -4800,8 +5349,9 @@ function MTTTrainingPage() {
     console.log('レンジエディターボタン押下:', position);
     
     // 15BBの場合、既存のレンジキー（ポジション名のみ）がある場合はそれを使用
+    // ただし、オールインやリンプの新しいキーについてはフォールバックしない
     let targetPosition = position;
-    if (position.endsWith('_15BB')) {
+    if (position.endsWith('_15BB') && !position.includes('_allin') && !position.includes('_limp')) {
       const basePosition = position.replace('_15BB', '');
       if (customRanges[basePosition] && !customRanges[position]) {
         targetPosition = basePosition;
@@ -4809,7 +5359,8 @@ function MTTTrainingPage() {
       }
     }
     // vsオープンレンジでの15BB互換性も確認
-    else if (position.startsWith('vsopen_') && position.endsWith('_15BB')) {
+    // ただし、オールインやリンプの新しいキーについてはフォールバックしない
+    else if (position.startsWith('vsopen_') && position.endsWith('_15BB') && !position.includes('_allin') && !position.includes('_limp')) {
       const baseVsOpenKey = position.replace('_15BB', '');
       if (customRanges[baseVsOpenKey] && !customRanges[position]) {
         targetPosition = baseVsOpenKey;
@@ -4817,7 +5368,8 @@ function MTTTrainingPage() {
       }
     }
     // vsオープンレンジで15BBの既存キー形式の場合、新しいキー形式も確認
-    else if (position.startsWith('vsopen_') && !position.includes('_15BB') && stackSize === '15BB') {
+    // ただし、オールインやリンプは除外
+    else if (position.startsWith('vsopen_') && !position.includes('_15BB') && !position.includes('_allin') && !position.includes('_limp') && stackSize === '15BB') {
       const newVsOpenKey = `${position}_15BB`;
       if (customRanges[newVsOpenKey] && !customRanges[position]) {
         targetPosition = newVsOpenKey;
@@ -5301,12 +5853,45 @@ function MTTTrainingPage() {
                               ? 'bg-red-600 hover:bg-red-700 text-white border border-red-500'
                               : 'bg-gray-600 text-gray-400 cursor-not-allowed border border-gray-500'
                           }`}
+                          title={`現在のレンジ数: ${Object.keys(customRanges).length}個\n管理者権限: ${isAdmin ? 'あり' : 'なし'}\nトークン: ${token ? 'あり' : 'なし'}`}
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                           </svg>
                           <span className="hidden md:inline">システム保存</span>
                           <span className="md:hidden">保存</span>
+                          {Object.keys(customRanges).length > 0 && (
+                            <span className="ml-1 bg-white bg-opacity-20 px-1.5 py-0.5 rounded text-[10px]">
+                              {Object.keys(customRanges).length}
+                            </span>
+                          )}
+                        </button>
+
+                        {/* ストレージ情報表示ボタン */}
+                        <button
+                          onClick={async () => {
+                            const storageInfo = await storageManager.getStorageInfo();
+                            const details = `🗄️ ストレージ使用状況\n\n` +
+                              `📱 localStorage:\n` +
+                              `・使用量: ${storageInfo.localStorage.totalSizeMB}MB\n` +
+                              `・使用率: ${storageInfo.localStorage.usagePercent}%\n` +
+                              `・アイテム数: ${storageInfo.localStorage.itemCount}個\n\n` +
+                              `🗃️ IndexedDB:\n` +
+                              `・使用量: ${storageInfo.indexedDB.sizeEstimateMB}MB\n` +
+                              `・利用可能: ${storageInfo.indexedDB.available}MB\n` +
+                              `・総容量: ${storageInfo.indexedDB.quotaEstimateMB}MB\n` +
+                              `・使用率: ${storageInfo.indexedDB.usagePercent}%\n\n` +
+                              `💡 IndexedDBは数GBまで対応可能です！`;
+                            alert(details);
+                          }}
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white border border-blue-500 transition-all duration-200 flex items-center gap-1"
+                          title="ストレージ使用状況を確認"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          <span className="hidden md:inline">容量確認</span>
+                          <span className="md:hidden">容量</span>
                         </button>
                         
                         {/* システム読み込みボタン */}
@@ -5392,37 +5977,120 @@ function MTTTrainingPage() {
                 <h4 className="text-sm font-semibold text-white mb-3">{stackSize}スタックでのヒーローポジション別vsオープンレンジ設定：</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'].map(heroPos => {
-                    const validOpeners = getValidOpenerPositions(heroPos);
+                    const validOpeners = getValidOpenerPositions(heroPos, stackSize);
                     if (validOpeners.length === 0) return null;
                     
                     return (
                       <div key={heroPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
                         <div className="text-sm font-semibold text-green-400 mb-2">{heroPos} (ヒーロー)</div>
                         <div className="text-xs text-gray-300 mb-2">
-                          {heroPos === 'SB' || heroPos === 'BB' ? 'BTNからのアクションに対する設定:' : 'vs オープンレイザー:'}
+                          {heroPos === 'SB' ? 'BTNからのアクションに対する設定:' 
+                           : heroPos === 'BB' ? (stackSize === '15BB' ? 'BTN/SBからのアクションに対する設定:' : 'BTNからのアクションに対する設定:')
+                           : 'vs オープンレイザー:'}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {validOpeners.map(opener => {
-                            // 15BBの場合は既存キーを優先し、新しいキーをフォールバックとして使用
+                            // 15BBの場合は、全てのオープナーでレイズとオールインを分離
+                            if (stackSize === '15BB') {
+                              const raiseRangeKey = `vsopen_${heroPos}_vs_${opener}`;
+                              const allinRangeKey = `vsopen_${heroPos}_vs_${opener}_allin`;
+                              
+                              const hasRaiseRange = customRanges[raiseRangeKey];
+                              const hasAllinRange = customRanges[allinRangeKey];
+                              
+                              // SBの場合はリンプも追加
+                              if (opener === 'SB' && heroPos === 'BB') {
+                                const limpRangeKey = `vsopen_${heroPos}_vs_${opener}_limp`;
+                                const hasLimpRange = customRanges[limpRangeKey];
+                                
+                                return (
+                                  <React.Fragment key={opener}>
+                                    {/* SBレイズボタン */}
+                                    <button
+                                      onClick={() => handleOpenRangeEditor(raiseRangeKey)}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                        hasRaiseRange
+                                          ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
+                                          : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
+                                      }`}
+                                      title={`${heroPos} vs SBレイズの${stackSize}スタックレンジ設定`}
+                                    >
+                                      SBレイズ
+                                      {hasRaiseRange && ' ✓'}
+                                    </button>
+                                    
+                                    {/* SBオールインボタン */}
+                                    <button
+                                      onClick={() => handleOpenRangeEditor(allinRangeKey)}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                        hasAllinRange
+                                          ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
+                                          : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
+                                      }`}
+                                      title={`${heroPos} vs SBオールインの${stackSize}スタックレンジ設定`}
+                                    >
+                                      SBオールイン
+                                      {hasAllinRange && ' ✓'}
+                                    </button>
+                                    
+                                    {/* SBリンプボタン */}
+                                    <button
+                                      onClick={() => handleOpenRangeEditor(limpRangeKey)}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                        hasLimpRange
+                                          ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
+                                          : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
+                                      }`}
+                                      title={`${heroPos} vs SBリンプの${stackSize}スタックレンジ設定`}
+                                    >
+                                      SBがリンプ→BB（あなた）のアクション
+                                      {hasLimpRange && ' ✓'}
+                                    </button>
+                                  </React.Fragment>
+                                );
+                              }
+                              
+                              // その他のオープナー（BTNなど）はレイズとオールインのみ
+                              return (
+                                <React.Fragment key={opener}>
+                                  {/* レイズボタン */}
+                                  <button
+                                    onClick={() => handleOpenRangeEditor(raiseRangeKey)}
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                      hasRaiseRange
+                                        ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
+                                    }`}
+                                    title={`${heroPos} vs ${opener}レイズの${stackSize}スタックレンジ設定`}
+                                  >
+                                    {opener}レイズ
+                                    {hasRaiseRange && ' ✓'}
+                                  </button>
+                                  
+                                  {/* オールインボタン */}
+                                  <button
+                                    onClick={() => handleOpenRangeEditor(allinRangeKey)}
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                                      hasAllinRange
+                                        ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-400'
+                                        : 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-transparent'
+                                    }`}
+                                    title={`${heroPos} vs ${opener}オールインの${stackSize}スタックレンジ設定`}
+                                  >
+                                    {opener}オールイン
+                                    {hasAllinRange && ' ✓'}
+                                  </button>
+                                </React.Fragment>
+                              );
+                            }
+                            
+                            // 15BB以外の通常のオープナーの処理
                             let rangeKey: string;
                             let fallbackRangeKey: string | null = null;
                             
-                            if (stackSize === '15BB') {
-                              // 15BBの場合は既存のキー形式を優先
-                              rangeKey = `vsopen_${heroPos}_vs_${opener}`;
-                              fallbackRangeKey = `vsopen_${heroPos}_vs_${opener}_15BB`;
-                            } else {
-                              // その他のスタックサイズは新しいキー形式を使用
-                              rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
-                            }
+                            rangeKey = `vsopen_${heroPos}_vs_${opener}_${stackSize}`;
                             
                             const hasCustomRange = customRanges[rangeKey] || (fallbackRangeKey && customRanges[fallbackRangeKey]);
-                            
-                            // BTNのオープンレンジがレイズなしの場合（15BBなど）の特別表示
-                            const isLimpOnlyOpener = opener === 'BTN' && stackSize === '15BB';
-                            const displayText = isLimpOnlyOpener && (heroPos === 'SB' || heroPos === 'BB') 
-                              ? `${opener}がリンプ→${heroPos}（あなた）のアクション`
-                              : opener;
                             
                             return (
                               <button
@@ -5435,7 +6103,7 @@ function MTTTrainingPage() {
                                 }`}
                                 title={`${heroPos} vs ${opener}の{stackSize}スタックレンジ設定`}
                               >
-                                {displayText}
+                                {opener}
                                 {hasCustomRange && ' ✓'}
                               </button>
                             );
@@ -5537,157 +6205,8 @@ function MTTTrainingPage() {
             </div>
           )}
 
-          {/* 15BB vs3ベット専用: オープンレイザーアクション制約対応 */}
-          {isAdmin && actionType === 'vs3bet' && stackSize === '15BB' && (
-            <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-4 mb-4 border border-yellow-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-1">15BB vs3ベット専用: オープンレイザーアクション制約対応 <span className="text-xs bg-yellow-600 px-2 py-1 rounded">管理者限定</span></h3>
-                  <p className="text-sm text-gray-300">15BBスタックではオープンレイザーのアクションに制約があります</p>
-                  <div className="text-xs text-yellow-300 mt-1 space-y-1">
-                    <div>• <strong>UTG/LJ/HJ/CO/SB:</strong> レイズ・オールインのみ</div>
-                    <div>• <strong>BTN:</strong> リンプ・オールインのみ（レイズなし）</div>
-                    <div>• <strong>現在:</strong> レイズレンジを入力中（BTNのリンプレンジは完了済み）</div>
-                  </div>
-                  {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith('_15BB') || (!key.includes('_raise_') && !key.includes('_allin_') && !key.includes('_limp_') && stackSize === '15BB'))).length > 0 && (
-                    <div className="text-xs text-yellow-400 mt-1">
-                      15BBカスタムvs3ベットレンジ設定済み: {Object.keys(customRanges).filter(key => key.startsWith('vs3bet_') && (key.endsWith('_15BB') || (!key.includes('_raise_') && !key.includes('_allin_') && !key.includes('_limp_') && stackSize === '15BB'))).length}レンジ
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <h4 className="text-sm font-semibold text-white mb-3">15BBスタックでのオープンレイザー別アクション制約対応vs3ベットレンジ設定：</h4>
-                
-                {/* アクション制約の説明 */}
-                <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
-                  <div className="text-yellow-400 font-semibold mb-2">⚠️ 15BBオープンレイザーアクション制約</div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-gray-300">
-                    <div>
-                      <span className="text-blue-300 font-semibold">UTG/LJ/HJ/CO/SB:</span><br/>
-                      レイズ/オールインレンジ
-                    </div>
-                    <div>
-                      <span className="text-green-300 font-semibold">BTN:</span><br/>
-                      リンプ/オールインレンジ（レイズなし）
-                    </div>
-                    <div>
-                      <span className="text-orange-300 font-semibold">現在の入力:</span><br/>
-                      レイズレンジ（BTNリンプ完了済み）
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'].map(openRaiserPos => {
-                    const getValidThreeBetters = (openRaiserPosition: string): string[] => {
-                      const openRaiserIndex = getPositionIndex(openRaiserPosition);
-                      if (openRaiserIndex >= POSITION_ORDER.length - 1) return [];
-                      return POSITION_ORDER.slice(openRaiserIndex + 1);
-                    };
-                    
-                    const validThreeBetters = getValidThreeBetters(openRaiserPos);
-                    if (validThreeBetters.length === 0) return null;
-                    
-                    // 15BBでのオープンレイザーアクション制約を判定
-                    const hasRaiseAction = openRaiserPos !== 'BTN'; // BTN以外はレイズあり
-                    const hasLimpAction = openRaiserPos === 'BTN' || openRaiserPos === 'SB'; // BTN/SBはリンプあり
-                    const hasAllInAction = true; // 全ポジションでオールインあり
-                    
-                    return (
-                      <div key={openRaiserPos} className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
-                        <div className="text-sm font-semibold text-yellow-400 mb-2">
-                          {openRaiserPos} (オープンレイザー)
-                          {openRaiserPos === 'BTN' && <span className="ml-1 text-xs text-green-400">[リンプ専用]</span>}
-                        </div>
-                        
-                        {/* オープンレイザーの利用可能アクション表示 */}
-                        <div className="text-xs text-gray-400 mb-2">
-                          利用可能: {[
-                            hasRaiseAction && 'レイズ',
-                            hasLimpAction && 'リンプ', 
-                            hasAllInAction && 'オールイン'
-                          ].filter(Boolean).join('・')}
-                        </div>
-                        
-                        <div className="text-xs text-gray-300 mb-2">3ベッターからの攻撃に対する対応:</div>
-                        <div className="flex flex-wrap gap-1">
-                          {validThreeBetters.map(threeBetter => {
-                            // 現在はレイズレンジを設定中なので、レイズレンジキーを使用
-                            // BTNの場合は特別な処理（リンプレンジは既に完了）
-                            let rangeKey: string;
-                            let buttonText = threeBetter;
-                            let isSpecialCase = false;
-                            
-                            if (openRaiserPos === 'BTN') {
-                              // BTNの場合：リンプレンジは完了済み、現在はレイズレンジ入力中だがBTNにレイズはない
-                              rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_limp_15BB`;
-                              buttonText = `${threeBetter} (リンプ済み)`;
-                              isSpecialCase = true;
-                            } else {
-                              // その他のポジション：レイズレンジを入力中
-                              rangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}_raise_15BB`;
-                              buttonText = `${threeBetter} (レイズ)`;
-                            }
-                            
-                            // 15BBの場合は既存レンジキーも確認
-                            const fallbackRangeKey = `vs3bet_${openRaiserPos}_vs_${threeBetter}`;
-                            const hasCustomRange = customRanges[rangeKey] || customRanges[fallbackRangeKey];
-                            
-                            return (
-                              <button
-                                key={threeBetter}
-                                onClick={() => {
-                                  if (isSpecialCase) {
-                                    // BTNの場合はリンプレンジが既に完了していることを通知
-                                    alert(`BTNのリンプレンジ vs ${threeBetter} は既に完了しています。\n\n15BBではBTNにレイズアクションはありません。\n現在はその他のポジションのレイズレンジを入力中です。`);
-                                    return;
-                                  }
-                                  handleOpenRangeEditor(rangeKey);
-                                }}
-                                disabled={isSpecialCase}
-                                className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
-                                  isSpecialCase
-                                    ? 'bg-green-600/50 text-green-300 border-2 border-green-400/50 cursor-not-allowed'
-                                    : hasCustomRange
-                                    ? 'bg-orange-600 hover:bg-orange-700 text-white border-2 border-orange-400'
-                                    : 'bg-gray-600 hover:bg-gray-700 text-white border-2 border-transparent'
-                                }`}
-                                title={
-                                  isSpecialCase 
-                                    ? `BTN vs ${threeBetter}のリンプレンジは既に完了（15BBではBTNにレイズなし）`
-                                    : `${openRaiserPos} vs ${threeBetter}のレイズレンジ設定（15BB）`
-                                }
-                              >
-                                {buttonText}
-                                {hasCustomRange && ' ✓'}
-                                {isSpecialCase && ' 🔒'}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* 15BB vs3ベット専用説明 */}
-                <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded text-xs">
-                  <div className="text-yellow-400 font-semibold mb-1">💡 15BB vs3ベット戦略の特徴</div>
-                  <div className="text-gray-300">
-                    • <strong>アクション制約:</strong> オープンレイザーのアクションが制限される（BTNはレイズなし）<br/>
-                    • <strong>現在の入力状況:</strong> レイズレンジを入力中（BTNのリンプレンジは既に完了済み）<br/>
-                    • <strong>レンジキー形式:</strong> vs3bet_[オープンレイザー]_vs_[3ベッター]_[アクション]_15BB<br/>
-                    • <strong>入力完了後:</strong> 15BBでの正確なvs3ベット戦略が利用可能になります
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* vs 3ベットレンジをカスタマイズ（20BB・15BB以外） */}
-          {isAdmin && actionType === 'vs3bet' && stackSize !== '20BB' && stackSize !== '15BB' && (
+          {/* vs 3ベットレンジをカスタマイズ（20BB以外） */}
+          {isAdmin && actionType === 'vs3bet' && stackSize !== '20BB' && (
             <div className="bg-gradient-to-r from-orange-900/30 to-red-900/30 rounded-lg p-4 mb-4 border border-orange-700/50">
               <div className="flex items-center justify-between">
                 <div>
@@ -6359,7 +6878,9 @@ function MTTTrainingPage() {
               editorStackSize = parseInt(parts[1].replace('BB', ''));
               
               // 15BBの場合、既存のレンジキー（ポジション名のみ）も確認
-              if (parts[1] === '15BB' && !initialRange && customRanges[parts[0]]) {
+              // ただし、オールイン・リンプキーは除外（完全に独立したレンジとして扱う）
+              if (parts[1] === '15BB' && !initialRange && customRanges[parts[0]] && 
+                  !selectedEditPosition.includes('_allin') && !selectedEditPosition.includes('_limp')) {
                 initialRange = customRanges[parts[0]];
                 console.log('15BB互換性: 既存レンジを使用', { position: parts[0], range: initialRange });
               }
@@ -6373,7 +6894,9 @@ function MTTTrainingPage() {
               editorStackSize = parseInt(stackSize.replace('BB', '')); // 現在のスタックサイズを使用
               
               // 15BBの場合、既存のvsオープンレンジキー（スタックサイズなし）も確認
-              if (stackSize === '15BB' && !initialRange) {
+              // ただし、オールイン・リンプキーは除外（完全に独立したレンジとして扱う）
+              if (stackSize === '15BB' && !initialRange && 
+                  !selectedEditPosition.includes('_allin') && !selectedEditPosition.includes('_limp')) {
                 const baseParts = parts.slice(0, 4); // vsopen_BTN_vs_COの部分のみ
                 const baseVsOpenKey = baseParts.join('_');
                 if (customRanges[baseVsOpenKey]) {
@@ -6419,6 +6942,7 @@ function MTTTrainingPage() {
               onSaveRange={handleSaveRange}
               onClose={() => setShowRangeEditor(false)}
               initialRange={initialRange}
+              isSaving={isSaving}
             />
           );
         })()

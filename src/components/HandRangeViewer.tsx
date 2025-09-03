@@ -71,7 +71,6 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
     const actions = [
       { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
       { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
-      { key: 'RAISE', color: getActionColorHex('RAISE'), value: frequencies.MIN }, // MINをRAISEとして扱う
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
       { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
     ];

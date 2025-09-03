@@ -1705,6 +1705,9 @@ video {
 .bg-blue-900\/20 {
   background-color: rgb(30 58 138 / 0.2);
 }
+.bg-blue-900\/30 {
+  background-color: rgb(30 58 138 / 0.3);
+}
 .bg-cyan-400 {
   --tw-bg-opacity: 1;
   background-color: rgb(34 211 238 / var(--tw-bg-opacity, 1));
@@ -1938,9 +1941,6 @@ video {
 }
 .bg-yellow-900\/30 {
   background-color: rgb(113 63 18 / 0.3);
-}
-.bg-blue-900\/30 {
-  background-color: rgb(30 58 138 / 0.3);
 }
 .bg-opacity-20 {
   --tw-bg-opacity: 0.2;
