@@ -177,6 +177,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
   const [cpuActionResults, setCpuActionResults] = useState<Record<string, {action: string, result?: string}>>({});
   const [cpuActionComplete, setCpuActionComplete] = useState(false);
   
+  // Spot更新のための強制再レンダリング用state
+  const [spotUpdateTrigger, setSpotUpdateTrigger] = useState(0);
+  
   // アクション順序の初期化
   const [actionOrder, setActionOrder] = useState<string[]>([]);
 
@@ -278,8 +281,16 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // CPUプレイヤーのアクションを実行する関数
   const executeNextCpuAction = () => {
+    console.log(`🎯 executeNextCpuAction 呼び出し:`, {
+      cpuActionEnabled,
+      currentCpuIndex,
+      cpuActionPlayersLength: cpuActionPlayers.length,
+      cpuActionPlayers
+    });
+    
     if (!cpuActionEnabled || currentCpuIndex >= cpuActionPlayers.length - 1) {
       // すべてのCPUプレイヤーのアクションが完了した場合
+      console.log(`🎯 CPUアクション完了: cpuActionEnabled=${cpuActionEnabled}, currentCpuIndex=${currentCpuIndex}, length=${cpuActionPlayers.length}`);
       setCpuActionComplete(true);
       if (onActionCompleted) {
         onActionCompleted();
@@ -293,6 +304,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     
     // 次のプレイヤーのポジションを取得
     const nextPosition = cpuActionPlayers[nextIndex];
+    console.log(`🎯 CPUアクション実行: position=${nextPosition}, index=${nextIndex}`);
     
     // CPU行動のタイプを生成
     const cpuHandType = generateCpuHandType();
@@ -307,6 +319,31 @@ export const PokerTable: React.FC<PokerTableProps> = ({
         result: formatCpuActionResult(cpuAction, nextPosition)
       }
     }));
+    
+    // 15BBのSB vs BBでSBがオープンレイザーの場合、openRaiseSizeを動的に更新
+    if (nextPosition === 'SB' && 
+        currentSpot.stackDepth === '15BB' && 
+        currentSpot.actionType === 'vsopen' && 
+        currentSpot.openRaiserPosition === 'SB') {
+      
+      let newOpenRaiseSize = 1.0; // デフォルト（リンプ）
+      
+      if (cpuAction === 'RAISE 2') {
+        newOpenRaiseSize = 2.0;
+      } else if (cpuAction === 'ALL IN') {
+        newOpenRaiseSize = 15.0; // 15BBオールイン
+      } else if (cpuAction === 'LIMP') {
+        newOpenRaiseSize = 1.0;
+      }
+      
+      console.log(`🎯 SBアクション後openRaiseSize更新: ${cpuAction} -> ${newOpenRaiseSize}BB`);
+      
+      // currentSpotのopenRaiseSizeを更新
+      currentSpot.openRaiseSize = newOpenRaiseSize;
+      
+      // 強制再レンダリングをトリガー
+      setSpotUpdateTrigger(prev => prev + 1);
+    }
     
     // 少し遅延して次のCPUプレイヤーのアクションを実行
     setTimeout(() => {
@@ -360,6 +397,23 @@ export const PokerTable: React.FC<PokerTableProps> = ({
 
   // CPUのアクションを決定する関数
   const getCpuAction = (position: string, handType: string) => {
+    console.log(`🎯 getCpuAction 呼び出し:`, {
+      position,
+      handType,
+      stackDepth: currentSpot.stackDepth,
+      actionType: currentSpot.actionType,
+      openRaiserPosition: currentSpot.openRaiserPosition
+    });
+    
+    // 15BBスタックでSBがオープンする場合（SB vs BB）または通常のオープンレイズをチェック
+    if (currentSpot.stackDepth === '15BB' && 
+        (currentSpot.actionType === 'openraise' || 
+         !currentSpot.actionType ||
+         (currentSpot.actionType === 'vsopen' && position === 'SB'))) {
+      console.log(`🎯 15BBオープンアクション適用: position=${position}`);
+      return getCpuOpenAction(position, handType);
+    }
+    
     // GTOレンジに基づく行動決定のシミュレーション
     // 実際には現在のGTOデータベースからの参照やAIによる決定を行う
     
@@ -415,16 +469,140 @@ export const PokerTable: React.FC<PokerTableProps> = ({
     }
   };
 
+  // 15BBでのCPUオープンアクションを決定する関数
+  const getCpuOpenAction = (position: string, handType: string) => {
+    console.log(`🎯 getCpuOpenAction 開始:`, { position, handType });
+    // SB専用の確率設定：リンプ70%/レイズ10%/オールイン20%
+    if (position === 'SB') {
+      const sbActionRates = { 'FOLD': 0, 'OPEN_2BB': 10, 'ALL_IN': 20, 'LIMP': 70 };
+      console.log(`🎯 SB専用確率適用:`, sbActionRates);
+      
+      // ランダム選択（SB専用）
+      const random = Math.random() * 100;
+      let cumulative = 0;
+      
+      console.log(`🎯 SBランダム値: ${random}`);
+      
+      for (const [action, rate] of Object.entries(sbActionRates)) {
+        cumulative += rate;
+        console.log(`🎯 SBアクション判定: ${action} (rate: ${rate}, cumulative: ${cumulative})`);
+        if (random <= cumulative) {
+          const result = (() => {
+            switch (action) {
+              case 'FOLD':
+                return 'FOLD';
+              case 'OPEN_2BB':
+                return 'RAISE 2';
+              case 'ALL_IN':
+                return 'ALL IN';
+              case 'LIMP':
+                return 'LIMP';
+              default:
+                return 'LIMP';
+            }
+          })();
+          console.log(`🎯 SB選択されたアクション: ${result}`);
+          return result;
+        }
+      }
+      
+      // フォールバック（通常は発生しない）
+      console.log(`🎯 SBフォールバック: LIMP`);
+      return 'LIMP';
+    }
+    
+    // ハンドの強さに基づく基本アクション確率（SB以外）
+    const baseActionRates: Record<string, Record<string, number>> = {
+      'premium': { 'FOLD': 0, 'OPEN_2BB': 45, 'ALL_IN': 50, 'LIMP': 5 },
+      'strong': { 'FOLD': 10, 'OPEN_2BB': 55, 'ALL_IN': 30, 'LIMP': 5 },
+      'medium': { 'FOLD': 30, 'OPEN_2BB': 45, 'ALL_IN': 20, 'LIMP': 5 },
+      'weak': { 'FOLD': 65, 'OPEN_2BB': 20, 'ALL_IN': 10, 'LIMP': 5 },
+      'trash': { 'FOLD': 85, 'OPEN_2BB': 8, 'ALL_IN': 5, 'LIMP': 2 }
+    };
+    
+    // ポジション別の調整
+    let actionRates = { ...baseActionRates[handType] };
+    
+    // BTNとSBのみリンプが可能
+    if (!['BTN', 'SB'].includes(position)) {
+      // リンプ確率を他のアクションに分散
+      const limpRate = actionRates['LIMP'];
+      actionRates['LIMP'] = 0;
+      actionRates['OPEN_2BB'] += limpRate * 0.6;
+      actionRates['ALL_IN'] += limpRate * 0.4;
+    }
+    
+    // ポジション別の微調整（SBはすでに上で処理済み）
+    if (position === 'BTN') {
+      actionRates['LIMP'] += 5; // BTNはよりリンプしやすい
+      actionRates['FOLD'] -= 5;
+    } else if (['UTG', 'MP'].includes(position)) {
+      actionRates['FOLD'] += 10; // アーリーポジションはタイト
+      actionRates['OPEN_2BB'] -= 5;
+      actionRates['ALL_IN'] -= 5;
+    }
+    
+    // 負の値を0に調整
+    Object.keys(actionRates).forEach(key => {
+      actionRates[key] = Math.max(0, actionRates[key]);
+    });
+    
+    // 確率の正規化
+    const total = Object.values(actionRates).reduce((sum, rate) => sum + rate, 0);
+    if (total > 0) {
+      Object.keys(actionRates).forEach(key => {
+        actionRates[key] = (actionRates[key] / total) * 100;
+      });
+    }
+    
+    console.log(`🎯 最終的なactionRates:`, actionRates);
+    
+    // ランダム選択
+    const random = Math.random() * 100;
+    let cumulative = 0;
+    
+    console.log(`🎯 ランダム値: ${random}`);
+    
+    for (const [action, rate] of Object.entries(actionRates)) {
+      cumulative += rate;
+      console.log(`🎯 アクション判定: ${action} (rate: ${rate}, cumulative: ${cumulative})`);
+      if (random <= cumulative) {
+        const result = (() => {
+          switch (action) {
+            case 'FOLD':
+              return 'FOLD';
+            case 'OPEN_2BB':
+              return 'RAISE 2';
+            case 'ALL_IN':
+              return 'ALL IN';
+            case 'LIMP':
+              return 'LIMP';
+            default:
+              return 'FOLD';
+          }
+        })();
+        console.log(`🎯 選択されたアクション: ${result}`);
+        return result;
+      }
+    }
+    
+    // フォールバック（通常は発生しない）
+    console.log(`🎯 フォールバック: FOLD`);
+    return 'FOLD';
+  };
+
   // CPUのアクション結果をフォーマットする関数
   const formatCpuActionResult = (action: string, position: string) => {
     if (action === 'FOLD') {
       return 'フォールド';
     } else if (action === 'CALL') {
       return 'コール';
+    } else if (action === 'LIMP') {
+      return 'リンプ（1BB）';
     } else if (action.startsWith('RAISE')) {
       const match = action.match(/RAISE (\d+(\.\d+)?)/);
       const raiseAmount = match ? match[1] : '?';
-      return `${raiseAmount}BBにレイズ`;
+      return `${raiseAmount}BBにオープン`;
     } else if (action === 'ALL IN') {
       return 'オールイン';
     }
@@ -2155,8 +2333,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           }
           
           // SBがオープンレイザーで1BBリンプの場合のみ1BBリンプチップを表示
-          const showSBLimp = (openRaiserPos === 'SB' && stackSize === '15' && currentSpot?.openRaiseSize === 1.0) ||
-                            (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB');
+          const showSBLimp = (openRaiserPos === 'SB' && stackSize === '15' && currentSpot?.openRaiseSize === 1.0);
                             
           if (showSBLimp) {
             // SBからの1BBリンプチップを表示
@@ -2193,10 +2370,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           }
           
           // オープンレイザーのチップ表示（オープンレイザーのポジションから中央方向に）
-          // SBの15BBリンプ以外の場合に表示、かつBBがヒーローでSBがオープンレイザーの場合は表示しない
+          // SBの15BBリンプの場合は専用チップを使うので除外、それ以外は通常のチップ表示
           if (openRaiserPosition && currentSpot?.openRaiseSize && 
-              !(openRaiserPos === 'SB' && stackSize === '15' && currentSpot?.openRaiseSize === 1.0) &&
-              !(bbPosition?.isHero && openRaiserPos === 'SB')) {
+              !(openRaiserPos === 'SB' && stackSize === '15' && currentSpot?.openRaiseSize === 1.0)) {
             // テーブル中央の座標
             const centerX = 50;
             const centerY = 35;

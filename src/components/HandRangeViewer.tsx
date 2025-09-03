@@ -29,6 +29,11 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
       return { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 100 };
     }
 
+    // NONEアクション（レンジ外ハンド）の特別処理 - NONE 100%として扱う
+    if (handInfo.action === 'NONE') {
+      return { MIN: 0, ALL_IN: 0, CALL: 0, FOLD: 0, NONE: 100 };
+    }
+
     if (handInfo.mixedFrequencies) {
       return handInfo.mixedFrequencies as { MIN: number; ALL_IN: number; CALL: number; FOLD: number; };
     } else {
@@ -47,7 +52,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
           freq.CALL = handInfo.frequency;
           break;
         default:
-          freq.FOLD = handInfo.frequency;
+          freq.FOLD = handInfo.frequency || 100; // frequencyが未定義の場合は100%に設定
       }
       return freq;
     }
@@ -61,37 +66,71 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
       case 'ALL_IN': return '#7f1d1d'; // オールイン: 濃い赤（ボルドー系のダークレッド）
       case 'CALL': return '#4CAF50'; // コール: 緑
       case 'FOLD': return '#4A90E2'; // フォールド: 青
+      case 'NONE': return '#6b7280'; // NONE: グレー（黒っぽい色）
       default: return '#6b7280';
     }
   };
 
   // 頻度に応じた動的スタイルを取得（カスタマイズレンジと同じ比率での視覚化）
   const getHandStyle = (hand: string) => {
+    const handInfo = rangeData[hand];
+    
+    // デバッグ用ログ（特定のハンドのみ）
+    if (hand === '86o' || hand === '22') {
+      console.log(`🎯 HandRangeViewer getHandStyle デバッグ:`, {
+        hand,
+        handInfo,
+        action: handInfo?.action,
+        frequency: handInfo?.frequency,
+        hasHandInfo: !!handInfo
+      });
+    }
+    
+    // NONEアクション（レンジ外ハンド）の特別処理 - グレー色で表示
+    if (handInfo?.action === 'NONE') {
+      console.log(`🎯 NONE action detected for ${hand}, applying gray color`);
+      return { 
+        background: '#6b7280',
+        backgroundColor: '#6b7280',
+        border: '1px solid rgb(75, 85, 99)',
+        color: 'white'
+      }; // グレー色（NONE色）
+    }
+    
     const frequencies = getHandFrequencies(hand);
     const actions = [
       { key: 'ALL_IN', color: getActionColorHex('ALL_IN'), value: frequencies.ALL_IN },
       { key: 'MIN', color: getActionColorHex('MIN'), value: frequencies.MIN },
       { key: 'CALL', color: getActionColorHex('CALL'), value: frequencies.CALL },
-      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD }
+      { key: 'FOLD', color: getActionColorHex('FOLD'), value: frequencies.FOLD },
+      { key: 'NONE', color: getActionColorHex('NONE'), value: frequencies.NONE || 0 }
     ];
     const nonZeroActions = actions.filter(a => a.value > 0);
     const totalNonFold = frequencies.MIN + frequencies.ALL_IN + frequencies.CALL;
 
     // フォールド100%
     if (totalNonFold === 0) {
+      if (hand === '86o' || hand === '22') {
+        console.log(`🎯 FOLD 100% detected for ${hand}, applying blue color`, {
+          frequencies,
+          totalNonFold
+        });
+      }
       return { 
-        background: '#4A90E2 !important',
-        backgroundColor: '#4A90E2 !important',
-        border: '1px solid rgb(75, 85, 99) !important'
-      }; // 青色（FOLD色）- !importantで優先
+        background: '#4A90E2',
+        backgroundColor: '#4A90E2',
+        border: '1px solid rgb(75, 85, 99)',
+        color: 'white'
+      }; // 青色（FOLD色）
     }
     // 単一アクション100%
     if (nonZeroActions.length === 1 && nonZeroActions[0].value === 100) {
       if (nonZeroActions[0].key === 'FOLD') {
         return { 
-          background: '#4A90E2 !important',
-          backgroundColor: '#4A90E2 !important',
-          border: '1px solid rgb(75, 85, 99) !important'
+          background: '#4A90E2',
+          backgroundColor: '#4A90E2',
+          border: '1px solid rgb(75, 85, 99)',
+          color: 'white'
         };
       }
       return { background: nonZeroActions[0].color };
@@ -143,9 +182,10 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
     }
     // それ以外（念のため）
     return {
-      background: '#4A90E2 !important', // 青色（FOLD色）
-      backgroundColor: '#4A90E2 !important',
-      border: '1px solid rgb(75, 85, 99) !important'
+      background: '#4A90E2', // 青色（FOLD色）
+      backgroundColor: '#4A90E2',
+      border: '1px solid rgb(75, 85, 99)',
+      color: 'white'
     };
   };
 

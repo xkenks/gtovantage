@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-09-03T12:22:31.621Z",
+  "lastUpdated": "2025-09-03T15:24:08.812Z",
   "ranges": {
     "vsopen_UTG1_vs_UTG": {
       "55": {
@@ -9640,19 +9640,19 @@
     },
     "vsopen_BB_vs_SB": {
       "22": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "33": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "44": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "55": {
-        "action": "ALL_IN",
+        "action": "CALL",
         "frequency": 100
       },
       "66": {
@@ -9664,115 +9664,107 @@
         "frequency": 100
       },
       "88": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "99": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "AKo": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "AQo": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "AJo": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "ATo": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A9o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A8o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A7o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A6o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A5o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A4o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A3o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A2o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A9s": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "AA": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "AKs": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "KK": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "KQo": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "AQs": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "KQs": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "QQ": {
-        "action": "RAISE",
-        "frequency": 100
-      },
-      "QJo": {
         "action": "CALL",
         "frequency": 100
       },
       "AJs": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "ATs": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "A8s": {
-        "action": "RAISE",
-        "frequency": 100
-      },
-      "A7s": {
-        "action": "RAISE",
+        "action": "MIN",
         "frequency": 100
       },
       "A2s": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "A6s": {
@@ -9788,7 +9780,7 @@
         "frequency": 100
       },
       "A3s": {
-        "action": "CALL",
+        "action": "MIN",
         "frequency": 100
       },
       "K8s": {
@@ -9972,7 +9964,7 @@
         "frequency": 100
       },
       "72s": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "76o": {
@@ -10020,50 +10012,38 @@
         "frequency": 100
       },
       "KJs": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "KTs": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "K9s": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "QJs": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "QTs": {
-        "action": "RAISE",
-        "frequency": 100
-      },
-      "Q9s": {
         "action": "CALL",
         "frequency": 100
       },
       "JJ": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "JTs": {
-        "action": "RAISE",
-        "frequency": 100
-      },
-      "J9s": {
         "action": "CALL",
         "frequency": 100
       },
       "TT": {
-        "action": "RAISE",
+        "action": "CALL",
         "frequency": 100
       },
       "T9s": {
-        "action": "RAISE",
-        "frequency": 100
-      },
-      "KJo": {
         "action": "CALL",
         "frequency": 100
       },
@@ -10148,15 +10128,15 @@
         "frequency": 100
       },
       "J4o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "J3o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "J2o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "T9o": {
@@ -10172,23 +10152,23 @@
         "frequency": 100
       },
       "T6o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "T5o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "T4o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "T3o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "T2o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "98o": {
@@ -10200,51 +10180,47 @@
         "frequency": 100
       },
       "96o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "95o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "94o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "93o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "92o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "87o": {
         "action": "CALL",
         "frequency": 100
       },
-      "86o": {
-        "action": "CALL",
-        "frequency": 100
-      },
       "85o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "84o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "83o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "82o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "75o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "65o": {
@@ -10252,31 +10228,31 @@
         "frequency": 100
       },
       "74o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "64o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "73o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "63o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "72o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "62o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "53o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "54o": {
@@ -10284,35 +10260,55 @@
         "frequency": 100
       },
       "52o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "43o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "42o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "32o": {
-        "action": "CALL",
+        "action": "FOLD",
         "frequency": 100
       },
       "K4o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "K3o": {
-        "action": "ALL_IN",
+        "action": "MIN",
         "frequency": 100
       },
       "K2o": {
-        "action": "ALL_IN",
+        "action": "MIN",
+        "frequency": 100
+      },
+      "Q9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A7s": {
+        "action": "CALL",
         "frequency": 100
       },
       "Q2o": {
-        "action": "ALL_IN",
+        "action": "CALL",
         "frequency": 100
       }
     },
@@ -111939,11 +111935,1905 @@
         "action": "CALL",
         "frequency": 100
       }
+    },
+    "vsopen_BB_vs_SB_15BB": {
+      "22": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "33": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "44": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "55": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A9o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A8o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A7o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A6o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A5o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A4o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A3o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A2o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A8s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A2s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A3s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "K8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "95s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "94s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "93s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "92s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "86s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "84s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "83s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "82s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "75s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "73s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "72s": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "76o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "64s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "63s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "62s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "53s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "43s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "42s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "32s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "J3o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "J2o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "T9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "T5o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "T4o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "T3o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "T2o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "98o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "95o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "94o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "93o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "92o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "87o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "84o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "83o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "82o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "75o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "65o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "64o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "73o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "63o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "72o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "62o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "53o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "54o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "43o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "42o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "32o": {
+        "action": "FOLD",
+        "frequency": 100
+      },
+      "K4o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "K3o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "K2o": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "Q9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2o": {
+        "action": "CALL",
+        "frequency": 100
+      }
+    },
+    "vsopen_BB_vs_SB_raise": {
+      "22": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "33": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "44": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "55": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A9o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A8o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A7o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A6o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A5o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A4o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "K2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "K3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A8s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A3s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A2s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "95s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "94s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "93s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "92s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "86s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "84s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "83s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "82s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "75s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "73s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "64s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "63s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "62s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "53s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A4s": {
+        "action": "CALL",
+        "frequency": 100
+      }
+    },
+    "vsopen_BB_vs_SB_limp_15BB": {
+      "22": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "33": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "44": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "55": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "66": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "77": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "88": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "99": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A8s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A7s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "KTs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "K9s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "A6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "95s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "94s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "93s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "92s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "86s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "84s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "83s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "82s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "75s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "73s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "72s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "64s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "63s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "62s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "53s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "64o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "43s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "42s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "63o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "53o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "43o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "32s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "62o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "42o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "32o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "QTs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "Q9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "JTs": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "J9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "T9s": {
+        "action": "MIN",
+        "frequency": 100
+      },
+      "T8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "86o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "95o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "75o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "94o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "84o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "Q3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "93o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "83o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "73o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "Q2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "J2o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T2o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "92o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "82o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "72o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A9o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A8o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A7o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A6o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A5o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A4o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "98s": {
+        "action": "CALL",
+        "frequency": 100
+      }
     }
   },
   "metadata": {
-    "totalPositions": 425,
-    "totalHands": 19531,
+    "totalPositions": 428,
+    "totalHands": 20002,
     "creator": "MTT Admin System",
     "environment": "development"
   }

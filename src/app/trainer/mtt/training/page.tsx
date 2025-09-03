@@ -286,7 +286,8 @@ const simulateMTTGTOData = (
   actionType: string,
   customRanges?: Record<string, Record<string, HandInfo>>,
   openerPosition?: string,
-  threeBetType?: string
+  threeBetType?: string,
+  spotData?: any // スポット情報を追加
 ) => {
   console.log('🎯 simulateMTTGTOData 関数が呼び出されました！');
   // カスタムレンジが空の場合は強制的に再読み込み
@@ -592,6 +593,18 @@ const simulateMTTGTOData = (
       // 15BBの場合は、デフォルトでレイズキーを使用
       // オールイン・リンプキーは独立したレンジとして扱う（フォールバック無効）
       rangeKey = `vsopen_${position}_vs_${openerPosition}`;
+      
+      // SBアクションに応じて動的にレンジキーを変更
+      if (spotData && openerPosition === 'SB' && position === 'BB') {
+        if (spotData.openRaiseSize === 15.0) {
+          rangeKey = `${rangeKey}_allin`;
+        } else if (spotData.openRaiseSize === 2.0) {
+          rangeKey = `${rangeKey}_raise`;
+        } else if (spotData.openRaiseSize === 1.0) {
+          rangeKey = `${rangeKey}_limp`;
+        }
+      }
+      
       fallbackRangeKey = null; // 15BBではフォールバック無効
       
       console.log('🎯 15BB vsopen レンジキー設定:', { 
@@ -600,6 +613,7 @@ const simulateMTTGTOData = (
         rangeKey, 
         fallbackRangeKey,
         handType: normalizedHandType,
+        spotData: spotData ? { openRaiseSize: spotData.openRaiseSize } : null,
         note: 'オールイン・リンプキーは管理画面で別途設定'
       });
     } else {
@@ -2284,7 +2298,24 @@ function MTTTrainingPage() {
     } else if (actionType === 'vsopen' && spot.openRaiserPosition) {
       // vsオープンレンジの場合
       if (stackDepth === '15BB') {
-        return `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}`; // 15BBの場合は既存キー形式
+        let rangeKey = `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}`;
+        
+        // 15BBのSB vs BBの場合、SBのアクションタイプに応じてレンジキーを動的に変更
+        if (spot.openRaiserPosition === 'SB' && heroPosition === 'BB') {
+          if (spot.openRaiseSize === 15.0) {
+            // SBオールインの場合は _allin キーを使用
+            rangeKey = `${rangeKey}_allin`;
+          } else if (spot.openRaiseSize === 2.0) {
+            // SBレイズの場合は _raise キーを使用
+            rangeKey = `${rangeKey}_raise`;
+          } else if (spot.openRaiseSize === 1.0) {
+            // SBリンプの場合は _limp キーを使用
+            rangeKey = `${rangeKey}_limp`;
+          }
+        }
+        
+        console.log(`🎯 15BB vsopen レンジキー生成: ${rangeKey} (openRaiseSize: ${spot.openRaiseSize})`);
+        return rangeKey;
       } else {
         return `vsopen_${heroPosition}_vs_${spot.openRaiserPosition}_${stackDepth}`; // その他のスタックサイズ
       }
@@ -2973,33 +3004,7 @@ function MTTTrainingPage() {
       } : null
     });
     
-    const data = simulateMTTGTOData(
-      newHand, 
-      position, 
-      stackSize, 
-      actionType as string,
-      latestCustomRanges, // 最新のカスタムレンジを渡す
-      openerPosition,
-      threeBetType
-    );
-    console.log('🎯 simulateMTTGTOData関数呼び出し完了:', {
-      dataExists: !!data,
-      dataCorrectAction: data?.correctAction,
-      dataIsCustomRange: (data as any)?.isCustomRange
-    });
-    console.log('🎯 setGtoData直前:', {
-      newHand,
-      dataNormalizedHandType: data.normalizedHandType,
-      dataFrequencies: data.frequencies,
-      dataCorrectAction: data.correctAction,
-      customRangesKeys: Object.keys(customRanges),
-      customRangesCount: Object.keys(customRanges).length,
-      isCustomRangeUsed: (data as any)?.isCustomRange
-    });
-    setGtoData(data);
-    
-    // レイズ推奨サイズを取得
-    const recommendedBetSize = data.recommendedBetSize;
+    // GTOデータの生成は newSpot 定義後に移動
     
     // ポットサイズの計算 - Ante 1BBを含む正確な計算（ポット調整対応）
     let potSize = 1.5;     // デフォルト（SB + BB）
@@ -3313,8 +3318,33 @@ function MTTTrainingPage() {
         openRaiseSize = 1.0; // リンプ
         potSize = openRaiseSize + 1.0 + 1; // リンプ + BB + Ante
       } else if (actionType === 'vsopen' && openerPosition === 'SB' && stackSize === '15BB') {
-        openRaiseSize = 1.0; // SBリンプ
-        potSize = openRaiseSize + 1.0 + 1; // SBリンプ + BB + Ante
+        // 15BBのSB vs BBでは、CPUアクションをシミュレートしてランダムなopenRaiseSizeを決定
+        const sbActionRates = { 'FOLD': 0, 'OPEN_2BB': 10, 'ALL_IN': 20, 'LIMP': 70 };
+        const random = Math.random() * 100;
+        let sbAction = 'LIMP';
+        
+        if (random <= sbActionRates['FOLD']) {
+          sbAction = 'FOLD';
+        } else if (random <= sbActionRates['FOLD'] + sbActionRates['OPEN_2BB']) {
+          sbAction = 'OPEN_2BB';
+        } else if (random <= sbActionRates['FOLD'] + sbActionRates['OPEN_2BB'] + sbActionRates['ALL_IN']) {
+          sbAction = 'ALL_IN';
+        } else {
+          sbAction = 'LIMP';
+        }
+        
+        console.log(`🎯 SBアクション決定: ${sbAction} (random: ${random})`);
+        console.log(`🎯 SBアクション結果: openRaiseSize=${openRaiseSize}, potSize=${potSize}`);
+        
+        if (sbAction === 'OPEN_2BB') {
+          openRaiseSize = 2.0;
+        } else if (sbAction === 'ALL_IN') {
+          openRaiseSize = 15.0;
+        } else {
+          openRaiseSize = 1.0; // LIMP or FOLD
+        }
+        
+        potSize = openRaiseSize + 1.0 + 1; // SBアクション + BB + Ante
       } else if (actionType === 'vsopen') {
         // 通常のオープンレイズの場合は2.0BBを使用
         potSize = openRaiseSize + 1.5 + 1; // オープンレイズ + ブラインド + Ante
@@ -3451,11 +3481,7 @@ function MTTTrainingPage() {
       stackSize,
       position,
       openerPosition,
-      newHand,
-      dataCorrectAction: data.correctAction,
-      dataFrequencies: data.frequencies,
-      dataIsCustomRange: data.isCustomRange,
-      dataNormalizedHandType: data.normalizedHandType
+      newHand
     });
     
     const newSpot: Spot = {
@@ -3467,9 +3493,11 @@ function MTTTrainingPage() {
         actionType === 'vsopen' ? (
           openerPosition === 'BTN' && stackSize === '15BB' 
             ? `vs ${openerPosition || 'UTG'}のリンプ(1BB)` 
-            : stackSize === '30BB'
-              ? `vs ${openerPosition || 'UTG'}のオープン(2.1BB)`
-              : `vs ${openerPosition || 'UTG'}のオープン(2.5BB)`
+            : openerPosition === 'SB' && stackSize === '15BB'
+              ? `vs SBの${openRaiseSize === 2.0 ? 'オープン(2BB)' : openRaiseSize === 15.0 ? 'オールイン(15BB)' : 'リンプ(1BB)'}`
+              : stackSize === '30BB'
+                ? `vs ${openerPosition || 'UTG'}のオープン(2.1BB)`
+                : `vs ${openerPosition || 'UTG'}のオープン(2.5BB)`
         ) : 
         actionType === 'vs3bet' ? (
           stackSize === '20BB' && openerPosition && (window as any).currentThreeBetType
@@ -3496,11 +3524,11 @@ function MTTTrainingPage() {
           expectedPotSize: openRaiseSize + threeBetSize + 0.5 + 1
         }
       }),
-      correctAction: data.correctAction, // 頻度を含めずにアクションのみを保存
-      evData: data.evData as { [action: string]: number } | undefined,
-      frequencies: data.frequencies, // 頻度データを追加
+      correctAction: '', // GTOデータ生成後に設定
+      evData: undefined,
+      frequencies: undefined, // GTOデータ生成後に設定
 
-      correctBetSize: recommendedBetSize,
+      correctBetSize: 0, // GTOデータ生成後に設定
       // スタック関連の情報を追加
       stackDepth: stackSize,
       // アクションタイプを追加（重要！）
@@ -3712,6 +3740,38 @@ function MTTTrainingPage() {
       actionType: finalSpot.actionType,
       stackSize: finalSpot.stackDepth
     });
+    
+    // GTOデータを生成（newSpot定義後に実行）
+    const data = simulateMTTGTOData(
+      newHand, 
+      position, 
+      stackSize, 
+      actionType as string,
+      latestCustomRanges, // 最新のカスタムレンジを渡す
+      openerPosition,
+      threeBetType,
+      finalSpot // スポットデータを渡す
+    );
+    console.log('🎯 simulateMTTGTOData関数呼び出し完了:', {
+      dataExists: !!data,
+      dataCorrectAction: data?.correctAction,
+      dataIsCustomRange: (data as any)?.isCustomRange
+    });
+    console.log('🎯 setGtoData直前:', {
+      newHand,
+      dataNormalizedHandType: data.normalizedHandType,
+      dataFrequencies: data.frequencies,
+      dataCorrectAction: data.correctAction,
+      customRangesKeys: Object.keys(customRanges),
+      customRangesCount: Object.keys(customRanges).length,
+      isCustomRangeUsed: (data as any)?.isCustomRange
+    });
+    
+    // finalSpotにGTOデータを反映
+    finalSpot.correctAction = data.correctAction;
+    finalSpot.evData = data.evData;
+    finalSpot.frequencies = data.frequencies;
+    finalSpot.correctBetSize = data.recommendedBetSize || 0;
     
     // 強制的にgtoDataも同じデータで設定
     setGtoData(data);
@@ -5992,7 +6052,10 @@ function MTTTrainingPage() {
                           {validOpeners.map(opener => {
                             // 15BBの場合は、全てのオープナーでレイズとオールインを分離
                             if (stackSize === '15BB') {
-                              const raiseRangeKey = `vsopen_${heroPos}_vs_${opener}`;
+                              // SBの場合は専用のキーを使用して分離
+                              const raiseRangeKey = opener === 'SB' && heroPos === 'BB' 
+                                ? `vsopen_${heroPos}_vs_${opener}_raise`  // SBレイズ専用キー
+                                : `vsopen_${heroPos}_vs_${opener}`;       // その他のオープナー
                               const allinRangeKey = `vsopen_${heroPos}_vs_${opener}_allin`;
                               
                               const hasRaiseRange = customRanges[raiseRangeKey];
@@ -6409,6 +6472,7 @@ function MTTTrainingPage() {
                   onNextSpot={handleNextSpot}
                   onRepeatSpot={handleRepeatSpot}
                   stackSize={stackSize.replace('BB', '')} // BBを除去して数値のみを渡す
+
                   backButtonUrl={`/trainer/mtt?${new URLSearchParams({
                     stack: stackSize,
                     position: position,
@@ -6457,6 +6521,10 @@ function MTTTrainingPage() {
                       if (spot && spot.actionType === 'vs3bet' && spot.threeBetType === 'allin') {
                         return 'grid-cols-2';
                       }
+                      // 15BBでvsopenのCPUオールインの場合、2列のグリッドに変更
+                      if (spot && spot.actionType === 'vsopen' && spot.stackDepth === '15BB' && spot.openRaiseSize === 15.0) {
+                        return 'grid-cols-2';
+                      }
                       // その他の場合は4列のグリッド
                       return 'grid-cols-4';
                     })()}`}>
@@ -6472,9 +6540,10 @@ function MTTTrainingPage() {
                       >
                         CALL
                       </button>
-                      {/* RAISEボタン - 15BBのvs3ベットとCPUがオールインしていない場合のみ表示 */}
+                      {/* RAISEボタン - 15BBのvs3ベット、CPUがオールイン、15BBでvsopenのCPUオールインの場合は非表示 */}
                       {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') ? (
+                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
+                       (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-red-600 hover:bg-red-700 text-white transition-all border border-gray-700"
                           onClick={() => handleActionSelect('RAISE')}
@@ -6482,9 +6551,10 @@ function MTTTrainingPage() {
                           RAISE
                         </button>
                       ) : null}
-                      {/* ALL INボタン - 15BBのvs3ベットとCPUがオールインしていない場合で、エフェクティブスタックが小さい場合や、PioSolverがオールインを推奨する場合に表示 */}
+                      {/* ALL INボタン - 15BBのvs3ベット、CPUがオールイン、15BBでvsopenのCPUオールインの場合は非表示 */}
                       {(!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') && 
+                       (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
+                       (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0)) ? (
                         <button
                           className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
