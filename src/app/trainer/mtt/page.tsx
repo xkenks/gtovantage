@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { HAND_TEMPLATES, getMTTRange, HandInfo } from '@/components/HandRange';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 interface HandData {
   hand: string;

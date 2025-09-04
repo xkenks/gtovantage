@@ -1,3 +1,9 @@
 node_modules
-node_modules
 .vercel
+.next
+.env.local
+.env.development
+.env.production
+
+# データファイル（開発環境用）
+/data/verification-tokens.json

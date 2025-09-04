@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import { FaArrowLeft, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 function LoginPage() {
@@ -22,6 +22,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,11 +31,13 @@ function LoginPage() {
       [name]: value
     }));
     setError(''); // エラーをクリア
+    setSuccess(''); // 成功メッセージもクリア
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     // バリデーション
     if (!formData.email.trim()) {
@@ -50,15 +53,31 @@ function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const success = await login(formData.email, formData.password);
+      console.log('🔄 ログイン試行開始:', formData.email);
+      await login(formData.email, formData.password);
+      console.log('✅ ログイン成功');
       
-      if (success) {
-        router.push('/');
-      } else {
-        setError('メールアドレスまたはパスワードが正しくありません');
+      // 成功メッセージを表示
+      setSuccess('ログインに成功しました！リダイレクト中...');
+      
+      // 少し待ってからリダイレクト
+      setTimeout(() => {
+        router.push(redirectTo);
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('❌ ログインエラー:', error);
+      
+      // エラーメッセージを詳細化
+      let errorMessage = 'ログインに失敗しました。';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
       }
-    } catch (error) {
-      setError('ログイン中にエラーが発生しました。もう一度お試しください。');
+      
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -90,6 +109,12 @@ function LoginPage() {
             {error && (
               <div className="mb-6 p-4 bg-red-900/50 border border-red-600/50 rounded-lg">
                 <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
+            
+            {success && (
+              <div className="mb-6 p-4 bg-green-900/50 border border-green-600/50 rounded-lg">
+                <p className="text-green-300 text-sm">{success}</p>
               </div>
             )}
 

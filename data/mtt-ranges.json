@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-09-03T15:24:08.812Z",
+  "lastUpdated": "2025-09-04T07:23:39.972Z",
   "ranges": {
     "vsopen_UTG1_vs_UTG": {
       "55": {
@@ -111332,8 +111332,14 @@
         "frequency": 100
       },
       "AJo": {
-        "action": "MIN",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 55,
+          "CALL": 0,
+          "FOLD": 0
+        }
       },
       "KK": {
         "action": "MIN",
@@ -111356,8 +111362,14 @@
         "frequency": 100
       },
       "A6s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "A5s": {
         "action": "CALL",
@@ -111372,8 +111384,14 @@
         "frequency": 100
       },
       "A2s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 80,
+          "CALL": 20,
+          "FOLD": 0
+        }
       },
       "K6s": {
         "action": "CALL",
@@ -111532,8 +111550,14 @@
         "frequency": 100
       },
       "65o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "54s": {
         "action": "CALL",
@@ -111548,12 +111572,24 @@
         "frequency": 100
       },
       "64o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "54o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "43s": {
         "action": "CALL",
@@ -111564,40 +111600,78 @@
         "frequency": 100
       },
       "63o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 25,
+          "ALL_IN": 0,
+          "CALL": 75,
+          "FOLD": 0
+        }
       },
       "53o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 2,
+          "ALL_IN": 0,
+          "CALL": 98,
+          "FOLD": 0
+        }
       },
       "43o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 20,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "32s": {
         "action": "CALL",
         "frequency": 100
       },
       "62o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "52o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "42o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "32o": {
-        "action": "CALL",
-        "frequency": 100
-      },
-      "KQo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 18,
+          "ALL_IN": 2,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "QQ": {
         "action": "MIN",
@@ -111608,8 +111682,14 @@
         "frequency": 100
       },
       "QTs": {
-        "action": "MIN",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "Q9s": {
         "action": "CALL",
@@ -111624,8 +111704,14 @@
         "frequency": 100
       },
       "KJo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "QJo": {
         "action": "CALL",
@@ -111640,8 +111726,14 @@
         "frequency": 100
       },
       "J9s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "J8s": {
         "action": "CALL",
@@ -111652,8 +111744,14 @@
         "frequency": 100
       },
       "KTo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 65,
+          "ALL_IN": 0,
+          "CALL": 35,
+          "FOLD": 0
+        }
       },
       "QTo": {
         "action": "CALL",
@@ -111680,16 +111778,34 @@
         "frequency": 100
       },
       "K9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "Q9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "J9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 2,
+          "ALL_IN": 0,
+          "CALL": 98,
+          "FOLD": 0
+        }
       },
       "T9o": {
         "action": "CALL",
@@ -111700,160 +111816,376 @@
         "frequency": 100
       },
       "K8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 65,
+          "ALL_IN": 0,
+          "CALL": 35,
+          "FOLD": 0
+        }
       },
       "Q8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "J8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "T8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "98o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "87s": {
         "action": "CALL",
         "frequency": 100
       },
       "K7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "Q7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "J7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "T7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 50,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 0
+        }
       },
       "97o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "87o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "K6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "Q6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 70,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 0
+        }
       },
       "J6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "T6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "96o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "86o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "76o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 10,
+          "ALL_IN": 0,
+          "CALL": 90,
+          "FOLD": 0
+        }
       },
       "K5o": {
         "action": "CALL",
         "frequency": 100
       },
       "Q5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 10,
+          "ALL_IN": 0,
+          "CALL": 90,
+          "FOLD": 0
+        }
       },
       "J5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 7,
+          "ALL_IN": 0,
+          "CALL": 93,
+          "FOLD": 0
+        }
       },
       "T5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "95o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 50,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 0
+        }
       },
       "85o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "75o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "K4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 55,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "Q4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "J4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 7,
+          "ALL_IN": 0,
+          "CALL": 93,
+          "FOLD": 0
+        }
       },
       "T4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "94o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "84o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "74o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "K3o": {
         "action": "ALL_IN",
         "frequency": 100
       },
       "Q3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 15,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "J3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "T3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "93o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "83o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "73o": {
         "action": "CALL",
@@ -111868,24 +112200,54 @@
         "frequency": 100
       },
       "J2o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "T2o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "92o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "82o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "72o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "K8s": {
         "action": "CALL",
@@ -111933,6 +112295,10 @@
       },
       "98s": {
         "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "MIN",
         "frequency": 100
       }
     },
@@ -112832,8 +113198,14 @@
         "frequency": 100
       },
       "KJo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 35,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "QJo": {
         "action": "CALL",
@@ -112880,8 +113252,14 @@
         "frequency": 100
       },
       "KTo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 30,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "QTo": {
         "action": "CALL",
@@ -113226,8 +113604,14 @@
         "frequency": 100
       },
       "AJo": {
-        "action": "MIN",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 55,
+          "CALL": 0,
+          "FOLD": 0
+        }
       },
       "KK": {
         "action": "MIN",
@@ -113250,8 +113634,14 @@
         "frequency": 100
       },
       "A6s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "A5s": {
         "action": "CALL",
@@ -113266,8 +113656,14 @@
         "frequency": 100
       },
       "A2s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 80,
+          "CALL": 20,
+          "FOLD": 0
+        }
       },
       "K6s": {
         "action": "CALL",
@@ -113426,8 +113822,14 @@
         "frequency": 100
       },
       "65o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "54s": {
         "action": "CALL",
@@ -113442,12 +113844,24 @@
         "frequency": 100
       },
       "64o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "54o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "43s": {
         "action": "CALL",
@@ -113458,40 +113872,78 @@
         "frequency": 100
       },
       "63o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 25,
+          "ALL_IN": 0,
+          "CALL": 75,
+          "FOLD": 0
+        }
       },
       "53o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 2,
+          "ALL_IN": 0,
+          "CALL": 98,
+          "FOLD": 0
+        }
       },
       "43o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 20,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "32s": {
         "action": "CALL",
         "frequency": 100
       },
       "62o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "52o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "42o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "32o": {
-        "action": "CALL",
-        "frequency": 100
-      },
-      "KQo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 18,
+          "ALL_IN": 2,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "QQ": {
         "action": "MIN",
@@ -113502,8 +113954,14 @@
         "frequency": 100
       },
       "QTs": {
-        "action": "MIN",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "Q9s": {
         "action": "CALL",
@@ -113518,8 +113976,14 @@
         "frequency": 100
       },
       "KJo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "QJo": {
         "action": "CALL",
@@ -113534,8 +113998,14 @@
         "frequency": 100
       },
       "J9s": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "J8s": {
         "action": "CALL",
@@ -113546,8 +114016,14 @@
         "frequency": 100
       },
       "KTo": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 65,
+          "ALL_IN": 0,
+          "CALL": 35,
+          "FOLD": 0
+        }
       },
       "QTo": {
         "action": "CALL",
@@ -113574,16 +114050,34 @@
         "frequency": 100
       },
       "K9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "Q9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "J9o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 2,
+          "ALL_IN": 0,
+          "CALL": 98,
+          "FOLD": 0
+        }
       },
       "T9o": {
         "action": "CALL",
@@ -113594,160 +114088,376 @@
         "frequency": 100
       },
       "K8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 65,
+          "ALL_IN": 0,
+          "CALL": 35,
+          "FOLD": 0
+        }
       },
       "Q8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "J8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "T8o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "98o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 0,
+          "CALL": 70,
+          "FOLD": 0
+        }
       },
       "87s": {
         "action": "CALL",
         "frequency": 100
       },
       "K7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "Q7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "J7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "T7o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 50,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 0
+        }
       },
       "97o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "87o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "K6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "Q6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 70,
+          "ALL_IN": 0,
+          "CALL": 30,
+          "FOLD": 0
+        }
       },
       "J6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "T6o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "96o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "86o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "76o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 10,
+          "ALL_IN": 0,
+          "CALL": 90,
+          "FOLD": 0
+        }
       },
       "K5o": {
         "action": "CALL",
         "frequency": 100
       },
       "Q5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 10,
+          "ALL_IN": 0,
+          "CALL": 90,
+          "FOLD": 0
+        }
       },
       "J5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 7,
+          "ALL_IN": 0,
+          "CALL": 93,
+          "FOLD": 0
+        }
       },
       "T5o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 15,
+          "ALL_IN": 0,
+          "CALL": 85,
+          "FOLD": 0
+        }
       },
       "95o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 50,
+          "ALL_IN": 0,
+          "CALL": 50,
+          "FOLD": 0
+        }
       },
       "85o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "75o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "K4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 55,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "Q4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "J4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 7,
+          "ALL_IN": 0,
+          "CALL": 93,
+          "FOLD": 0
+        }
       },
       "T4o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "94o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "84o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "74o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 35,
+          "ALL_IN": 0,
+          "CALL": 65,
+          "FOLD": 0
+        }
       },
       "K3o": {
         "action": "ALL_IN",
         "frequency": 100
       },
       "Q3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 30,
+          "ALL_IN": 15,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "J3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 60,
+          "ALL_IN": 0,
+          "CALL": 40,
+          "FOLD": 0
+        }
       },
       "T3o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "93o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "83o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 40,
+          "ALL_IN": 0,
+          "CALL": 60,
+          "FOLD": 0
+        }
       },
       "73o": {
         "action": "CALL",
@@ -113762,24 +114472,54 @@
         "frequency": 100
       },
       "J2o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "T2o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 45,
+          "ALL_IN": 0,
+          "CALL": 55,
+          "FOLD": 0
+        }
       },
       "92o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 55,
+          "ALL_IN": 0,
+          "CALL": 45,
+          "FOLD": 0
+        }
       },
       "82o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 20,
+          "ALL_IN": 0,
+          "CALL": 80,
+          "FOLD": 0
+        }
       },
       "72o": {
-        "action": "CALL",
-        "frequency": 100
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 5,
+          "ALL_IN": 0,
+          "CALL": 95,
+          "FOLD": 0
+        }
       },
       "K8s": {
         "action": "CALL",
@@ -113828,12 +114568,570 @@
       "98s": {
         "action": "CALL",
         "frequency": 100
+      },
+      "KQo": {
+        "action": "MIN",
+        "frequency": 100
+      }
+    },
+    "vsopen_BB_vs_SB_raise_15BB": {
+      "22": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "33": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "44": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "55": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "66": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "77": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "88": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AQo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AJo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "ATo": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A9o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A8o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A7o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A6o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A5o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A4o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "K2o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "K3o": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AJs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "ATs": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A9s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A8s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A3s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "A2s": {
+        "action": "ALL_IN",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KQo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QJs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KJo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 35,
+          "CALL": 65,
+          "FOLD": 0
+        }
+      },
+      "QJo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KTo": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 30,
+          "CALL": 70,
+          "FOLD": 0
+        }
+      },
+      "QTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JTo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T4s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T3s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T2s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T9o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "96s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "95s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "94s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "93s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "92s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T8o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "98o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "86s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "85s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "84s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "83s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "82s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "T7o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "97o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "87o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "75s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "74s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "73s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J6o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "76o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "64s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "63s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "62s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "J5o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "65o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "53s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "52s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "54o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "K4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q4o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q3o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "Q2o": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A7s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A6s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A5s": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "A4s": {
+        "action": "CALL",
+        "frequency": 100
       }
     }
   },
   "metadata": {
-    "totalPositions": 428,
-    "totalHands": 20002,
+    "totalPositions": 429,
+    "totalHands": 20137,
     "creator": "MTT Admin System",
     "environment": "development"
   }

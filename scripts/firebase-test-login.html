@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase ログインテスト</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .register-btn {
+            background-color: #2196F3;
+        }
+        .register-btn:hover {
+            background-color: #1976D2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .preset-accounts {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase ログイン・登録テスト</h1>
+        
+        <div class="preset-accounts">
+            <h3>💡 プリセットアカウント</h3>
+            <button onclick="setPreset('admin@gtovantage.com', 'Acs@ef3UR')">🔑 マスターアカウント</button>
+            <button onclick="setPreset('premium@gtovantage.com', 'RsiKD76')">💎 プレミアムアカウント</button>
+            <button onclick="setPreset('test@example.com', 'test123456')">🆓 テストアカウント</button>
+        </div>
+
+        <div class="form-group">
+            <label for="email">メールアドレス:</label>
+            <input type="email" id="email" placeholder="example@email.com">
+        </div>
+
+        <div class="form-group">
+            <label for="password">パスワード:</label>
+            <input type="password" id="password" placeholder="パスワード">
+        </div>
+
+        <div class="form-group">
+            <label for="displayName">表示名 (登録時のみ):</label>
+            <input type="text" id="displayName" placeholder="お名前">
+        </div>
+
+        <button onclick="loginUser()">🔓 ログイン</button>
+        <button onclick="registerUser()" class="register-btn">📝 新規登録</button>
+        <button onclick="logout()">🚪 ログアウト</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        // Firebase設定
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyA954HZC6QOxGCCA3rRPe5C5agZaxYT9Zk",
+            authDomain: "gtovantage-e180c.firebaseapp.com",
+            projectId: "gtovantage-e180c",
+            storageBucket: "gtovantage-e180c.firebasestorage.app",
+            messagingSenderId: "405732583730",
+            appId: "1:405732583730:web:60a048c6e681e873fc8f2b"
+        };
+
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // 認証状態の監視
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('👤 現在のユーザー:', user.email);
+                document.getElementById('result').innerHTML = `
+                    <div class="result success">
+                        <h3>✅ ログイン中</h3>
+                        <p><strong>UID:</strong> ${user.uid}</p>
+                        <p><strong>メール:</strong> ${user.email}</p>
+                        <p><strong>メール認証:</strong> ${user.emailVerified ? '✅ 済み' : '❌ 未完了'}</p>
+                    </div>
+                `;
+            } else {
+                console.log('👤 ユーザーはログアウト中');
+                document.getElementById('result').innerHTML = '<div class="result">ログアウト中</div>';
+            }
+        });
+
+        // グローバル関数として定義
+        window.setPreset = function(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            
+            // 表示名を設定
+            if (email.includes('admin')) {
+                document.getElementById('displayName').value = 'Admin User';
+            } else if (email.includes('premium')) {
+                document.getElementById('displayName').value = 'Premium User';
+            } else {
+                document.getElementById('displayName').value = 'Test User';
+            }
+        };
+
+        window.loginUser = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="result error">メールアドレスとパスワードを入力してください</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<div class="result">🔄 ログイン中...</div>';
+                
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                console.log('✅ ログイン成功:', userCredential.user);
+                
+            } catch (error) {
+                console.error('❌ ログインエラー:', error);
+                
+                let errorMessage = error.message;
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'ユーザーが見つかりません。先に新規登録を行ってください。';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'パスワードが正しくありません。';
+                } else if (error.code === 'auth/invalid-credential') {
+                    errorMessage = '認証情報が無効です。メールアドレスとパスワードを確認してください。';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ ログインエラー</h3>
+                        <p><strong>コード:</strong> ${error.code}</p>
+                        <p><strong>メッセージ:</strong> ${errorMessage}</p>
+                    </div>
+                `;
+            }
+        };
+
+        window.registerUser = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const displayName = document.getElementById('displayName').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="result error">メールアドレスとパスワードを入力してください</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = '<div class="result">🔄 新規登録中...</div>';
+                
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                console.log('✅ 新規登録成功:', userCredential.user);
+                
+            } catch (error) {
+                console.error('❌ 新規登録エラー:', error);
+                
+                let errorMessage = error.message;
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'このメールアドレスは既に使用されています。ログインを試してください。';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'パスワードが弱すぎます（6文字以上にしてください）。';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'メールアドレスの形式が正しくありません。';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ 新規登録エラー</h3>
+                        <p><strong>コード:</strong> ${error.code}</p>
+                        <p><strong>メッセージ:</strong> ${errorMessage}</p>
+                    </div>
+                `;
+            }
+        };
+
+        window.logout = async function() {
+            try {
+                await signOut(auth);
+                console.log('✅ ログアウト成功');
+            } catch (error) {
+                console.error('❌ ログアウトエラー:', error);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -397,7 +397,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                     {cell.hand}
                   </div>
                   
-                  {/* 混合戦略の比率表示 */}
+                  {/* 混合戦略の比率表示 - モバイルでは非表示 */}
                   {(() => {
                     const handInfo = rangeData[cell.hand];
                     if (handInfo?.action === 'MIXED' && handInfo.mixedFrequencies) {
@@ -410,7 +410,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                       if ((freq.FOLD || 0) > 0) ratios.push(`F${freq.FOLD || 0}%`);
                       
                       return (
-                        <div className="text-[7px] leading-none mt-0.5">
+                        <div className="hidden md:block text-[7px] leading-none mt-0.5">
                           {ratios.join('')}
                         </div>
                       );

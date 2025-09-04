@@ -13,6 +13,7 @@ export default function ContactPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -26,12 +27,30 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus('idle');
+    setErrorMessage('');
 
     try {
-      // 実際の送信処理はここに実装
-      // 現在はダミーの処理として、1秒後に成功を返す
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // フォームデータのバリデーション
+      if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+        throw new Error('全ての項目を入力してください');
+      }
+
+      // API エンドポイントにデータを送信
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'お問い合わせの送信に失敗しました');
+      }
+
+      // 送信成功
       setSubmitStatus('success');
       setFormData({
         name: '',
@@ -39,7 +58,13 @@ export default function ContactPage() {
         subject: '',
         message: ''
       });
+
+      console.log('お問い合わせ送信成功:', data.message);
+      
     } catch (error) {
+      console.error('お問い合わせ送信エラー:', error);
+      const errorMsg = error instanceof Error ? error.message : 'お問い合わせの送信に失敗しました';
+      setErrorMessage(errorMsg);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -92,17 +117,41 @@ export default function ContactPage() {
 
             {submitStatus === 'success' && (
               <div className="mb-6 p-4 bg-green-900/50 border border-green-600/50 rounded-lg">
-                <p className="text-green-300 text-sm md:text-base">
-                  お問い合わせを送信いたしました。ありがとうございます。
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-green-300 font-medium text-sm md:text-base">
+                      お問い合わせを受け付けました
+                    </p>
+                    <p className="text-green-400 text-xs md:text-sm mt-1">
+                      2〜3営業日以内にご返信いたします。ありがとうございます。
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
             {submitStatus === 'error' && (
               <div className="mb-6 p-4 bg-red-900/50 border border-red-600/50 rounded-lg">
-                <p className="text-red-300 text-sm md:text-base">
-                  送信に失敗しました。しばらく時間をおいて再度お試しください。
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-red-300 font-medium text-sm md:text-base">
+                      送信に失敗しました
+                    </p>
+                    <p className="text-red-400 text-xs md:text-sm mt-1">
+                      {errorMessage || '入力内容をご確認の上、しばらく時間をおいて再度お試しください。'}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 

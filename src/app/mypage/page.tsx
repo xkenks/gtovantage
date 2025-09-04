@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -108,7 +108,7 @@ export default function MyPage() {
             </div>
             <div className="hidden sm:block">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xl font-bold">{user?.name?.charAt(0).toUpperCase() || 'U'}</span>
+                <span className="text-white text-xl font-bold">{user?.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}</span>
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function MyPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between py-3 border-b border-gray-700">
                 <span className="text-gray-300">ユーザー名</span>
-                <span className="font-medium text-white">{user.name}</span>
+                <span className="font-medium text-white">{user.displayName || user.email}</span>
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-700">
                 <span className="text-gray-300">メールアドレス</span>
@@ -130,18 +130,31 @@ export default function MyPage() {
               <div className="flex items-center justify-between py-3 border-b border-gray-700">
                 <span className="text-gray-300">登録日</span>
                 <span className="font-medium text-white">
-                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString('ja-JP') : '-'}
+                  {user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('ja-JP') : '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between py-3 border-b border-gray-700">
                 <span className="text-gray-300">メール認証</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  isEmailVerified 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {isEmailVerified ? '認証済み' : '未認証'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    isEmailVerified 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {isEmailVerified ? '認証済み' : '未認証'}
+                  </span>
+                  {!isEmailVerified && (
+                    <Link 
+                      href="/verify-email"
+                      className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs"
+                    >
+                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      認証する
+                    </Link>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between py-3">
                 <span className="text-gray-300">パスワード</span>

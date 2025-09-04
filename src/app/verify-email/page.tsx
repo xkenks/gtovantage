@@ -4,13 +4,13 @@ import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import { FaArrowLeft, FaEnvelope, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 
 function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isEmailVerified, isAuthenticated } = useAuth();
+  const { user, isEmailVerified, isAuthenticated, verifyEmail, sendVerificationEmail } = useAuth();
   
   // ログイン済みでメール確認済みのユーザーはトップページにリダイレクト
   if (isAuthenticated && isEmailVerified) {
@@ -22,6 +22,7 @@ function VerifyEmailPage() {
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error' | 'invalid'>('idle');
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
 
   const token = searchParams.get('token');
 
@@ -32,26 +33,35 @@ function VerifyEmailPage() {
       return;
     }
 
-    // トークンがある場合は自動的に確認を実行
-    if (token) {
+    // トークンがある場合は自動的に確認を実行（一度だけ）
+    if (token && !hasAttemptedVerification && !isVerifying) {
+      setHasAttemptedVerification(true);
       handleVerification();
     }
-  }, [token, isEmailVerified, router]);
+  }, [token, isEmailVerified, hasAttemptedVerification, isVerifying]);
 
   const handleVerification = async () => {
-    if (!token) return;
+    if (!token || isVerifying) return;
 
+    console.log('🔄 メール認証開始:', token);
     setIsVerifying(true);
     setVerificationStatus('idle');
 
-    // ダミー実装では常に成功とする
-    setTimeout(() => {
+    try {
+      await verifyEmail(token);
+      console.log('✅ メール認証成功');
       setVerificationStatus('success');
       setTimeout(() => {
         router.push('/');
       }, 3000);
+    } catch (error) {
+      console.error('❌ メール認証エラー:', error);
+      setVerificationStatus('error');
+      // エラーが発生した場合は再度試行可能にする
+      setHasAttemptedVerification(false);
+    } finally {
       setIsVerifying(false);
-    }, 1000);
+    }
   };
 
   const handleResendEmail = async () => {
@@ -59,12 +69,19 @@ function VerifyEmailPage() {
 
     setIsResending(true);
     setResendStatus('idle');
+    // 再送信時は認証を再試行可能にする
+    setHasAttemptedVerification(false);
+    setVerificationStatus('idle');
 
-    // ダミー実装では常に成功とする
-    setTimeout(() => {
+    try {
+      await sendVerificationEmail(user.email);
       setResendStatus('success');
+    } catch (error) {
+      console.error('メール再送信エラー:', error);
+      setResendStatus('error');
+    } finally {
       setIsResending(false);
-    }, 1000);
+    }
   };
 
   if (isEmailVerified) {
@@ -153,7 +170,7 @@ function VerifyEmailPage() {
                     {isResending ? '送信中...' : '確認メールを再送信'}
                   </button>
                   <Link 
-                    href="/trainer/mtt"
+                    href="/mypage"
                     className="block w-full bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors text-center"
                   >
                     後で確認する

@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { FirebaseAuthProvider } from '@/contexts/FirebaseAuthContext';
 import Header from '@/components/Header';
 import { ChakraWrapper } from '@/components/ChakraWrapper';
 import { AdminProvider } from '@/contexts/AdminContext';
@@ -68,6 +69,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Firebase使用フラグ（環境変数で制御、デフォルトでFirebase有効）
+  const useFirebase = process.env.NEXT_PUBLIC_USE_FIREBASE !== 'false';
+  
+  const AuthContextProvider = useFirebase ? FirebaseAuthProvider : AuthProvider;
+
   return (
     <html lang="ja">
       <head>
@@ -76,13 +82,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <ChakraWrapper>
           <AdminProvider>
-            <AuthProvider>
+            <AuthContextProvider>
               <div className="bg-black md:bg-gray-900 text-white">
                 <Header />
                 {children}
               </div>
               <Analytics />
-            </AuthProvider>
+            </AuthContextProvider>
           </AdminProvider>
         </ChakraWrapper>
       </body>

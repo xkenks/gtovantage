@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 interface PasswordChangeModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface PasswordChangeModalProps {
 }
 
 export default function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
-  const { user } = useAuth();
+  const { user, changePassword } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,18 +45,32 @@ export default function PasswordChangeModal({ isOpen, onClose }: PasswordChangeM
 
     setIsLoading(true);
 
-    // ダミー実装では常に成功とする
-    setTimeout(() => {
-      setSuccess('パスワードが正常に変更されました');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+    try {
+      // AuthContextのchangePasswordメソッドを使用してパスワードを変更
+      const success = await changePassword(currentPassword, newPassword);
+
+      if (success) {
+        // 成功時の処理
+        setSuccess('パスワードが正常に変更されました');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        
+        // 2秒後にモーダルを閉じる
+        setTimeout(() => {
+          onClose();
+          setSuccess('');
+        }, 2000);
+      } else {
+        throw new Error('パスワード変更に失敗しました');
+      }
+
+    } catch (error) {
+      console.error('パスワード変更エラー:', error);
+      setError(error instanceof Error ? error.message : 'パスワード変更中にエラーが発生しました');
+    } finally {
       setIsLoading(false);
-      setTimeout(() => {
-        onClose();
-        setSuccess('');
-      }, 2000);
-    }, 1000);
+    }
   };
 
   if (!isOpen) return null;

@@ -2629,6 +2629,20 @@ const FrequencyModal: React.FC<{
   onSetNone?: () => void;
 }> = ({ hand, initialFrequencies, onSave, onClose, onSetNone }) => {
   const [frequencies, setFrequencies] = useState(initialFrequencies);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  
+  // アコーディオンセクションの開閉を切り替える
+  const toggleSection = (sectionName: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionName)) {
+        newSet.delete(sectionName);
+      } else {
+        newSet.add(sectionName);
+      }
+      return newSet;
+    });
+  };
 
   // 頻度を更新する関数
   const updateFrequency = (action: string, value: number) => {
@@ -2820,102 +2834,114 @@ const FrequencyModal: React.FC<{
             
             {/* 混合戦略クイック設定 */}
             <div className="mt-4">
-              <div className="text-sm text-gray-300 mb-3">混合戦略:</div>
+              <button
+                onClick={() => toggleSection('mixed-strategy')}
+                className="flex items-center justify-between w-full text-sm text-gray-300 mb-3 p-2 bg-gray-700 rounded hover:bg-gray-600 transition-colors"
+              >
+                <span>混合戦略:</span>
+                <span className="text-yellow-300">
+                  {expandedSections.has('mixed-strategy') ? '▼' : '▶'}
+                </span>
+              </button>
               
-              {/* RAISE/FOLD */}
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-2">RAISE/FOLD</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
-                    <button
-                      key={raisePercent}
-                      onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 0, FOLD: 100 - raisePercent })}
-                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                      style={{
-                        background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4A90E2 ${raisePercent}%, #4A90E2 100%)`
-                      }}
-                    >
-                      {raisePercent}%/{100 - raisePercent}%
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {expandedSections.has('mixed-strategy') && (
+                <div className="space-y-3">
+                  {/* RAISE/FOLD */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">RAISE/FOLD</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
+                        <button
+                          key={raisePercent}
+                          onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 0, FOLD: 100 - raisePercent })}
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4A90E2 ${raisePercent}%, #4A90E2 100%)`
+                          }}
+                        >
+                          {raisePercent}%/{100 - raisePercent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
               
-              {/* RAISE/CALL */}
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-2">RAISE/CALL</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
-                    <button
-                      key={raisePercent}
-                      onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 100 - raisePercent, FOLD: 0 })}
-                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                      style={{
-                        background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4CAF50 ${raisePercent}%, #4CAF50 100%)`
-                      }}
-                    >
-                      {raisePercent}%/{100 - raisePercent}%
-                    </button>
-                  ))}
+                  {/* RAISE/CALL */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">RAISE/CALL</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(raisePercent => (
+                        <button
+                          key={raisePercent}
+                          onClick={() => setFrequencies({ MIN: raisePercent, ALL_IN: 0, CALL: 100 - raisePercent, FOLD: 0 })}
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #F44336 0%, #F44336 ${raisePercent}%, #4CAF50 ${raisePercent}%, #4CAF50 100%)`
+                          }}
+                        >
+                          {raisePercent}%/{100 - raisePercent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* CALL/FOLD */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">CALL/FOLD</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(callPercent => (
+                        <button
+                          key={callPercent}
+                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: callPercent, FOLD: 100 - callPercent })}
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #4CAF50 0%, #4CAF50 ${callPercent}%, #4A90E2 ${callPercent}%, #4A90E2 100%)`
+                          }}
+                        >
+                          {callPercent}%/{100 - callPercent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* ALLIN/CALL */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">ALLIN/CALL</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
+                        <button
+                          key={allinPercent}
+                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 100 - allinPercent, FOLD: 0 })}
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4CAF50 ${allinPercent}%, #4CAF50 100%)`
+                          }}
+                        >
+                          {allinPercent}%/{100 - allinPercent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* ALLIN/FOLD */}
+                  <div className="mb-3">
+                    <div className="text-xs text-gray-400 mb-2">ALLIN/FOLD</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
+                        <button
+                          key={allinPercent}
+                          onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 0, FOLD: 100 - allinPercent })}
+                          className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
+                          style={{
+                            background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4A90E2 ${allinPercent}%, #4A90E2 100%)`
+                          }}
+                        >
+                          {allinPercent}%/{100 - allinPercent}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              {/* CALL/FOLD */}
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-2">CALL/FOLD</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(callPercent => (
-                    <button
-                      key={callPercent}
-                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: 0, CALL: callPercent, FOLD: 100 - callPercent })}
-                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                      style={{
-                        background: `linear-gradient(to right, #4CAF50 0%, #4CAF50 ${callPercent}%, #4A90E2 ${callPercent}%, #4A90E2 100%)`
-                      }}
-                    >
-                      {callPercent}%/{100 - callPercent}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* ALLIN/CALL */}
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-2">ALLIN/CALL</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
-                    <button
-                      key={allinPercent}
-                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 100 - allinPercent, FOLD: 0 })}
-                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                      style={{
-                        background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4CAF50 ${allinPercent}%, #4CAF50 100%)`
-                      }}
-                    >
-                      {allinPercent}%/{100 - allinPercent}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* ALLIN/FOLD */}
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-2">ALLIN/FOLD</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[90, 80, 70, 60, 50, 40, 30, 20, 10].map(allinPercent => (
-                    <button
-                      key={allinPercent}
-                      onClick={() => setFrequencies({ MIN: 0, ALL_IN: allinPercent, CALL: 0, FOLD: 100 - allinPercent })}
-                      className="px-2 py-1 text-white rounded text-xs transition-all duration-200"
-                      style={{
-                        background: `linear-gradient(to right, #7f1d1d 0%, #7f1d1d ${allinPercent}%, #4A90E2 ${allinPercent}%, #4A90E2 100%)`
-                      }}
-                    >
-                      {allinPercent}%/{100 - allinPercent}%
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
             
             <div className="text-xs text-gray-500 mt-2">

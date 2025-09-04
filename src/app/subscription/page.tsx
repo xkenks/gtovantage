@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { FaArrowLeft, FaCrown, FaCheck, FaTimes, FaCreditCard, FaHistory } from 'react-icons/fa';
 
@@ -84,7 +84,7 @@ export default function SubscriptionPage() {
                 プラン比較
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
+              <div className={`grid grid-cols-1 ${isMasterUser ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 md:gap-6`}>
                 {/* Free Plan */}
                 <div className="bg-gray-700 rounded-lg p-4 md:p-6">
                   <h3 className="text-lg font-semibold text-white mb-2">無料プラン</h3>
@@ -104,19 +104,28 @@ export default function SubscriptionPage() {
                     </li>
                   </ul>
                   <div className="text-center">
-                    <span className="text-sm text-gray-400">現在のプラン</span>
+                    {!hasActiveSubscription && !isMasterUser ? (
+                      <span className="text-sm text-gray-400">現在のプラン</span>
+                    ) : (
+                      <button
+                        onClick={() => alert('無料プランへの変更処理を実装予定です')}
+                        className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                      >
+                        始める
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Light Plan */}
-                <div className={`${hasActiveSubscription ? 'bg-gray-700/50 border-gray-600/30' : 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-600/50'} border rounded-lg p-4 md:p-6 relative`}>
+                <div className={`${user?.subscriptionStatus === 'light' ? 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-600/50' : (user?.subscriptionStatus === 'premium' || isMasterUser) ? 'bg-gray-700/50 border-gray-600/30' : 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-600/50'} border rounded-lg p-4 md:p-6 relative`}>
                   {user?.subscriptionStatus === 'light' && (
                     <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                       アクティブ
                     </div>
                   )}
-                  <h3 className={`text-lg font-semibold ${hasActiveSubscription ? 'text-gray-400' : 'text-white'} mb-2`}>ライト</h3>
-                  <p className={`text-3xl font-bold ${hasActiveSubscription ? 'text-gray-500' : 'text-blue-400'} mb-4`}>¥980<span className="text-sm">/月</span></p>
+                  <h3 className={`text-lg font-semibold ${(user?.subscriptionStatus === 'premium' || isMasterUser) && user?.subscriptionStatus !== 'light' ? 'text-gray-400' : 'text-white'} mb-2`}>ライト</h3>
+                  <p className={`text-3xl font-bold ${(user?.subscriptionStatus === 'premium' || isMasterUser) && user?.subscriptionStatus !== 'light' ? 'text-gray-500' : 'text-blue-400'} mb-4`}>¥980<span className="text-sm">/月</span></p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
@@ -131,24 +140,24 @@ export default function SubscriptionPage() {
                       MTTシナリオ（拡張）
                     </li>
                   </ul>
-                  {hasActiveSubscription ? (
-                    <div className="text-center">
-                      <span className="text-xs text-gray-500">ダウングレード</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleUpgrade}
-                      disabled={isUpgrading || user?.subscriptionStatus === 'light'}
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                    >
-                      {isUpgrading ? '処理中...' : user?.subscriptionStatus === 'light' ? '現在のプラン' : 'アップグレード'}
-                    </button>
-                  )}
+                  <div className="text-center">
+                    {user?.subscriptionStatus === 'light' ? (
+                      <span className="text-sm text-blue-400">現在のプラン</span>
+                    ) : (
+                      <button
+                        onClick={() => alert('ライトプランへの変更処理を実装予定です')}
+                        disabled={isUpgrading}
+                        className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                      >
+                        {isUpgrading ? '処理中...' : '始める'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Premium Plan */}
                 <div className="bg-gradient-to-br from-yellow-900/50 to-orange-900/50 border border-yellow-600/50 rounded-lg p-4 md:p-6 relative">
-                  {hasActiveSubscription && (
+                  {(user?.subscriptionStatus === 'premium' || isMasterUser) && (
                     <div className="absolute -top-2 -right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
                       アクティブ
                     </div>
@@ -169,42 +178,52 @@ export default function SubscriptionPage() {
                       無制限のMTTシナリオ
                     </li>
                   </ul>
-                  <button
-                    onClick={handleUpgrade}
-                    disabled={isUpgrading || hasActiveSubscription}
-                    className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-                  >
-                    {isUpgrading ? '処理中...' : hasActiveSubscription ? '現在のプラン' : 'アップグレード'}
-                  </button>
+                  <div className="text-center">
+                    {user?.subscriptionStatus === 'premium' || isMasterUser ? (
+                      <span className="text-sm text-yellow-400">現在のプラン</span>
+                    ) : (
+                      <button
+                        onClick={() => alert('プレミアムプランへの変更処理を実装予定です')}
+                        disabled={isUpgrading}
+                        className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-600 text-white py-2 px-4 rounded-lg font-semibold transition-all duration-300"
+                      >
+                        {isUpgrading ? '処理中...' : '始める'}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Master Plan */}
-                <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-600/50 rounded-lg p-4 md:p-6 relative">
-                  {isMasterUser && (
+                {/* Master Plan - マスターユーザーのみ表示 */}
+                {isMasterUser && (
+                  <div className="bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-purple-600/50 rounded-lg p-4 md:p-6 relative">
                     <div className="absolute -top-2 -right-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
                       マスター
                     </div>
-                  )}
-                  <h3 className="text-lg font-semibold text-white mb-2">マスターユーザー</h3>
-                  <p className="text-3xl font-bold text-purple-400 mb-4">管理者専用</p>
-                  <ul className="space-y-2 mb-6">
-                    <li className="flex items-center text-sm text-gray-300">
-                      <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      すべてのプレミアム機能
-                    </li>
-                    <li className="flex items-center text-sm text-gray-300">
-                      <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      管理者権限
-                    </li>
-                    <li className="flex items-center text-sm text-gray-300">
-                      <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      システムレンジ管理
-                    </li>
-                  </ul>
-                  <div className="text-center">
-                    <span className="text-sm text-purple-400">管理者専用</span>
+                    <h3 className="text-lg font-semibold text-white mb-2">マスターユーザー</h3>
+                    <p className="text-3xl font-bold text-purple-400 mb-4">管理者専用</p>
+                    <ul className="space-y-2 mb-6">
+                      <li className="flex items-center text-sm text-gray-300">
+                        <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
+                        すべてのプレミアム機能
+                      </li>
+                      <li className="flex items-center text-sm text-gray-300">
+                        <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
+                        管理者権限
+                      </li>
+                      <li className="flex items-center text-sm text-gray-300">
+                        <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
+                        システムレンジ管理
+                      </li>
+                      <li className="flex items-center text-sm text-gray-300">
+                        <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
+                        データベース管理
+                      </li>
+                    </ul>
+                    <div className="text-center">
+                      <span className="text-sm text-purple-400">現在のプラン</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -236,7 +255,7 @@ export default function SubscriptionPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">お名前</label>
-                  <p className="text-white">{user?.name}</p>
+                  <p className="text-white">{user?.displayName || 'ユーザー'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">メールアドレス</label>
@@ -244,7 +263,7 @@ export default function SubscriptionPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">アカウント作成日</label>
-                  <p className="text-white">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ja-JP') : '-'}</p>
+                  <p className="text-white">{user?.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('ja-JP') : '-'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">メール確認状況</label>

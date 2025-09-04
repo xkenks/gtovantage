@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import { FaArrowLeft, FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 // マスターユーザーのメールアドレスリスト
@@ -75,17 +75,14 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const success = await register(formData.email, formData.password, formData.name);
+      await register(formData.name, formData.email, formData.password);
       
-      if (success) {
-        // マスターユーザーの場合は直接トップページに、そうでなければメール確認ページに
-        if (MASTER_USER_EMAILS.includes(formData.email)) {
-          router.push('/');
-        } else {
-          router.push('/verify-email');
-        }
+      // Firebase認証の場合、エラーがなければ成功
+      // マスターユーザーの場合は直接トップページに、そうでなければメール確認ページに
+      if (MASTER_USER_EMAILS.includes(formData.email)) {
+        router.push('/');
       } else {
-        setError('登録に失敗しました。このメールアドレスは既に使用されている可能性があります。');
+        router.push('/verify-email');
       }
     } catch (error) {
       setError('登録中にエラーが発生しました。もう一度お試しください。');

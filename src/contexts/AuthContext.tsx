@@ -20,6 +20,11 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  sendVerificationEmail: (email?: string) => Promise<boolean>;
+  verifyEmail: (token: string) => Promise<boolean>;
+  upgradeSubscription: (planType: 'light' | 'premium', paymentMethod: string) => Promise<boolean>;
+  cancelSubscription: () => Promise<boolean>;
   isAuthenticated: boolean;
   isEmailVerified: boolean;
   isMasterUser: boolean;
@@ -217,6 +222,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // アナリティクス: 新規登録を追跡
       gtoEvents.register();
 
+      // メール認証がまだの場合は認証メールを送信
+      if (!newUser.emailVerified && !MASTER_USER_EMAILS.includes(email)) {
+        try {
+          await sendVerificationEmail(email);
+          console.log('認証メールを送信しました');
+        } catch (error) {
+          console.error('認証メール送信に失敗しました:', error);
+          // 登録は成功したが、メール送信のみ失敗した場合は継続
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -268,12 +284,232 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      if (typeof window === 'undefined' || !user) return false;
+
+      const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+      const currentHashedPassword = btoa(currentPassword + user.email);
+      const userIndex = users.findIndex((u: any) => u.email === user.email && u.password === currentHashedPassword);
+
+      if (userIndex === -1) {
+        throw new Error('現在のパスワードが正しくありません');
+      }
+
+      // 新しいパスワードをハッシュ化
+      const newHashedPassword = btoa(newPassword + user.email);
+      users[userIndex].password = newHashedPassword;
+      
+      // ローカルストレージを更新
+      localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+
+      console.log('パスワードが正常に変更されました');
+      return true;
+    } catch (error) {
+      console.error('Password change failed:', error);
+      throw error; // エラーを再スローして呼び出し元で処理
+    }
+  };
+
+  const sendVerificationEmail = async (email?: string): Promise<boolean> => {
+    try {
+      const targetEmail = email || user?.email;
+      const targetName = user?.name;
+      
+      if (!targetEmail) {
+        throw new Error('メールアドレスが見つかりません');
+      }
+
+      const response = await fetch('/api/auth/send-verification-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: targetEmail,
+          name: targetName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'メール送信に失敗しました');
+      }
+
+      console.log('認証メール送信成功:', data.message);
+      
+      // 開発環境では認証URLをアラートで表示
+      if (process.env.NODE_ENV === 'development' && data.verificationUrl) {
+        const copyToClipboard = () => {
+          navigator.clipboard.writeText(data.verificationUrl).then(() => {
+            alert(`開発環境用: 認証URLをクリップボードにコピーしました\n\n${data.verificationUrl}\n\n新しいタブで開いてください。`);
+          }).catch(() => {
+            alert(`開発環境用: 以下のURLをコピーして新しいタブで開いてください\n\n${data.verificationUrl}`);
+          });
+        };
+        copyToClipboard();
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('メール送信失敗:', error);
+      throw error;
+    }
+  };
+
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    try {
+      // APIエンドポイントでトークンを検証
+      const response = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'メール認証に失敗しました');
+      }
+
+      // ユーザーのメール認証状態を更新
+      if (typeof window !== 'undefined') {
+        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+        const userIndex = users.findIndex((u: any) => u.email === data.email);
+
+        if (userIndex !== -1) {
+          users[userIndex].emailVerified = true;
+          localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+
+          // 現在のユーザーのメール認証状態を更新
+          if (user && user.email === data.email) {
+            const updatedUser = { ...user, emailVerified: true };
+            setUser(updatedUser);
+            localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+          }
+        }
+      }
+
+      console.log('メール認証が正常に完了しました');
+      return true;
+    } catch (error) {
+      console.error('メール認証失敗:', error);
+      throw error;
+    }
+  };
+
+  const upgradeSubscription = async (planType: 'light' | 'premium', paymentMethod: string): Promise<boolean> => {
+    try {
+      if (!user) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const response = await fetch('/api/subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          planType,
+          paymentMethod,
+          billingInfo: {
+            name: user.name,
+            email: user.email
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'サブスクリプションのアップグレードに失敗しました');
+      }
+
+      // ローカルでユーザーのサブスクリプション状態を更新
+      if (typeof window !== 'undefined') {
+        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+        const userIndex = users.findIndex((u: any) => u.email === user.email);
+
+        if (userIndex !== -1) {
+          users[userIndex].subscriptionStatus = planType;
+          localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+
+          // 現在のユーザー情報を更新
+          const updatedUser = { ...user, subscriptionStatus: planType };
+          setUser(updatedUser);
+          localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+        }
+      }
+
+      console.log('サブスクリプションアップグレード成功:', data.message);
+      return true;
+    } catch (error) {
+      console.error('サブスクリプションアップグレード失敗:', error);
+      throw error;
+    }
+  };
+
+  const cancelSubscription = async (): Promise<boolean> => {
+    try {
+      if (!user) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const response = await fetch('/api/subscription', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userEmail: user.email
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'サブスクリプションのキャンセルに失敗しました');
+      }
+
+      // ローカルでユーザーのサブスクリプション状態を更新
+      if (typeof window !== 'undefined') {
+        const users = JSON.parse(localStorage.getItem('gto-vantage-users') || '[]');
+        const userIndex = users.findIndex((u: any) => u.email === user.email);
+
+        if (userIndex !== -1) {
+          users[userIndex].subscriptionStatus = 'free';
+          localStorage.setItem('gto-vantage-users', JSON.stringify(users));
+
+          // 現在のユーザー情報を更新
+          const updatedUser = { ...user, subscriptionStatus: 'free' as const };
+          setUser(updatedUser);
+          localStorage.setItem('gto-vantage-user', JSON.stringify(updatedUser));
+        }
+      }
+
+      console.log('サブスクリプションキャンセル成功:', data.message);
+      return true;
+    } catch (error) {
+      console.error('サブスクリプションキャンセル失敗:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
     register,
     login,
     logout,
+    changePassword,
+    sendVerificationEmail,
+    verifyEmail,
+    upgradeSubscription,
+    cancelSubscription,
     isAuthenticated: !!user,
     isEmailVerified: user?.emailVerified || false,
     isMasterUser: user?.isMasterUser || false,

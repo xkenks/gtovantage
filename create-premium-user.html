@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase プレミアムユーザー作成</title>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase プレミアムユーザー作成</h1>
+        <p>GTO Vantageのプレミアムテストアカウントを作成します。</p>
+
+        <div class="form-group">
+            <label for="email">メールアドレス:</label>
+            <input type="email" id="email" value="premium@gtovantage.com" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="password">パスワード:</label>
+            <input type="password" id="password" value="RsiKD76" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="displayName">表示名:</label>
+            <input type="text" id="displayName" value="Premium User" readonly>
+        </div>
+
+        <button onclick="createPremiumUser()">プレミアムユーザーを作成</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        // Firebase設定
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+        import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+
+        // Firebase設定 (env.exampleの値を使用)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA954HZC6QOxGCCA3rRPe5C5agZaxYT9Zk",
+            authDomain: "gtovantage-e180c.firebaseapp.com",
+            projectId: "gtovantage-e180c",
+            storageBucket: "gtovantage-e180c.firebasestorage.app",
+            messagingSenderId: "405732583730",
+            appId: "1:405732583730:web:60a048c6e681e873fc8f2b"
+        };
+
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // グローバル関数として定義
+        window.createPremiumUser = async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const displayName = document.getElementById('displayName').value;
+            const resultDiv = document.getElementById('result');
+
+            try {
+                resultDiv.innerHTML = '<div class="result">🔄 プレミアムユーザーを作成中...</div>';
+
+                // ユーザーを作成
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                console.log('✅ Firebase Auth ユーザー作成完了:', user.uid);
+
+                // メール確認を送信
+                await sendEmailVerification(user);
+                console.log('📧 確認メール送信完了');
+
+                // Firestoreにプレミアムユーザーデータを保存
+                const premiumUserData = {
+                    email: email,
+                    displayName: displayName,
+                    subscriptionStatus: 'premium',
+                    subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1年後
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    practiceCount: 0,
+                    emailVerified: false, // メール確認後にtrueになる
+                    isMasterUser: false,
+                    isTestAccount: true
+                };
+
+                await setDoc(doc(db, 'users', user.uid), premiumUserData);
+                console.log('✅ Firestoreにプレミアムユーザーデータを保存');
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>🎉 プレミアムユーザー作成完了!</h3>
+                        <p><strong>UID:</strong> ${user.uid}</p>
+                        <p><strong>メール:</strong> ${email}</p>
+                        <p><strong>パスワード:</strong> ${password}</p>
+                        <p><strong>ステータス:</strong> premium</p>
+                        <p><strong>有効期限:</strong> 1年後</p>
+                        <p><em>📧 確認メールが送信されました。メールを確認してアカウントを有効化してください。</em></p>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('❌ エラー:', error);
+                let errorMessage = error.message;
+                
+                // エラーメッセージの日本語化
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'このメールアドレスは既に使用されています。';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'パスワードが弱すぎます（6文字以上にしてください）。';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'メールアドレスの形式が正しくありません。';
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ エラーが発生しました</h3>
+                        <p><strong>エラーコード:</strong> ${error.code || 'unknown'}</p>
+                        <p><strong>メッセージ:</strong> ${errorMessage}</p>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

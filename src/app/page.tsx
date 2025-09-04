@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaChalkboardTeacher, FaClipboardList, FaGraduationCap, FaUsers, FaTrophy, FaChartLine, FaBrain, FaRocket, FaPlay, FaUser, FaCrown, FaInfinity, FaLock, FaCheck } from 'react-icons/fa';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 export default function Home() {
   const { user, isAuthenticated, hasActiveSubscription, practiceCount } = useAuth();
@@ -21,7 +21,7 @@ export default function Home() {
             {/* Main Headline */}
             {isAuthenticated ? (
               <div className="mb-4 md:mb-6">
-                <div className="text-lg md:text-xl text-green-400 mb-2">ようこそ、{user?.name}さん！</div>
+                <div className="text-lg md:text-xl text-green-400 mb-2">ようこそ、{user?.displayName || user?.email}さん！</div>
                 <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
                   <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                 今日も

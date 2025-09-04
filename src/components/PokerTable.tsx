@@ -5,6 +5,125 @@ import { PokerCardList } from './PokerCard';
 import { FaCheckCircle, FaExclamationTriangle, FaInfoCircle, FaCheck } from 'react-icons/fa';
 import { HandRangeGrid, HandRangeButton, btnOpenRaiseRange, HandInfo, getRangeForPosition } from './HandRange';
 
+// ベットサイズを計算する関数
+const calculateBetSize = (
+  stackDepth: string,
+  actionType: string,
+  heroPosition: string,
+  openerPosition?: string,
+  threeBetterPosition?: string
+): { raiseSize: number; allinSize: number } => {
+  const stackBB = parseInt(stackDepth.replace('BB', ''));
+  
+  // ALLINサイズは常にスタック全体
+  const allinSize = stackBB;
+  
+  let raiseSize = 0;
+  
+  if (actionType === 'openraise') {
+    // オープンレイズのサイズ
+    if (stackBB <= 15) {
+      raiseSize = heroPosition === 'SB' ? 2.5 : 2;
+    } else if (stackBB <= 20) {
+      raiseSize = 2;
+    } else if (stackBB <= 30) {
+      raiseSize = 2.1;
+    } else {
+      raiseSize = 2.3;
+    }
+  } else if (actionType === 'vsopen') {
+    // vs オープンレイズのサイズ
+    if (stackBB <= 15) {
+      // 15BBのvsオープンではRAISEアクションが存在しない
+      raiseSize = 0;
+    } else if (stackBB <= 20) {
+      if (heroPosition === 'SB') {
+        raiseSize = 5.5;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 6;
+      } else {
+        raiseSize = 5;
+      }
+    } else if (stackBB <= 30) {
+      if (heroPosition === 'SB') {
+        raiseSize = 7.5;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 8.2;
+      } else {
+        raiseSize = 6.3;
+      }
+    } else if (stackBB <= 40) {
+      if (heroPosition === 'SB') {
+        raiseSize = 8.6;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 9.2;
+      } else {
+        raiseSize = 6.8;
+      }
+    } else if (stackBB <= 50) {
+      if (heroPosition === 'SB') {
+        raiseSize = 9.2;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 9.8;
+      } else {
+        raiseSize = 6.9;
+      }
+    } else if (stackBB <= 75) {
+      if (heroPosition === 'SB') {
+        raiseSize = 10;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 10.3;
+      } else {
+        raiseSize = 8;
+      }
+    } else {
+      // 100BB
+      if (heroPosition === 'SB') {
+        raiseSize = 11;
+      } else if (heroPosition === 'BB') {
+        raiseSize = 11.5;
+      } else {
+        raiseSize = 8;
+      }
+    }
+  } else if (actionType === 'vs3bet') {
+    // vs 3ベットのサイズ
+    if (stackBB <= 15 || stackBB === 20 || stackBB === 30 || stackBB === 40) {
+      // 15BB, 20BB, 30BB, 40BBではRAISEなし（ALLINのみ）
+      raiseSize = 0;
+    } else if (stackBB <= 50) {
+      if (threeBetterPosition === 'SB' || threeBetterPosition === 'BB') {
+        // 3ベッターがSB/BBの場合はALLINのみ
+        raiseSize = 0;
+      } else {
+        raiseSize = 16;
+      }
+    } else if (stackBB <= 75) {
+      if (threeBetterPosition === 'SB') {
+        raiseSize = 21.2;
+      } else if (threeBetterPosition === 'BB') {
+        raiseSize = 22;
+      } else {
+        raiseSize = 20.9;
+      }
+    } else {
+      // 100BB
+      if (threeBetterPosition === 'SB') {
+        raiseSize = 23;
+      } else if (threeBetterPosition === 'BB') {
+        raiseSize = 24;
+      } else {
+        raiseSize = 21;
+      }
+    }
+  } else if (actionType === 'vs4bet') {
+    // vs 4ベットではRAISEなし（CALL/ALLINのみ）
+    raiseSize = 0;
+  }
+  
+  return { raiseSize, allinSize };
+};
+
 // Position type
 type PositionType = 'SB' | 'BB' | 'UTG' | 'UTG1' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'MP';
 
@@ -1601,30 +1720,87 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   {/* アクションボタン（ハンドカードの下） - アクション選択前のみ表示 */}
                   {isHero && !selectedAction && (
                     <div className="absolute top-32 left-1/2 transform -translate-x-1/2 z-30">
-                      <div className="flex space-x-2 justify-center">
-                        {getAvailableActions().map((action) => {
-                          // アクションボタンのラベルとスタイルを決定
-                          const { label, colorClass } = (() => {
-                            if (action === 'FOLD') return { label: 'FOLD', colorClass: 'bg-blue-600 hover:bg-blue-700' };
-                            if (action === 'CHECK') return { label: 'CHECK', colorClass: 'bg-gray-600 hover:bg-gray-700' };
-                            if (action === 'CALL') return { label: 'CALL', colorClass: 'bg-green-600 hover:bg-green-700' };
-                            if (action === 'RAISE') return { label: 'RAISE', colorClass: 'bg-red-600 hover:bg-red-700' };
-                            if (action === 'ALL IN') return { label: 'ALLIN', colorClass: 'bg-purple-600 hover:bg-purple-700' };
-                            return { label: action, colorClass: 'bg-gray-600 hover:bg-gray-700' };
-                          })();
-            
-            return (
+                      {(() => {
+                        // ベットサイズを計算
+                        const betSizes = calculateBetSize(
+                          currentSpot.stackDepth || '15BB',
+                          currentSpot.actionType || 'openraise',
+                          currentSpot.heroPosition || 'BTN',
+                          currentSpot.openRaiserPosition,
+                          currentSpot.threeBetterPosition
+                        );
+                        
+                        // PC版と同じロジックで利用可能なアクションボタン数を計算
+                        const hasRaise = betSizes.raiseSize > 0 && 
+                          (!currentSpot || currentSpot.actionType !== 'vs3bet' || currentSpot.stackDepth !== '15BB') && 
+                          (!currentSpot || currentSpot.actionType !== 'vs3bet' || currentSpot.threeBetType !== 'allin') &&
+                          (!currentSpot || currentSpot.actionType !== 'vsopen' || currentSpot.stackDepth !== '15BB' || currentSpot.openRaiseSize !== 15.0);
+                        
+                        const hasAllin = (!currentSpot || currentSpot.actionType !== 'vs3bet' || currentSpot.stackDepth !== '15BB') && 
+                          (!currentSpot || currentSpot.actionType !== 'vs3bet' || currentSpot.threeBetType !== 'allin') &&
+                          (!currentSpot || currentSpot.actionType !== 'vsopen' || currentSpot.stackDepth !== '15BB' || currentSpot.openRaiseSize !== 15.0) && 
+                          (parseInt(stackSize) <= 80 || true); // ALLINは基本的に表示
+                        
+                        // アクションボタンを動的に生成
+                        const buttons = [];
+                        
+                        // FOLD と CALL は常に表示
+                        buttons.push(
+                          <button
+                            key="FOLD"
+                            className="px-3 py-3 rounded-lg text-white font-bold whitespace-nowrap min-h-12 min-w-20 text-sm bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg"
+                            onClick={() => onActionSelect && onActionSelect('FOLD')}
+                            disabled={cpuActionEnabled && !cpuActionComplete}
+                          >
+                            FOLD
+                          </button>
+                        );
+                        
+                        buttons.push(
+                          <button
+                            key="CALL"
+                            className="px-3 py-3 rounded-lg text-white font-bold whitespace-nowrap min-h-12 min-w-20 text-sm bg-green-600 hover:bg-green-700 transition-colors shadow-lg"
+                            onClick={() => onActionSelect && onActionSelect('CALL')}
+                            disabled={cpuActionEnabled && !cpuActionComplete}
+                          >
+                            CALL
+                          </button>
+                        );
+                        
+                        // RAISEボタン - 条件付きで表示
+                        if (hasRaise) {
+                          buttons.push(
                             <button
-                              key={action}
-                              className={`px-5 py-3 rounded-lg text-white font-semibold whitespace-nowrap min-h-12 min-w-20 ${colorClass} transition-colors shadow-lg`}
-                              onClick={() => onActionSelect && onActionSelect(action)}
+                              key="RAISE"
+                              className="px-3 py-3 rounded-lg text-white font-bold whitespace-nowrap min-h-12 min-w-20 text-sm bg-red-600 hover:bg-red-700 transition-colors shadow-lg"
+                              onClick={() => onActionSelect && onActionSelect('RAISE')}
                               disabled={cpuActionEnabled && !cpuActionComplete}
                             >
-                              {label}
+                              RAISE {betSizes.raiseSize}
                             </button>
                           );
-                        })}
-          </div>
+                        }
+                        
+                        // ALLINボタン - 条件付きで表示
+                        if (hasAllin) {
+                          buttons.push(
+                            <button
+                              key="ALLIN"
+                              className="px-3 py-3 rounded-lg text-white font-bold whitespace-nowrap min-h-12 min-w-20 text-sm bg-purple-600 hover:bg-purple-700 transition-colors shadow-lg"
+                              onClick={() => onActionSelect && onActionSelect('ALL IN')}
+                              disabled={cpuActionEnabled && !cpuActionComplete}
+                            >
+                              ALLIN {betSizes.allinSize}
+                            </button>
+                          );
+                        }
+                        
+                        return (
+                          <div className="flex space-x-2 justify-center">
+                            {buttons}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                   
@@ -1634,18 +1810,24 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                       <div className="flex space-x-3 justify-center">
                         {onRepeatSpot && (
                           <button
-                            className="px-4 py-3 rounded-lg text-white text-sm font-semibold bg-gray-500 hover:bg-gray-600 transition-colors whitespace-nowrap min-w-20 shadow-lg"
+                            className="px-4 py-3 rounded-lg text-white text-sm font-semibold bg-gray-500 hover:bg-gray-600 transition-colors whitespace-nowrap min-w-20 shadow-lg flex items-center justify-center"
                             onClick={onRepeatSpot}
                           >
-                            再試行
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            繰り返す
                           </button>
                         )}
                         {onNextSpot && (
                           <button
-                            className="px-4 py-3 rounded-lg text-white text-sm font-semibold bg-green-500 hover:bg-green-600 transition-colors whitespace-nowrap min-w-20 shadow-lg"
+                            className="px-4 py-3 rounded-lg text-white text-sm font-semibold bg-green-500 hover:bg-green-600 transition-colors whitespace-nowrap min-w-20 shadow-lg flex items-center justify-center"
                             onClick={onNextSpot}
                           >
-                            次へ
+                            次のハンド
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
                           </button>
                         )}
                       </div>

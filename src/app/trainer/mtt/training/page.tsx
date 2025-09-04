@@ -10,7 +10,7 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { AdminLogin } from '@/components/AdminLogin';
 import { gtoEvents } from '@/lib/analytics';
 import { AuthGuard } from '@/components/AuthGuard';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 // ポーカーユーティリティ関数を直接定義
 
@@ -2324,7 +2324,17 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount, user: authUser } = useAuth();
+  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount, user: authUser, isMasterUser } = useAuth();
+  
+  // 開発環境でのみデバッグログを表示
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🎯 MTT Training Debug:', {
+      authUser: authUser?.email,
+      isMasterUser,
+      isAdmin,
+      shouldShowAdminButton: !isAdmin && isMasterUser
+    });
+  }
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
@@ -6874,189 +6884,6 @@ function MTTTrainingPage() {
                             </div>
                           )}
 
-                          {/* 結果サマリー */}
-                          <div className="grid grid-cols-2 gap-3 mb-4">
-                            <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
-                              <h4 className="text-gray-400 text-xs mb-1">最適なアクション</h4>
-                              <div className="text-lg font-bold text-green-400">
-                                {(() => {
-                                  // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                                  let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                                  
-                                  // 頻度取得時に複数のキーを試行
-                                  let frequency = 0;
-                                  if (actionKey === 'ALL_IN') {
-                                    // ALL_IN関連の複数キーを試行
-                                    frequency = gtoData.frequencies?.['ALL_IN'] || 
-                                               gtoData.frequencies?.['ALL IN'] || 
-                                               gtoData.frequencies?.['ALLIN'] || 
-                                               gtoData.frequencies?.['ALL-IN'] || 0;
-                                    
-                                    // カスタムレンジでオールインが正解なのに0%の場合の特別処理
-                                    if (frequency === 0 && (gtoData as any)?.isCustomRange && gtoData.correctAction === 'ALL_IN') {
-                                      // frequenciesから全てのキーを確認
-                                      const allKeys = Object.keys(gtoData.frequencies || {});
-                                      const allinRelatedKeys = allKeys.filter(key => 
-                                        key.toUpperCase().includes('ALL') || 
-                                        key.toLowerCase().includes('allin') ||
-                                        key.toLowerCase().includes('all_in') ||
-                                        key.toLowerCase().includes('all-in')
-                                      );
-                                      
-                                      console.log('🔥 オールイン0%問題修正試行:', {
-                                        allKeys,
-                                        allinRelatedKeys,
-                                        frequencies: gtoData.frequencies,
-                                        correctAction: gtoData.correctAction
-                                      });
-                                      
-                                      // 関連キーから最初の非ゼロ値を取得
-                                      for (const key of allinRelatedKeys) {
-                                        const val = gtoData.frequencies[key];
-                                        if (val && val > 0) {
-                                          frequency = val;
-                                          console.log('🔥 オールイン頻度修正成功:', { key, frequency });
-                                          break;
-                                        }
-                                      }
-                                      
-                                      // それでも0の場合は、correctActionがALL_INならば100%とする
-                                      if (frequency === 0) {
-                                        frequency = 100;
-                                        console.log('🔥 オールイン頻度強制設定:', { frequency });
-                                      }
-                                    }
-                                  } else {
-                                    frequency = gtoData.frequencies?.[actionKey] || 0;
-                                  }
-                                  
-                                  const displayActionKey = actionKey === 'ALL_IN' ? 'ALL IN' : actionKey;
-                                  const displayText = frequency === 100 ? displayActionKey : `${displayActionKey} ${frequency}%`;
-                                  
-                                  console.log('🎯 最適アクション表示（修正版）:', {
-                                    gtoDataCorrectAction: gtoData.correctAction,
-                                    actionKey,
-                                    frequency,
-                                    displayText,
-                                    gtoDataFrequencies: gtoData.frequencies,
-                                    allFrequencyKeys: Object.keys(gtoData.frequencies || {}),
-                                    isCustomRange: (gtoData as any)?.isCustomRange,
-                                    isAllInCorrectAction: gtoData.correctAction === 'ALL_IN',
-                                    allInFrequencyKeys: Object.keys(gtoData.frequencies || {}).filter(key => 
-                                      key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
-                                    ),
-                                    timestamp: Date.now()
-                                  });
-                                  
-                                  return displayText;
-                                })()}
-                              </div>
-                                  {gtoData.frequencies && (
-                                    <div className="text-xs text-green-300 mt-1">
-                                      推奨頻度: {(() => {
-                                        // 完全にgtoDataのみを使用（spotとの矛盾を防ぐ）
-                                        let actionKey = gtoData.correctAction === 'MIN' ? 'RAISE' : gtoData.correctAction;
-                                        
-                                        // 頻度取得時に複数のキーを試行
-                                        let frequency = 0;
-                                        if (actionKey === 'ALL_IN') {
-                                          // ALL_IN関連の複数キーを試行
-                                          frequency = gtoData.frequencies?.['ALL_IN'] || 
-                                                     gtoData.frequencies?.['ALL IN'] || 
-                                                     gtoData.frequencies?.['ALLIN'] || 
-                                                     gtoData.frequencies?.['ALL-IN'] || 0;
-                                          
-                                          // カスタムレンジでオールインが正解なのに0%の場合の特別処理
-                                          if (frequency === 0 && (gtoData as any)?.isCustomRange && gtoData.correctAction === 'ALL_IN') {
-                                            // frequenciesから全てのキーを確認
-                                            const allKeys = Object.keys(gtoData.frequencies || {});
-                                            const allinRelatedKeys = allKeys.filter(key => 
-                                              key.toUpperCase().includes('ALL') || 
-                                              key.toLowerCase().includes('allin') ||
-                                              key.toLowerCase().includes('all_in') ||
-                                              key.toLowerCase().includes('all-in')
-                                            );
-                                            
-                                            // 関連キーから最初の非ゼロ値を取得
-                                            for (const key of allinRelatedKeys) {
-                                              const val = gtoData.frequencies[key];
-                                              if (val && val > 0) {
-                                                frequency = val;
-                                                console.log('🔥 推奨頻度オールイン修正成功:', { key, frequency });
-                                                break;
-                                              }
-                                            }
-                                            
-                                            // それでも0の場合は、correctActionがALL_INならば100%とする
-                                            if (frequency === 0) {
-                                              frequency = 100;
-                                              console.log('🔥 推奨頻度オールイン強制設定:', { frequency });
-                                            }
-                                          }
-                                        } else {
-                                          frequency = gtoData.frequencies?.[actionKey] || 0;
-                                        }
-                                        
-                                        console.log('🎯 推奨頻度表示（修正版）:', {
-                                          gtoDataCorrectAction: gtoData.correctAction,
-                                          actionKey,
-                                          frequency,
-                                          gtoDataFrequencies: gtoData.frequencies,
-                                          allFrequencyKeys: Object.keys(gtoData.frequencies || {}),
-                                          timestamp: Date.now()
-                                        });
-                                        
-                                        return frequency;
-                                      })()}%
-                            </div>
-                                  )}
-                            </div>
-                            <div className={`${isMobile ? 'bg-gray-700/20' : 'bg-gray-700/40'} p-3 rounded`}>
-                              <h4 className="text-gray-400 text-xs mb-1">あなたの選択</h4>
-                              <div className="text-lg font-bold">{selectedAction}</div>
-                                  {gtoData.frequencies && selectedAction && (
-                                    (() => {
-                                      // アクションの形式を正しく変換
-                                      const actionVariants = {
-                                        'ALL_IN': ['ALL_IN', 'ALL_IN'],
-                                        'RAISE': ['RAISE', 'MIN'],
-                                        'CALL': ['CALL'],
-                                        'FOLD': ['FOLD']
-                                      };
-                                      
-                                      const variants = actionVariants[selectedAction as keyof typeof actionVariants] || [selectedAction];
-                                      let frequency = 0;
-                                      let foundKey = '';
-                                      
-                                      // 利用可能な変形を試す
-                                      for (const variant of variants) {
-                                        if (gtoData.frequencies[variant] !== undefined) {
-                                          frequency = gtoData.frequencies[variant];
-                                          foundKey = variant;
-                                          break;
-                                        }
-                                      }
-                                      
-                                      // デバッグ情報を追加
-                                      console.log('🎯 正解頻度計算デバッグ:', {
-                                        selectedAction,
-                                        variants,
-                                        foundKey,
-                                        frequency,
-                                        gtoDataFrequencies: gtoData.frequencies,
-                                        allKeys: Object.keys(gtoData.frequencies)
-                                      });
-                                      
-                                      return (
-                                        <div className={`text-xs mt-1 ${frequency > 0 ? 'text-blue-300' : 'text-red-300'}`}>
-                                          正解頻度: {frequency}%
-                                          {frequency === 0 && ' (推奨されません)'}
-                                        </div>
-                                      );
-                                    })()
-                                  )}
-                            </div>
-                          </div>
                         </>
                       )}
                     </div>
@@ -7375,7 +7202,7 @@ function MTTTrainingPage() {
       {/* 管理者ログイン関連 - 画面一番下に配置 */}
       <div className="fixed bottom-4 left-4 z-50 hidden md:block">
         {/* 管理者ログインボタン（マスターアカウントでログイン中の時のみ表示） - PC版 */}
-        {!isAdmin && authUser?.isMasterUser && (
+        {!isAdmin && isMasterUser && (
           <button
             onClick={() => setShowAdminLogin(true)}
             className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-lg"
@@ -7413,7 +7240,7 @@ function MTTTrainingPage() {
       {/* モバイル版管理者ログイン関連 - 右下に配置 */}
       <div className="fixed bottom-2 right-2 z-50 md:hidden">
         {/* 管理者ログインボタン（マスターアカウントでログイン中の時のみ表示） - モバイル版 */}
-        {!isAdmin && authUser?.isMasterUser && (
+        {!isAdmin && isMasterUser && (
           <button
             onClick={() => setShowAdminLogin(true)}
             className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors duration-200 flex items-center gap-1 shadow-lg"

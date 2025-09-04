@@ -21,6 +21,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "bcryptjs": "^3.0.2",
     "firebase": "^10.14.1",
+    "firebase-admin": "^13.5.0",
     "framer-motion": "^12.5.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^14.0.1",
