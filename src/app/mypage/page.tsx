@@ -26,7 +26,7 @@ interface TrainingStats {
 }
 
 export default function MyPage() {
-  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount } = useAuth();
+  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount, subscriptionStatus } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [stats, setStats] = useState<TrainingStats>({
     totalQuestions: 0,
@@ -178,14 +178,17 @@ export default function MyPage() {
               <div className="flex items-center justify-between py-3 border-b border-gray-700">
                 <span className="text-gray-300">現在のプラン</span>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  user.subscriptionStatus === 'master' 
+                  subscriptionStatus === 'master' 
                     ? 'bg-purple-100 text-purple-800'
-                    : user.subscriptionStatus === 'premium'
+                    : subscriptionStatus === 'premium'
                     ? 'bg-blue-100 text-blue-800'
+                    : subscriptionStatus === 'light'
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-800'
                 }`}>
-                  {user.subscriptionStatus === 'master' ? 'マスター' : 
-                   user.subscriptionStatus === 'premium' ? 'プレミアム' : 'フリー'}
+                  {subscriptionStatus === 'master' ? 'マスター' : 
+                   subscriptionStatus === 'premium' ? 'プレミアム' : 
+                   subscriptionStatus === 'light' ? 'ライト' : 'フリー'}
                 </span>
               </div>
               <div className="pt-4">

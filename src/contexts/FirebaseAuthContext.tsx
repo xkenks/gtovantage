@@ -58,6 +58,7 @@ interface FirebaseAuthContextType {
   canPractice: boolean;
   practiceCount: number;
   maxPracticeCount: number;
+  dailyPracticeCount: number;
   incrementPracticeCount: () => void;
   canUseStackSize: (stackSize: string) => boolean;
   getAllowedStackSizes: () => string[];
@@ -77,6 +78,8 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('free');
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | undefined>(undefined);
   const [practiceCount, setPracticeCount] = useState(0);
+  const [dailyPracticeCount, setDailyPracticeCount] = useState(0);
+  const [lastPracticeDate, setLastPracticeDate] = useState<string>('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -137,6 +140,9 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
           setSubscriptionStatus(userSubscriptionStatus);
           setSubscriptionExpiry(userSubscriptionExpiry);
           
+          // 日付ベースの練習回数管理を初期化
+          initializeDailyPracticeCount(firebaseUser.uid);
+          
           if (isTestAccount) {
             console.log('✅ テストアカウントとして自動メール認証:', firebaseUser.email);
           }
@@ -165,6 +171,9 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
           setIsEmailVerified(effectiveEmailVerified);
           setSubscriptionStatus('free');
           setSubscriptionExpiry(undefined);
+          
+          // 日付ベースの練習回数管理を初期化
+          initializeDailyPracticeCount(firebaseUser.uid);
         }
       } else {
         setUser(null);
@@ -172,6 +181,8 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
         setIsEmailVerified(false);
         setSubscriptionStatus('free');
         setSubscriptionExpiry(undefined);
+        setDailyPracticeCount(0);
+        setLastPracticeDate('');
       }
       setLoading(false);
     });
@@ -392,37 +403,86 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   // マスターユーザー判定
   const isMasterUser = user?.email === 'admin@gtovantage.com' || user?.email === 'master@gtovantage.com';
   
+  // 日付ベースの練習回数管理を初期化
+  const initializeDailyPracticeCount = (uid: string) => {
+    // 日本時間（JST）で日付を取得
+    const today = new Date().toLocaleDateString('sv-SE', { 
+      timeZone: 'Asia/Tokyo'
+    });
+    const storageKey = `dailyPractice_${uid}`;
+    const storedData = localStorage.getItem(storageKey);
+    
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        if (parsed.date === today) {
+          setDailyPracticeCount(parsed.count || 0);
+          setLastPracticeDate(parsed.date);
+        } else {
+          // 日付が変わった場合はリセット
+          setDailyPracticeCount(0);
+          setLastPracticeDate(today);
+          localStorage.setItem(storageKey, JSON.stringify({ date: today, count: 0 }));
+        }
+      } catch (error) {
+        console.error('日次練習データの読み込みエラー:', error);
+        setDailyPracticeCount(0);
+        setLastPracticeDate(today);
+      }
+    } else {
+      setDailyPracticeCount(0);
+      setLastPracticeDate(today);
+      localStorage.setItem(storageKey, JSON.stringify({ date: today, count: 0 }));
+    }
+  };
+
   // アクティブサブスクリプション判定
   const hasActiveSubscription = subscriptionStatus === 'premium' || subscriptionStatus === 'light' || isMasterUser;
   
-  // 最大プラクティス回数
-  const maxPracticeCount = isMasterUser ? Infinity : (hasActiveSubscription ? Infinity : 50);
+  // 最大プラクティス回数（ライトプランは1日50回、無料プランは1日10回、プレミアムとマスターは無制限）
+  const maxPracticeCount = isMasterUser ? Infinity : 
+                          subscriptionStatus === 'premium' ? Infinity :
+                          subscriptionStatus === 'light' ? 50 : // 1日50回
+                          10; // 無料プランは1日10回
   
   // プラクティス可能判定
-  const canPractice = hasActiveSubscription || practiceCount < maxPracticeCount;
+  const canPractice = isMasterUser || 
+                     subscriptionStatus === 'premium' ||
+                     (subscriptionStatus === 'light' && dailyPracticeCount < 50) ||
+                     (subscriptionStatus === 'free' && dailyPracticeCount < 10);
   
   // プラクティス回数増加
   const incrementPracticeCount = () => {
     setPracticeCount(prev => prev + 1);
+    
+    // ライトプランと無料プランの場合は日次カウントも増加
+    if ((subscriptionStatus === 'light' || subscriptionStatus === 'free') && user) {
+      const newDailyCount = dailyPracticeCount + 1;
+      setDailyPracticeCount(newDailyCount);
+      
+      // 日本時間（JST）で日付を取得
+      const today = new Date().toLocaleDateString('sv-SE', { 
+        timeZone: 'Asia/Tokyo'
+      });
+      const storageKey = `dailyPractice_${user.uid}`;
+      localStorage.setItem(storageKey, JSON.stringify({ date: today, count: newDailyCount }));
+    }
   };
   
   // スタックサイズ使用可能判定
   const canUseStackSize = (stackSize: string): boolean => {
     if (isMasterUser) return true;
     if (subscriptionStatus === 'premium') return true;
-    if (subscriptionStatus === 'light') return ['10BB', '15BB', '20BB'].includes(stackSize);
-    return stackSize === '20BB'; // free users
+    if (subscriptionStatus === 'light') return true; // ライトプランは全スタック利用可能
+    return stackSize === '20BB'; // 無料プランは20BBのみ
   };
   
   // 使用可能スタックサイズ一覧
   const getAllowedStackSizes = (): string[] => {
-    if (isMasterUser || subscriptionStatus === 'premium') {
+    if (isMasterUser || subscriptionStatus === 'premium' || subscriptionStatus === 'light') {
       return ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB'];
     }
-    if (subscriptionStatus === 'light') {
-      return ['10BB', '15BB', '20BB'];
-    }
-    return ['20BB']; // free users
+    return ['20BB']; // 無料プランは20BBのみ
   };
 
   const value: FirebaseAuthContextType = {
@@ -446,6 +506,7 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
     canPractice,
     practiceCount,
     maxPracticeCount,
+    dailyPracticeCount,
     incrementPracticeCount,
     canUseStackSize,
     getAllowedStackSizes,

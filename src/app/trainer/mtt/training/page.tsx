@@ -11,6 +11,7 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { gtoEvents } from '@/lib/analytics';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/contexts/FirebaseAuthContext';
+import DailyLimitModal from '@/components/DailyLimitModal';
 
 // ポーカーユーティリティ関数を直接定義
 
@@ -2324,7 +2325,7 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount, user: authUser, isMasterUser } = useAuth();
+  const { canPractice, practiceCount, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
   
   // 開発環境でのみデバッグログを表示
   if (process.env.NODE_ENV === 'development') {
@@ -2367,7 +2368,19 @@ function MTTTrainingPage() {
   const [editingPosition, setEditingPosition] = useState<string>('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [lastRangeUpdate, setLastRangeUpdate] = useState<number>(0); // レンジ更新タイムスタンプ
+  
+  // 制限達成モーダルのstate
+  const [showDailyLimitModal, setShowDailyLimitModal] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState(false); // 初期化制御フラグ
+  
+  // ページロード時の制限チェック（初期化完了後に実行）
+  useEffect(() => {
+    if (isInitialized && 
+        ((subscriptionStatus === 'light' && dailyPracticeCount >= 50) ||
+         (subscriptionStatus === 'free' && dailyPracticeCount >= 10))) {
+      setShowDailyLimitModal(true);
+    }
+  }, [isInitialized, subscriptionStatus, dailyPracticeCount]);
   
   // vsオープン用レンジエディター関連のstate
   const [selectedVSOpenPosition, setSelectedVSOpenPosition] = useState<string>('BTN');
@@ -3974,8 +3987,15 @@ function MTTTrainingPage() {
               setCustomRanges(parsedRanges);
               // 次のレンダリングサイクルで初期化を実行
               setTimeout(() => {
-                generateNewScenario();
-                setIsInitialized(true);
+                // 制限チェック - 制限に達している場合はシナリオ生成をスキップ
+                if ((subscriptionStatus === 'light' && dailyPracticeCount >= 50) ||
+                    (subscriptionStatus === 'free' && dailyPracticeCount >= 10)) {
+                  setIsInitialized(true);
+                  setShowDailyLimitModal(true);
+                } else {
+                  generateNewScenario();
+                  setIsInitialized(true);
+                }
               }, 50);
               return;
             }
@@ -3986,10 +4006,17 @@ function MTTTrainingPage() {
       }
 
       // カスタムレンジがない場合、または既に読み込み済みの場合は即座に初期化
-      generateNewScenario();
-      setIsInitialized(true);
+      // 制限チェック - 制限に達している場合はシナリオ生成をスキップして初期化のみ完了
+      if ((subscriptionStatus === 'light' && dailyPracticeCount >= 50) ||
+          (subscriptionStatus === 'free' && dailyPracticeCount >= 10)) {
+        setIsInitialized(true);
+        setShowDailyLimitModal(true);
+      } else {
+        generateNewScenario();
+        setIsInitialized(true);
+      }
     }
-  }, [position, stackSize, actionType, customHandsString, isInitialized, customRanges]); // customRanges added to dependencies
+  }, [position, stackSize, actionType, customHandsString, isInitialized, customRanges, subscriptionStatus, dailyPracticeCount]); // customRanges added to dependencies
 
   // selectedTrainingHandsの変更を監視して新しいシナリオを生成
   useEffect(() => {
@@ -5628,6 +5655,16 @@ function MTTTrainingPage() {
   
   // アクション選択ハンドラー
   const handleActionSelect = (action: string) => {
+    // 制限チェック
+    if (subscriptionStatus === 'light' && dailyPracticeCount >= 50) {
+      setShowDailyLimitModal(true);
+      return;
+    }
+    if (subscriptionStatus === 'free' && dailyPracticeCount >= 10) {
+      setShowDailyLimitModal(true);
+      return;
+    }
+    
     setSelectedAction(action);
     
     // アクションの基本部分を抽出して比較（例：'RAISE 2.5' → 'RAISE'）
@@ -5786,6 +5823,21 @@ function MTTTrainingPage() {
       urlHands: searchParams.get('hands')
     });
     
+    // ライトプランの制限チェック
+    if (subscriptionStatus === 'light' && dailyPracticeCount >= 49) {
+      // 50回目の練習後に制限モーダルを表示
+      incrementPracticeCount();
+      setShowDailyLimitModal(true);
+      return;
+    }
+    // 無料プランの制限チェック
+    if (subscriptionStatus === 'free' && dailyPracticeCount >= 9) {
+      // 10回目の練習後に制限モーダルを表示
+      incrementPracticeCount();
+      setShowDailyLimitModal(true);
+      return;
+    }
+    
     // 練習回数をカウント
     incrementPracticeCount();
     
@@ -5800,6 +5852,16 @@ function MTTTrainingPage() {
   
   // 同じスポットを繰り返すハンドラー
   const handleRepeatSpot = () => {
+    // 制限チェック
+    if (subscriptionStatus === 'light' && dailyPracticeCount >= 50) {
+      setShowDailyLimitModal(true);
+      return;
+    }
+    if (subscriptionStatus === 'free' && dailyPracticeCount >= 10) {
+      setShowDailyLimitModal(true);
+      return;
+    }
+    
     console.log('🎯 同じスポットを繰り返し:', {
       currentHand: hand,
       currentHandType: normalizeHandType(hand),
@@ -5836,7 +5898,9 @@ function MTTTrainingPage() {
     }
   };
   
-  if (!spot) {
+  // ローディング判定 - 制限時は即座にUI表示
+  if (!spot && !((subscriptionStatus === 'light' && dailyPracticeCount >= 50) || 
+                 (subscriptionStatus === 'free' && dailyPracticeCount >= 10))) {
     return <div className="min-h-screen bg-black md:bg-gray-900 text-white flex items-center justify-center">ローディング中...</div>;
   }
   
@@ -5853,27 +5917,7 @@ function MTTTrainingPage() {
         <AdminLogin onClose={() => setShowAdminLogin(false)} />
       )}
 
-      {/* 練習制限警告 */}
-      {!canPractice && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border border-red-500">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚠️</span>
-            <div>
-              <div className="font-semibold">今日の練習上限に達しました</div>
-              <div className="text-sm">プランアップグレードで無制限練習が可能です</div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* 練習回数表示 */}
-      {maxPracticeCount !== Infinity && (
-        <div className="fixed top-4 left-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
-          <div className="text-sm">
-            <span className="font-semibold">練習回数:</span> {practiceCount}/{maxPracticeCount}
-          </div>
-        </div>
-      )}
 
       {/* ここから下は既存のページ内容 */}
       <div className="min-h-screen bg-black md:bg-gray-900 text-white p-4">
@@ -7273,6 +7317,12 @@ function MTTTrainingPage() {
           </div>
         )}
       </div>
+      
+      {/* 1日制限達成モーダル */}
+      <DailyLimitModal 
+        isOpen={showDailyLimitModal} 
+        onClose={() => setShowDailyLimitModal(false)} 
+      />
     </div>
     </AuthGuard>
   );
