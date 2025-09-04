@@ -4810,8 +4810,8 @@ function MTTTrainingPage() {
           vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
         });
       } else {
-        console.error('❌ 統合ストレージ保存失敗:', saveResult.error);
-        alert(`❌ レンジの保存に失敗しました\n\nエラー: ${saveResult.error}`);
+        console.error('❌ 統合ストレージ保存失敗');
+        alert(`❌ レンジの保存に失敗しました`);
       }
     } catch (error) {
       console.error('❌ レンジ保存エラー:', error);
@@ -5377,8 +5377,36 @@ function MTTTrainingPage() {
             // まずStateを更新
             setCustomRanges(importedRanges);
             
-            // 統合ストレージシステムで保存
-            const saveResult = await storageManager.saveRanges(importedRanges);
+            // 管理者の場合はサーバーに保存、一般ユーザーはローカルセッションのみ
+            let saveResult = { success: true, method: 'session' };
+            
+            if (isAdmin) {
+              try {
+                console.log('🔑 管理者モード: サーバーへの保存を実行');
+                const response = await fetch('/api/mtt-ranges', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Admin-Token': localStorage.getItem('admin-token') || ''
+                  },
+                  body: JSON.stringify({
+                    ranges: importedRanges,
+                    lastUpdated: new Date().toISOString()
+                  })
+                });
+                
+                if (response.ok) {
+                  saveResult = { success: true, method: 'server' };
+                  console.log('✅ サーバーへの保存成功');
+                } else {
+                  console.warn('⚠️ サーバー保存失敗、セッションのみ');
+                }
+              } catch (error) {
+                console.warn('⚠️ サーバー保存エラー、セッションのみ:', error);
+              }
+            } else {
+              console.log('👤 一般ユーザー: セッションのみでの保存');
+            }
             
             // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
             setLastRangeUpdate(Date.now());
@@ -5388,7 +5416,7 @@ function MTTTrainingPage() {
               successMessage += `📊 インポート結果:\n`;
               successMessage += `・レンジ数: ${Object.keys(importedRanges).length}個\n`;
               successMessage += `・データサイズ: ${dataSizeMB}MB\n`;
-              successMessage += `・保存方式: ${saveResult.method}\n\n`;
+              successMessage += `・保存方式: ${saveResult.method === 'server' ? 'サーバー（全ユーザー共有）' : 'セッション（現在のブラウザのみ）'}\n\n`;
               
               switch (saveResult.method) {
                 case 'IndexedDB':
@@ -5414,7 +5442,7 @@ function MTTTrainingPage() {
             } else {
               // 保存失敗だがStateは更新済み
               alert(`⚠️ データ読み込みは成功しましたが、永続保存に失敗しました。\n\n` +
-                `エラー: ${saveResult.error}\n\n` +
+                `エラー: 保存に失敗しました\n\n` +
                 `📊 現在の状況:\n` +
                 `・レンジ数: ${Object.keys(importedRanges).length}個\n` +
                 `・データサイズ: ${dataSizeMB}MB\n` +
@@ -6350,6 +6378,68 @@ function MTTTrainingPage() {
                           </svg>
                           <span className="hidden md:inline">GTOレンジ取得</span>
                           <span className="md:hidden">取得</span>
+                        </button>
+                        
+                        {/* カスタムレンジ復旧ボタン */}
+                        <button
+                          onClick={async () => {
+                            try {
+                              console.log('🔄 カスタムレンジ復旧を開始...');
+                              
+                              // まず /data/ から読み込み
+                              const dataResponse = await fetch('/data/mtt-ranges.json');
+                              if (dataResponse.ok) {
+                                const dataFileRanges = await dataResponse.json();
+                                if (dataFileRanges.ranges && Object.keys(dataFileRanges.ranges).length > 0) {
+                                  
+                                  // 管理者の場合はサーバーに復旧データを保存
+                                  if (isAdmin && localStorage.getItem('admin-token')) {
+                                    try {
+                                      const saveResponse = await fetch('/api/mtt-ranges', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Admin-Token': localStorage.getItem('admin-token') || ''
+                                        },
+                                        body: JSON.stringify({
+                                          ranges: dataFileRanges.ranges,
+                                          lastUpdated: new Date().toISOString()
+                                        })
+                                      });
+                                      
+                                      if (saveResponse.ok) {
+                                        console.log('✅ 復旧データをサーバーに保存完了');
+                                      }
+                                    } catch (saveError) {
+                                      console.warn('⚠️ サーバー保存は失敗しましたが、セッションに復旧:', saveError);
+                                    }
+                                  }
+                                  
+                                  // ステートに復旧
+                                  setCustomRanges(dataFileRanges.ranges);
+                                  setLastRangeUpdate(Date.now());
+                                  
+                                  alert(`✅ カスタムレンジを復旧しました！\n\n復旧したレンジ数: ${Object.keys(dataFileRanges.ranges).length}個\n${isAdmin ? 'サーバーにも保存済み' : 'セッション内で利用可能'}`);
+                                  generateNewScenario();
+                                  return;
+                                }
+                              }
+                              
+                              alert('❌ 復旧可能なカスタムレンジデータが見つかりませんでした');
+                              
+                            } catch (error) {
+                              console.error('❌ カスタムレンジ復旧エラー:', error);
+                              alert('❌ カスタムレンジの復旧に失敗しました');
+                            }
+                          }}
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white border border-orange-500 transition-all duration-200 flex items-center gap-1"
+                          title="時間をかけて入力したカスタムレンジを復旧します"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span className="hidden md:inline">レンジ復旧</span>
+                          <span className="md:hidden">復旧</span>
                         </button>
                         
                         {/* 強制データファイル読み込みボタン */}
