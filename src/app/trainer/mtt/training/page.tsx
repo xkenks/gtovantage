@@ -4106,12 +4106,18 @@ function MTTTrainingPage() {
     }
   }, [spot]);
   
-  // サーバーベース GTOレンジ読み込み（完全サーバー依存）
+  // サーバーベース GTOレンジ読み込み（インポート優先対応）
   useEffect(() => {
     console.log('🌐 サーバーベース GTOレンジ読み込み開始:', { lastRangeUpdate, isInitialized });
     
     const loadServerRanges = async () => {
       try {
+        // 現在のカスタムレンジが既にある場合（インポート済み）はスキップ
+        if (Object.keys(customRanges).length > 0) {
+          console.log('📦 既存のカスタムレンジを優先: サーバー読み込みをスキップ');
+          return;
+        }
+        
         console.log('🔄 サーバーから管理者GTOレンジを直接取得中...');
         const response = await fetch('/api/mtt-ranges');
         
@@ -4124,26 +4130,23 @@ function MTTTrainingPage() {
               lastUpdated: systemData.lastUpdated
             });
             
-            // サーバーレンジを直接適用（ローカルストレージは使用しない）
+            // サーバーレンジを直接適用（既存データがない場合のみ）
             setCustomRanges(systemData.ranges);
             setLastRangeUpdate(Date.now());
             
             console.log('🎯 サーバーベース GTOレンジが適用されました');
           } else {
             console.log('⚠️ サーバーに管理者GTOレンジが存在しません');
-            setCustomRanges({});
           }
         } else {
           console.error('❌ サーバーGTOレンジAPIアクセス失敗:', response.status);
-          setCustomRanges({});
         }
       } catch (error) {
         console.error('❌ サーバーGTOレンジ取得エラー:', error);
-        setCustomRanges({});
       }
     };
     
-    // サーバーから直接読み込み
+    // サーバーから直接読み込み（既存データがない場合のみ）
     loadServerRanges();
   }, [lastRangeUpdate, isInitialized]); // isInitializedを追加
   
@@ -4433,11 +4436,18 @@ function MTTTrainingPage() {
     currentCount: Object.keys(customRanges).length
   });
     
-    // サーバーベース GTOレンジの定期同期（5秒間隔 - リアルタイム反映）
+    // サーバーベース GTOレンジの定期同期（インポート保護付き）
     const intervalId = setInterval(async () => {
-      // 保存中の場合のみスキップ
+      // 保存中またはユーザーがカスタムレンジをインポートしている場合はスキップ
       if (isSaving) {
         console.log('⏸️ 保存中のため、GTOレンジ同期をスキップ');
+        return;
+      }
+      
+      // ユーザーがレンジをインポートしてから5分間は同期をスキップ
+      const lastUpdate = Date.now() - lastRangeUpdate;
+      if (lastUpdate < 300000) { // 5分 = 300000ms
+        console.log('⏸️ 最近インポートされたため、GTOレンジ同期をスキップ');
         return;
       }
       
@@ -4447,25 +4457,24 @@ function MTTTrainingPage() {
         if (response.ok) {
           const systemData = await response.json();
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            // 現在のレンジと比較
+            // 現在のレンジと比較（インポートしたデータを保護）
             const currentRangesString = JSON.stringify(customRanges);
             const serverRangesString = JSON.stringify(systemData.ranges);
             
-            // レンジに変更がある場合は即座に反映
-            if (currentRangesString !== serverRangesString) {
-              console.log('🚀 サーバーGTOレンジが更新されました - 即座に反映');
+            // 管理者のみサーバーレンジで更新、一般ユーザーは既存データを保持
+            if (isAdmin && currentRangesString !== serverRangesString) {
+              console.log('🚀 管理者モード: サーバーGTOレンジが更新されました');
               
-              // サーバーレンジを直接適用
+              // 管理者の場合のみサーバーレンジを適用
               setCustomRanges(systemData.ranges);
               setLastRangeUpdate(Date.now());
               
               console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
             } else {
-              console.log('📋 サーバーGTOレンジは最新です');
+              console.log('📋 インポートデータを保護: 同期をスキップ');
             }
           } else {
             console.log('⚠️ サーバーにGTOレンジが存在しません');
-            setCustomRanges({});
           }
         } else {
           console.log('⚠️ サーバーGTOレンジAPI応答エラー:', response.status);
@@ -4473,11 +4482,18 @@ function MTTTrainingPage() {
       } catch (error) {
         console.log('⚠️ 定期同期エラー:', error);
       }
-    }, 5000); // 5秒間隔でリアルタイム同期
+    }, 10000); // 10秒間隔でリアルタイム同期
 
-    // ページフォーカス時のサーバー同期
+    // ページフォーカス時のサーバー同期（インポート保護付き）
     const handleFocus = async () => {
       if (isSaving) return;
+      
+      // ユーザーがレンジをインポートしてから5分間は同期をスキップ
+      const lastUpdate = Date.now() - lastRangeUpdate;
+      if (lastUpdate < 300000) { // 5分 = 300000ms
+        console.log('⏸️ 最近インポートされたため、フォーカス時同期をスキップ');
+        return;
+      }
       
       try {
         console.log('🔔 ページフォーカス検出 - サーバーGTOレンジ同期実行');
@@ -4485,21 +4501,23 @@ function MTTTrainingPage() {
         if (response.ok) {
           const systemData = await response.json();
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            // 現在のレンジと比較
+            // 現在のレンジと比較（インポートしたデータを保護）
             const currentRangesString = JSON.stringify(customRanges);
             const serverRangesString = JSON.stringify(systemData.ranges);
             
-            if (currentRangesString !== serverRangesString) {
+            // 管理者のみサーバーレンジで更新
+            if (isAdmin && currentRangesString !== serverRangesString) {
               console.log('🚀 フォーカス時同期: サーバーGTOレンジを更新');
               
               setCustomRanges(systemData.ranges);
               setLastRangeUpdate(Date.now());
               
               console.log(`✅ フォーカス時同期完了: ${Object.keys(systemData.ranges).length}個のレンジ`);
+            } else {
+              console.log('📋 インポートデータを保護: フォーカス時同期をスキップ');
             }
           } else {
             console.log('⚠️ サーバーにGTOレンジが存在しません');
-            setCustomRanges({});
           }
         }
       } catch (error) {
@@ -5411,6 +5429,11 @@ function MTTTrainingPage() {
             // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
             setLastRangeUpdate(Date.now());
             
+            // 新しいシナリオを生成してインポート結果を即座に反映
+            setTimeout(() => {
+              generateNewScenario();
+            }, 500);
+            
             if (saveResult.success) {
               let successMessage = `✅ レンジを正常にインポートしました！\n\n`;
               successMessage += `📊 インポート結果:\n`;
@@ -5439,6 +5462,15 @@ function MTTTrainingPage() {
               
               alert(successMessage);
               console.log('✅ インポート完了:', saveResult);
+              
+              // サーバーベースシステムの定期同期を一時停止して、インポートしたデータが優先されるようにする
+              console.log('🔄 インポート後のシステム状態確認:', {
+                currentCustomRanges: Object.keys(customRanges).length,
+                importedRanges: Object.keys(importedRanges).length,
+                lastRangeUpdate,
+                isAdmin,
+                saveMethod: saveResult.method
+              });
             } else {
               // 保存失敗だがStateは更新済み
               alert(`⚠️ データ読み込みは成功しましたが、永続保存に失敗しました。\n\n` +
