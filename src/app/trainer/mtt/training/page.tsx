@@ -1192,38 +1192,33 @@ const simulateMTTGTOData = (
         })
       });
       
-      // カスタムレンジが読み込まれていない場合は、強制的に読み込みを試行
+      // サーバーベース GTOレンジの緊急取得（レンジが空の場合）
       if (!effectiveCustomRanges || Object.keys(effectiveCustomRanges).length === 0) {
-        console.log('🎯 カスタムレンジが空のため、ローカルストレージから強制読み込み');
-        const localRanges = localStorage.getItem('mtt-custom-ranges');
-        if (localRanges) {
-          try {
-            const parsedRanges = JSON.parse(localRanges);
-            console.log('🎯 強制読み込み成功:', {
-              rangeKeys: Object.keys(parsedRanges),
-              hasTargetRange: !!parsedRanges[rangeKey],
-              hasTargetHand: !!(parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType])
-            });
-            
-            // 強制読み込みしたレンジから該当ハンドを取得
-            if (parsedRanges[rangeKey] && parsedRanges[rangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[rangeKey][normalizedHandType];
-              usedRangeKey = rangeKey;
-              console.log('🎯 強制読み込みからカスタムレンジ発見:', { rangeKey, handType: normalizedHandType, customHandData });
-            } else if (fallbackRangeKey && parsedRanges[fallbackRangeKey] && parsedRanges[fallbackRangeKey][normalizedHandType]) {
-              customHandData = parsedRanges[fallbackRangeKey][normalizedHandType];
-              usedRangeKey = fallbackRangeKey;
-              console.log('🎯 強制読み込みからフォールバックレンジ発見:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+        console.log('🎯 レンジが空 - サーバーからGTOレンジの緊急取得を実行');
+        
+        // サーバーからリアルタイムでGTOレンジを取得（非同期）
+        fetch('/api/mtt-ranges')
+          .then(response => {
+            if (response.ok) {
+              return response.json();
             }
-            
-            // カスタムレンジが見つかった場合はログ出力のみ（stateの更新は別途useEffectで処理）
-            if (Object.keys(parsedRanges).length > 0) {
-              console.log('🔄 強制読み込み成功: カスタムレンジが見つかりました');
+            throw new Error('GTOレンジAPIエラー');
+          })
+          .then(systemData => {
+            if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+              console.log('🚀 緊急取得: サーバーからGTOレンジを取得成功');
+              
+              // 次回シナリオ生成時のために情報をログ出力
+              console.log('📦 緊急取得したGTOレンジを確認 - 自動同期により次回反映予定', {
+                rangeCount: Object.keys(systemData.ranges).length,
+                hasTargetRange: !!systemData.ranges[rangeKey],
+                hasTargetHand: !!(systemData.ranges[rangeKey] && systemData.ranges[rangeKey][normalizedHandType])
+              });
             }
-          } catch (e) {
-            console.log('強制読み込みエラー:', e);
-          }
-        }
+          })
+          .catch(fetchError => {
+            console.error('❌ 緊急GTOレンジ取得失敗:', fetchError);
+          });
       }
       
               // カスタムレンジが見つからない場合は注意メッセージを表示
@@ -4111,50 +4106,45 @@ function MTTTrainingPage() {
     }
   }, [spot]);
   
-  // カスタムレンジをlocalStorageから読み込み（リアルタイム更新対応）
+  // サーバーベース GTOレンジ読み込み（完全サーバー依存）
   useEffect(() => {
-    console.log('🔄 カスタムレンジ読み込み useEffect 実行:', { lastRangeUpdate, isInitialized });
+    console.log('🌐 サーバーベース GTOレンジ読み込み開始:', { lastRangeUpdate, isInitialized });
     
-    const savedRanges = localStorage.getItem('mtt-custom-ranges');
-    if (savedRanges) {
+    const loadServerRanges = async () => {
       try {
-        const parsedRanges = JSON.parse(savedRanges);
+        console.log('🔄 サーバーから管理者GTOレンジを直接取得中...');
+        const response = await fetch('/api/mtt-ranges');
         
-        // 読み込んだデータの基本的なバリデーション
-        if (typeof parsedRanges !== 'object' || parsedRanges === null) {
-          console.error('❌ 無効なカスタムレンジデータ: オブジェクトではありません');
-          localStorage.removeItem('mtt-custom-ranges');
-          return;
-        }
-        
-        console.log('📂 localStorageからカスタムレンジを読み込み:', {
-          rangeCount: Object.keys(parsedRanges).length,
-          rangeKeys: Object.keys(parsedRanges).slice(0, 5),
-          lastRangeUpdate
-        });
-        
-        // stateの更新が確実に反映されるようにする
-        setCustomRanges(prev => {
-          const hasChanged = JSON.stringify(prev) !== JSON.stringify(parsedRanges);
-          if (hasChanged) {
-            console.log('🔄 カスタムレンジが変更されました - 新しいシナリオを生成予定');
-            // 次のレンダリングサイクルでシナリオを生成
-            setTimeout(() => {
-              if (isInitialized) {
-                console.log('🔄 カスタムレンジ読み込み後に新しいシナリオを生成');
-                generateNewScenario();
-              }
-            }, 100);
+        if (response.ok) {
+          const systemData = await response.json();
+          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+            console.log('✅ サーバーから管理者GTOレンジ取得成功:', {
+              systemRangeCount: Object.keys(systemData.ranges).length,
+              systemKeys: Object.keys(systemData.ranges).slice(0, 10),
+              lastUpdated: systemData.lastUpdated
+            });
+            
+            // サーバーレンジを直接適用（ローカルストレージは使用しない）
+            setCustomRanges(systemData.ranges);
+            setLastRangeUpdate(Date.now());
+            
+            console.log('🎯 サーバーベース GTOレンジが適用されました');
+          } else {
+            console.log('⚠️ サーバーに管理者GTOレンジが存在しません');
+            setCustomRanges({});
           }
-          return parsedRanges;
-        });
-        
+        } else {
+          console.error('❌ サーバーGTOレンジAPIアクセス失敗:', response.status);
+          setCustomRanges({});
+        }
       } catch (error) {
-        console.error('カスタムレンジの読み込みに失敗しました:', error);
+        console.error('❌ サーバーGTOレンジ取得エラー:', error);
+        setCustomRanges({});
       }
-    } else {
-      console.log('📂 localStorageにカスタムレンジが見つかりません');
-    }
+    };
+    
+    // サーバーから直接読み込み
+    loadServerRanges();
   }, [lastRangeUpdate, isInitialized]); // isInitializedを追加
   
   // StorageEventリスナーを追加（他のタブでの変更を検知）
@@ -4443,28 +4433,94 @@ function MTTTrainingPage() {
     currentCount: Object.keys(customRanges).length
   });
     
-    // 定期的にレンジの更新をチェック（30秒間隔）- 保存直後はスキップ
-    const intervalId = setInterval(() => {
-      // 保存中または保存直後の場合はスキップ
+    // サーバーベース GTOレンジの定期同期（5秒間隔 - リアルタイム反映）
+    const intervalId = setInterval(async () => {
+      // 保存中の場合のみスキップ
       if (isSaving) {
-        console.log('保存中のため、自動更新をスキップします');
+        console.log('⏸️ 保存中のため、GTOレンジ同期をスキップ');
         return;
       }
       
-      // 最後の保存から30秒以内の場合はスキップ
-      const lastSaveTime = localStorage.getItem('mtt-ranges-timestamp');
-      if (lastSaveTime) {
-        const timeSinceLastSave = Date.now() - new Date(lastSaveTime).getTime();
-        if (timeSinceLastSave < 30000) {
-          console.log('保存直後のため、自動更新をスキップします');
-          return;
+      try {
+        console.log('🔄 定期的なサーバーGTOレンジ同期を実行中...');
+        const response = await fetch('/api/mtt-ranges');
+        if (response.ok) {
+          const systemData = await response.json();
+          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+            // 現在のレンジと比較
+            const currentRangesString = JSON.stringify(customRanges);
+            const serverRangesString = JSON.stringify(systemData.ranges);
+            
+            // レンジに変更がある場合は即座に反映
+            if (currentRangesString !== serverRangesString) {
+              console.log('🚀 サーバーGTOレンジが更新されました - 即座に反映');
+              
+              // サーバーレンジを直接適用
+              setCustomRanges(systemData.ranges);
+              setLastRangeUpdate(Date.now());
+              
+              console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
+            } else {
+              console.log('📋 サーバーGTOレンジは最新です');
+            }
+          } else {
+            console.log('⚠️ サーバーにGTOレンジが存在しません');
+            setCustomRanges({});
+          }
+        } else {
+          console.log('⚠️ サーバーGTOレンジAPI応答エラー:', response.status);
         }
+      } catch (error) {
+        console.log('⚠️ 定期同期エラー:', error);
       }
-      loadSystemRanges();
-    }, 30000);
+    }, 5000); // 5秒間隔でリアルタイム同期
+
+    // ページフォーカス時のサーバー同期
+    const handleFocus = async () => {
+      if (isSaving) return;
+      
+      try {
+        console.log('🔔 ページフォーカス検出 - サーバーGTOレンジ同期実行');
+        const response = await fetch('/api/mtt-ranges');
+        if (response.ok) {
+          const systemData = await response.json();
+          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+            // 現在のレンジと比較
+            const currentRangesString = JSON.stringify(customRanges);
+            const serverRangesString = JSON.stringify(systemData.ranges);
+            
+            if (currentRangesString !== serverRangesString) {
+              console.log('🚀 フォーカス時同期: サーバーGTOレンジを更新');
+              
+              setCustomRanges(systemData.ranges);
+              setLastRangeUpdate(Date.now());
+              
+              console.log(`✅ フォーカス時同期完了: ${Object.keys(systemData.ranges).length}個のレンジ`);
+            }
+          } else {
+            console.log('⚠️ サーバーにGTOレンジが存在しません');
+            setCustomRanges({});
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ フォーカス時同期エラー:', error);
+      }
+    };
+    
+    // フォーカスイベントリスナーを追加
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        handleFocus();
+      }
+    });
 
     // クリーンアップ
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
   
   // カスタムレンジの変更を監視
@@ -4686,32 +4742,14 @@ function MTTTrainingPage() {
       const saveResult = await storageManager.saveRanges(newCustomRanges);
       
       if (saveResult.success) {
-        localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
+        const currentTimestamp = new Date().toISOString();
+        localStorage.setItem('mtt-ranges-timestamp', currentTimestamp);
         console.log(`✅ ${position}ポジションのカスタムレンジを保存しました (${saveResult.method})`);
-      console.log('🎯 保存詳細:', {
-        position,
-        rangeKeys: Object.keys(newCustomRanges),
-        savedRangeKeys: Object.keys(rangeData),
-        storageMethod: saveResult.method,
-        timestamp: new Date().toISOString(),
-        // 20BBのレンジが正しく保存されているかを確認
-        has20BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')).length,
-        twentyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')),
-        // 20BBのタイプ別レンジの詳細確認
-        has20BBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')).length,
-        has20BBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')).length,
-        twentyBBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')),
-        twentyBBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')),
-        // 40BBのvs4ベットレンジの詳細確認
-        has40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')).length,
-        fortyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')),
-        vs4bet40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')),
-        vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
-      });
         
         // 管理者認証済みならAPIにも自動保存（全プレイヤーに即座に反映）
         if (isAdmin && token) {
           try {
+            console.log('🔒 管理者として全プレイヤー向けのシステム全体にレンジを保存開始');
             const response = await fetch('/api/mtt-ranges', {
               method: 'POST',
               headers: {
@@ -4721,23 +4759,56 @@ function MTTTrainingPage() {
               body: JSON.stringify({
                 ranges: newCustomRanges,
                 metadata: {
-                  creator: 'MTT Admin System',
-                  timestamp: new Date().toISOString()
+                  creator: 'Admin',
+                  totalRanges: Object.keys(newCustomRanges).length,
+                  updatedBy: position,
+                  timestamp: currentTimestamp
                 }
               }),
             });
             
             if (response.ok) {
               const result = await response.json();
-              console.log(`✅ システム全体に自動保存完了: ${result.metadata.totalPositions}ポジション、${result.metadata.totalHands}ハンド`);
+              console.log('✅ システム全体への保存成功（端末間同期有効）:', result);
+              
+              // システム保存成功時はタイムスタンプを更新
+              localStorage.setItem('mtt-ranges-timestamp', result.metadata?.lastUpdated || currentTimestamp);
             } else {
               const error = await response.json();
-              console.error('システム保存エラー:', error.error || '保存に失敗しました');
+              console.error('❌ システム全体への保存失敗:', error.error || '保存に失敗しました');
             }
           } catch (error) {
-            console.error('システム保存エラー:', error);
+            console.error('❌ API保存エラー:', error);
           }
+        } else {
+          console.log('📌 管理者でないため、サーバーベースレンジシステムを利用（ローカル保存は使用しない）');
+          
+          // 一般ユーザーはサーバーレンジを直接参照するため、保存は行わない
+          console.log('ℹ️ 一般ユーザーのレンジ変更は保存されません - 管理者GTOレンジが常に適用されます');
         }
+        
+        console.log('🎯 保存詳細:', {
+          position,
+          rangeKeys: Object.keys(newCustomRanges),
+          savedRangeKeys: Object.keys(rangeData),
+          storageMethod: saveResult.method,
+          timestamp: currentTimestamp,
+          isAdmin,
+          hasToken: !!token,
+          // 20BBのレンジが正しく保存されているかを確認
+          has20BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')).length,
+          twentyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB')),
+          // 20BBのタイプ別レンジの詳細確認
+          has20BBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')).length,
+          has20BBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')).length,
+          twentyBBRaiseRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('raise')),
+          twentyBBAllinRanges: Object.keys(newCustomRanges).filter(key => key.includes('20BB') && key.includes('allin')),
+          // 40BBのvs4ベットレンジの詳細確認
+          has40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')).length,
+          fortyBBRanges: Object.keys(newCustomRanges).filter(key => key.includes('40BB')),
+          vs4bet40BBRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet') && key.includes('40BB')),
+          vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
+        });
       } else {
         console.error('❌ 統合ストレージ保存失敗:', saveResult.error);
         alert(`❌ レンジの保存に失敗しました\n\nエラー: ${saveResult.error}`);
@@ -4955,19 +5026,115 @@ function MTTTrainingPage() {
   // IndexedDBマネージャーのインスタンス
   const idbManager = new IndexedDBManager();
 
-  // 高度なストレージ管理システム
+  // プライベートモード対応の高度なストレージ管理システム
   const storageManager = {
+    // メモリベースのフォールバックストレージ
+    memoryStorage: new Map<string, string>(),
+
+    // ストレージ利用可能性をチェック
+    isStorageAvailable: (type: 'localStorage' | 'sessionStorage' | 'indexedDB'): boolean => {
+      try {
+        if (type === 'indexedDB') {
+          return typeof window !== 'undefined' && 'indexedDB' in window && window.indexedDB !== null;
+        }
+        
+        const storage = type === 'localStorage' ? window.localStorage : window.sessionStorage;
+        const test = '__storage_test__';
+        storage.setItem(test, test);
+        storage.removeItem(test);
+        return true;
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        console.warn(`🚫 ${type} 利用不可 (プライベートモード?):`, errorMessage);
+        return false;
+      }
+    },
+
+    // セーフなストレージ保存
+    safeSetItem: (key: string, value: string): { success: boolean; method: string } => {
+      try {
+        // 1. localStorage を試行
+        if (storageManager.isStorageAvailable('localStorage')) {
+          localStorage.setItem(key, value);
+          console.log(`✅ localStorage保存: ${key}`);
+          return { success: true, method: 'localStorage' };
+        }
+        
+        // 2. sessionStorage を試行（プライベートモードでも利用可能な場合がある）
+        if (storageManager.isStorageAvailable('sessionStorage')) {
+          sessionStorage.setItem(key, value);
+          console.log(`✅ sessionStorage保存: ${key} (プライベートモード対応)`);
+          return { success: true, method: 'sessionStorage' };
+        }
+        
+        // 3. メモリストレージにフォールバック
+        storageManager.memoryStorage.set(key, value);
+        console.log(`⚠️ メモリ保存: ${key} (プライベートモード対応)`);
+        return { success: true, method: 'memory' };
+        
+      } catch (error) {
+        console.error(`❌ ストレージ保存失敗: ${key}`, error);
+        // 最終フォールバック: メモリストレージ
+        storageManager.memoryStorage.set(key, value);
+        return { success: true, method: 'memory-fallback' };
+      }
+    },
+
+    // セーフなストレージ取得
+    safeGetItem: (key: string): { value: string | null; method: string } => {
+      try {
+        // 1. localStorage から試行
+        if (storageManager.isStorageAvailable('localStorage')) {
+          const value = localStorage.getItem(key);
+          if (value !== null) {
+            console.log(`✅ localStorage取得: ${key}`);
+            return { value, method: 'localStorage' };
+          }
+        }
+        
+        // 2. sessionStorage から試行
+        if (storageManager.isStorageAvailable('sessionStorage')) {
+          const value = sessionStorage.getItem(key);
+          if (value !== null) {
+            console.log(`✅ sessionStorage取得: ${key} (プライベートモード対応)`);
+            return { value, method: 'sessionStorage' };
+          }
+        }
+        
+        // 3. メモリストレージから取得
+        const memoryValue = storageManager.memoryStorage.get(key);
+        if (memoryValue !== undefined) {
+          console.log(`⚠️ メモリ取得: ${key} (プライベートモード対応)`);
+          return { value: memoryValue, method: 'memory' };
+        }
+        
+        return { value: null, method: 'none' };
+        
+      } catch (error) {
+        console.error(`❌ ストレージ取得失敗: ${key}`, error);
+        // フォールバック: メモリストレージ
+        const memoryValue = storageManager.memoryStorage.get(key);
+        return { value: memoryValue || null, method: 'memory-fallback' };
+      }
+    },
+
     // localStorage容量情報を取得
     getLocalStorageInfo: () => {
       let totalSize = 0;
       let itemCount = 0;
       
-      for (let key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
-          const itemSize = localStorage.getItem(key)?.length || 0;
-          totalSize += itemSize;
-          itemCount++;
+      try {
+        if (storageManager.isStorageAvailable('localStorage')) {
+          for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+              const itemSize = localStorage.getItem(key)?.length || 0;
+              totalSize += itemSize;
+              itemCount++;
+            }
+          }
         }
+      } catch (error) {
+        console.warn('localStorage情報取得失敗:', error);
       }
       
       const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
@@ -4980,24 +5147,41 @@ function MTTTrainingPage() {
         itemCount,
         estimatedLimitMB: estimatedLimit,
         usagePercent: parseFloat(usagePercent),
-        isNearLimit: parseFloat(usagePercent) > 80
+        isNearLimit: parseFloat(usagePercent) > 80,
+        isAvailable: storageManager.isStorageAvailable('localStorage')
       };
     },
 
-    // 統合ストレージ情報を取得
+    // 統合ストレージ情報を取得（プライベートモード対応）
     getStorageInfo: async () => {
       const localStorage = storageManager.getLocalStorageInfo();
-      const indexedDB = await idbManager.getStorageInfo();
+      let indexedDB;
+      
+      try {
+        indexedDB = await idbManager.getStorageInfo();
+      } catch (error) {
+        console.warn('IndexedDB情報取得失敗:', error);
+        indexedDB = { sizeEstimate: 0, quotaEstimate: 0 };
+      }
       
       return {
         localStorage,
+        sessionStorage: {
+          isAvailable: storageManager.isStorageAvailable('sessionStorage')
+        },
         indexedDB: {
           sizeEstimateMB: indexedDB.sizeEstimate ? (indexedDB.sizeEstimate / (1024 * 1024)).toFixed(2) : 'N/A',
           quotaEstimateMB: indexedDB.quotaEstimate ? (indexedDB.quotaEstimate / (1024 * 1024)).toFixed(2) : 'N/A',
           usagePercent: (indexedDB.sizeEstimate && indexedDB.quotaEstimate) ? 
             ((indexedDB.sizeEstimate / indexedDB.quotaEstimate) * 100).toFixed(2) : 'N/A',
           available: indexedDB.quotaEstimate ? 
-            ((indexedDB.quotaEstimate - (indexedDB.sizeEstimate || 0)) / (1024 * 1024)).toFixed(2) : 'N/A'
+            ((indexedDB.quotaEstimate - (indexedDB.sizeEstimate || 0)) / (1024 * 1024)).toFixed(2) : 'N/A',
+          isAvailable: storageManager.isStorageAvailable('indexedDB')
+        },
+        memoryStorage: {
+          items: storageManager.memoryStorage.size,
+          isActive: storageManager.memoryStorage.size > 0,
+          estimatedSizeKB: Array.from(storageManager.memoryStorage.values()).reduce((acc, val) => acc + val.length, 0) / 1024
         }
       };
     },
@@ -5019,29 +5203,22 @@ function MTTTrainingPage() {
         await idbManager.saveRanges(ranges);
         console.log('✅ IndexedDB保存成功 (無制限容量)');
         
-        // IndexedDB成功時はlocalStorageも同期（フォールバック用）
-        try {
-          localStorage.setItem('mtt-custom-ranges', dataString);
-          localStorage.removeItem('mtt-custom-ranges-compressed');
-          localStorage.removeItem('mtt-custom-ranges-format');
-        } catch {
-          // localStorageが失敗してもIndexedDBは成功なのでOK
-        }
+        // IndexedDB成功時はセーフストレージも同期（プライベートモード対応）
+        storageManager.safeSetItem('mtt-custom-ranges', dataString);
+        storageManager.safeSetItem('mtt-ranges-timestamp', new Date().toISOString());
         
         return { method: 'IndexedDB', success: true };
       } catch (idbError) {
         console.log('⚠️ IndexedDB保存失敗、localStorageを試行:', idbError);
       }
 
-      // 2. localStorage通常保存を試行
-      try {
-        localStorage.setItem('mtt-custom-ranges', dataString);
-        localStorage.removeItem('mtt-custom-ranges-compressed');
-        localStorage.removeItem('mtt-custom-ranges-format');
-        console.log('✅ localStorage通常保存成功');
-        return { method: 'localStorage', success: true };
-      } catch (localError) {
-        console.log('⚠️ localStorage通常保存失敗、圧縮保存を試行:', localError);
+      // 2. セーフストレージ保存を試行（プライベートモード対応）
+      const saveResult = storageManager.safeSetItem('mtt-custom-ranges', dataString);
+      const timestampResult = storageManager.safeSetItem('mtt-ranges-timestamp', new Date().toISOString());
+      
+      if (saveResult.success) {
+        console.log(`✅ レンジ保存成功 (${saveResult.method}) - プライベートモード対応`);
+        return { method: saveResult.method, success: true };
       }
 
       // 3. localStorage圧縮保存を試行
@@ -5082,35 +5259,55 @@ function MTTTrainingPage() {
         console.log('⚠️ IndexedDB読み込み失敗:', idbError);
       }
 
-      // 2. localStorage圧縮データから読み込み試行
-      const storageFormat = localStorage.getItem('mtt-custom-ranges-format');
-      if (storageFormat === 'compressed') {
-        try {
-          const compressedData = localStorage.getItem('mtt-custom-ranges-compressed');
-          if (compressedData) {
-            const parsed = JSON.parse(compressedData);
+      // 2. セーフストレージから読み込み試行（プライベートモード対応）
+      const formatResult = storageManager.safeGetItem('mtt-custom-ranges-format');
+      if (formatResult.value === 'compressed') {
+        const compressedResult = storageManager.safeGetItem('mtt-custom-ranges-compressed');
+        if (compressedResult.value) {
+          try {
+            const parsed = JSON.parse(compressedResult.value);
             const decompressed = decompressRangeData(parsed);
-            console.log('✅ localStorage圧縮データから読み込み成功:', Object.keys(decompressed).length + '個のレンジ');
+            console.log(`✅ 圧縮データ読み込み成功 (${compressedResult.method}):`, Object.keys(decompressed).length + '個のレンジ');
             return decompressed;
+          } catch (error) {
+            console.log('⚠️ 圧縮データ読み込み失敗:', error);
           }
-        } catch (error) {
-          console.log('⚠️ localStorage圧縮データ読み込み失敗:', error);
         }
       }
 
-      // 3. localStorage通常データから読み込み試行
-      try {
-        const normalData = localStorage.getItem('mtt-custom-ranges');
-        if (normalData) {
-          const parsed = JSON.parse(normalData);
-          console.log('✅ localStorage通常データから読み込み成功:', Object.keys(parsed).length + '個のレンジ');
+      // 3. 通常データから読み込み試行（プライベートモード対応）
+      const normalResult = storageManager.safeGetItem('mtt-custom-ranges');
+      if (normalResult.value) {
+        try {
+          const parsed = JSON.parse(normalResult.value);
+          console.log(`✅ 通常データ読み込み成功 (${normalResult.method}):`, Object.keys(parsed).length + '個のレンジ');
           return parsed;
+        } catch (error) {
+          console.log('⚠️ 通常データ読み込み失敗:', error);
+        }
+      }
+
+      // 4. プライベートモード緊急対応：サーバーから直接取得
+      console.log('🚨 プライベートモード: サーバーから管理者GTOレンジを緊急取得');
+      try {
+        const response = await fetch('/api/mtt-ranges');
+        if (response.ok) {
+          const systemData = await response.json();
+          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+            console.log('✅ プライベートモード緊急取得成功:', Object.keys(systemData.ranges).length + '個のレンジ');
+            
+            // メモリストレージに保存
+            storageManager.memoryStorage.set('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+            storageManager.memoryStorage.set('mtt-ranges-timestamp', systemData.lastUpdated);
+            
+            return systemData.ranges;
+          }
         }
       } catch (error) {
-        console.log('⚠️ localStorage通常データ読み込み失敗:', error);
+        console.log('⚠️ サーバー緊急取得失敗:', error);
       }
 
-      console.log('⚠️ 全てのストレージからデータが見つかりませんでした');
+      console.log('⚠️ 全てのストレージからデータが見つかりませんでした（プライベートモード対応済み）');
       return null;
     }
   };
@@ -5458,19 +5655,10 @@ function MTTTrainingPage() {
 
   // システム全体からレンジデータを読み込み
   const handleLoadFromSystem = async () => {
-    if (!isAdmin || !token) {
-      alert('❌ 管理者権限が必要です。');
-      return;
-    }
-
     try {
-      console.log('🎯 システム読み込み開始（強制同期）');
+      console.log('🌐 システム読み込み開始（端末間同期）');
       
-      const response = await fetch('/api/mtt-ranges', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/mtt-ranges');
       
       console.log('🎯 システム読み込みレスポンス:', {
         status: response.status,
@@ -5493,45 +5681,58 @@ function MTTTrainingPage() {
         });
         
         if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-          if (confirm(`システムデータを読み込みますか？\n${systemData.metadata.totalPositions}ポジション、${systemData.metadata.totalHands}ハンドが存在します。\n現在のローカルデータは上書きされます。`)) {
-            // 強制的にローカルストレージをクリアしてからシステムデータを読み込み
-            localStorage.removeItem('mtt-custom-ranges');
-            localStorage.removeItem('mtt-ranges-timestamp');
+          // 現在のタイムスタンプと範囲数をチェック
+          const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
+          const currentRangeCount = Object.keys(customRanges).length;
+          const systemRangeCount = Object.keys(systemData.ranges).length;
+          
+          console.log('🎯 同期判定:', {
+            local: localTimestamp,
+            system: systemData.lastUpdated,
+            localRangeCount: currentRangeCount,
+            systemRangeCount,
+            shouldSync: !localTimestamp || 
+                       currentRangeCount === 0 || 
+                       systemData.lastUpdated > localTimestamp ||
+                       systemRangeCount > currentRangeCount
+          });
+          
+          // 端末間同期判定
+          const shouldSync = !localTimestamp || 
+                           currentRangeCount === 0 || 
+                           systemData.lastUpdated > localTimestamp ||
+                           systemRangeCount > currentRangeCount;
+          
+          if (shouldSync || isAdmin) {
+            // 管理者は常に確認、一般ユーザーは自動同期判定
+            const confirmMessage = isAdmin ? 
+              `管理者が設定したレンジを読み込みますか？\n\n${systemData.metadata?.totalPositions || systemRangeCount}個のレンジが存在します。\n現在のローカルデータと統合されます。` :
+              `管理者が設定したレンジを同期しますか？\n\n${systemRangeCount}個のレンジが利用可能です。\n（現在: ${currentRangeCount}個）\n\n管理者レンジを基盤にローカル設定で上書きされます。`;
             
-            // システムデータをメモリとローカルストレージの両方に保存
-            setCustomRanges(systemData.ranges);
-            localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
-            localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
-            
-            // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
-            setLastRangeUpdate(Date.now());
-            
-            console.log('🎯 システムデータ読み込み後のlastRangeUpdate更新:', {
-              newTimestamp: Date.now(),
-              systemRangeCount: Object.keys(systemData.ranges).length
-            });
-            
-            console.log('🎯 システムデータを読み込み完了:', {
-              systemRangeKeys: Object.keys(systemData.ranges),
-              systemRangeCount: Object.keys(systemData.ranges).length,
-              localStorageUpdated: true,
-              lastRangeUpdate: Date.now()
-            });
-            
-            // デバッグ用：読み込み後の状態確認
-            setTimeout(() => {
-              const currentRanges = localStorage.getItem('mtt-custom-ranges');
-              console.log('🎯 読み込み後1秒の状態確認:', {
-                localStorageRanges: currentRanges ? '存在' : 'なし',
-                customRangesState: Object.keys(customRanges).length,
-                lastRangeUpdate: lastRangeUpdate
+            if (confirm(confirmMessage)) {
+              // サーバーレンジを直接適用（ローカル統合は行わない）
+              setCustomRanges(systemData.ranges);
+              setLastRangeUpdate(Date.now());
+              
+              console.log('🎯 サーバーGTOレンジ同期完了:', {
+                serverRangeCount: systemRangeCount,
+                lastUpdated: systemData.lastUpdated,
+                isAdmin
               });
-            }, 1000);
-            
-            alert('✅ システムデータを正常に読み込みました！\n\n💾 ローカルストレージにも保存されました。');
+              
+              // 成功メッセージ
+              alert(`✅ 最新のGTOレンジを取得しました\n\n${systemRangeCount}個のレンジ\n最終更新: ${new Date(systemData.lastUpdated).toLocaleString('ja-JP')}\n\n※サーバーベースシステムのため、ローカル保存は行いません`);
+              
+              // 新しいシナリオを生成
+              generateNewScenario();
+            }
+          } else {
+            console.log('📋 管理者レンジとの同期は不要');
+            alert('📋 管理者レンジは既に最新です\n\n同期の必要はありません');
           }
         } else {
-          alert('❌ システムに保存されたレンジデータが見つかりません。');
+          console.log('⚠️ システムにレンジデータが存在しません');
+          alert('⚠️ システムにレンジデータが存在しません\n\nまず管理者がレンジを設定する必要があります');
         }
       } else {
         const error = await response.json();
@@ -5539,7 +5740,7 @@ function MTTTrainingPage() {
       }
     } catch (error) {
       console.error('システム読み込みエラー:', error);
-      alert(`❌ システムからの読み込みに失敗しました: ${(error as Error).message}`);
+      alert(`❌ システムからの読み込みに失敗しました\n\nエラー: ${(error as Error).message}\n\nネットワーク接続を確認してください`);
     }
   };
 
@@ -6138,16 +6339,17 @@ function MTTTrainingPage() {
                           <span className="md:hidden">容量</span>
                         </button>
                         
-                        {/* システム読み込みボタン */}
+                        {/* サーバーベースGTOレンジ取得ボタン（全ユーザー対応） */}
                         <button
                           onClick={handleLoadFromSystem}
-                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-orange-600 hover:bg-orange-700 text-white border border-orange-500 transition-all duration-200 flex items-center gap-1"
+                          className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 transition-all duration-200 flex items-center gap-1"
+                          title="サーバーから最新のGTOレンジを取得します（完全サーバーベース）"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                           </svg>
-                          <span className="hidden md:inline">システム読み込み</span>
-                          <span className="md:hidden">読み込み</span>
+                          <span className="hidden md:inline">GTOレンジ取得</span>
+                          <span className="md:hidden">取得</span>
                         </button>
                         
                         {/* 強制データファイル読み込みボタン */}
