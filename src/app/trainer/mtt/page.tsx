@@ -23,6 +23,7 @@ const SimpleHandRangeSelector: React.FC<{
   stackSize?: string;
   actionType?: string;
   excludeNoneHands?: boolean;
+  onTemplateSelect?: (templateName: string) => void;
 }> = ({ 
   onSelectHands, 
   onClose, 
@@ -31,7 +32,8 @@ const SimpleHandRangeSelector: React.FC<{
   position,
   stackSize,
   actionType,
-  excludeNoneHands = false
+  excludeNoneHands = false,
+  onTemplateSelect
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartHand, setDragStartHand] = useState<string>('');
@@ -40,6 +42,7 @@ const SimpleHandRangeSelector: React.FC<{
   const [dragStartSelected, setDragStartSelected] = useState<boolean>(false);
   const [dragDistance, setDragDistance] = useState<number>(0);
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
+  const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
   
   // NONEアクションのハンドを取得する関数
   const getNoneHands = (): string[] => {
@@ -221,7 +224,7 @@ const SimpleHandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       <style jsx>{`
         .slider {
           -webkit-appearance: none;
@@ -285,7 +288,7 @@ const SimpleHandRangeSelector: React.FC<{
           background: transparent;
         }
       `}</style>
-      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 max-h-[98vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
         <div className="flex justify-between items-center mb-1 md:mb-4">
           <h2 className="text-sm md:text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-0.5 md:p-2 rounded-lg transition-all duration-200">✕</button>
@@ -347,10 +350,6 @@ const SimpleHandRangeSelector: React.FC<{
 
         {/* レベルスライダー */}
         <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-2 border border-gray-600">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs md:text-sm text-white font-medium">レベル選択</span>
-            <span className="text-xs md:text-sm text-purple-400 font-bold" id="level-display">レベル0</span>
-          </div>
           <input
             type="range"
             min="0"
@@ -360,15 +359,6 @@ const SimpleHandRangeSelector: React.FC<{
             onChange={(e) => {
               const level = Number(e.target.value);
               handleLevelChange(level);
-              // レベル表示を更新
-              const levelDisplay = document.getElementById('level-display');
-              if (levelDisplay) {
-                if (level === 7) {
-                  levelDisplay.textContent = '全レンジ';
-                } else {
-                  levelDisplay.textContent = `レベル${level}`;
-                }
-              }
             }}
             className="w-full h-1 md:h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider transition-all duration-300 ease-in-out"
             style={{
@@ -376,16 +366,6 @@ const SimpleHandRangeSelector: React.FC<{
               transition: 'background 0.3s ease-in-out'
             }}
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>レベル0</span>
-            <span>レベル1</span>
-            <span>レベル2</span>
-            <span>レベル3</span>
-            <span>レベル4</span>
-            <span>レベル5</span>
-            <span>レベル6</span>
-            <span>全レンジ</span>
-          </div>
         </div>
 
         <div className="mb-1 md:mb-4">
@@ -397,9 +377,9 @@ const SimpleHandRangeSelector: React.FC<{
           </button>
         </div>
         
-        {/* テンプレート選択セクション */}
+        {/* ハンドテンプレートセクション */}
         <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-3 border border-gray-600">
-          <h3 className="text-xs md:text-sm font-semibold text-white mb-1 md:mb-2">📋 ハンドテンプレート</h3>
+          <h3 className="text-xs md:text-sm font-semibold text-white mb-1 md:mb-2">ハンドテンプレート</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
             {Object.entries(HAND_TEMPLATES).map(([templateName, hands]) => (
               <button

@@ -1213,13 +1213,7 @@ export const HAND_TEMPLATES = {
   'おすすめ': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'AKo', 'AQo', 'AJo', 'KQs', 'KJs', 'KTs', 'JTs', 'T9s', 'KQo', 'QJs', 'QTs', 'K9s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'ATo', 'K8s', 'Q9s', 'J9s', 'T8s', '98s', '87s', '76s', 'A2s'],
   'おすすめ2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
   'おすすめ3': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
-  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
-  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
-  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
-  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
-  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
-  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s'],
-  'CO練習': [
+  'おすすめ4': [
     // Axオフスーツ
     'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
     // Kxスーテッド
@@ -1245,8 +1239,14 @@ export const HAND_TEMPLATES = {
     // ポケットペア
     '44', '33', '22',
     // オフスーツブロードウェイ
-    'T9o', 'J9o', 'J8o', '98o', 'Q9o', 'Q8o', 'K9o', 'K8o'
-  ]
+    'T9o', 'J9o', 'J8o', 'Q9o', 'Q8o', 'K9o', 'K8o'
+  ],
+  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
+  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
+  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
+  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
+  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
+  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s']
 };
 
 // ハンドレンジセレクターコンポーネント
@@ -1352,6 +1352,7 @@ export const HandRangeSelector: React.FC<{
   }
   
   const [selectedHands, setSelectedHands] = useState<string[]>(initialSelectedHands);
+  const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
@@ -1463,6 +1464,81 @@ export const HandRangeSelector: React.FC<{
             </div>
           </div>
         </div>
+
+        {/* ハンドテンプレートセクション */}
+        {onTemplateSelect && (
+          <div className="mb-4">
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold">📚 ハンドテンプレート</h3>
+                <button
+                  onClick={() => setShowAllTemplates(!showAllTemplates)}
+                  className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                >
+                  {showAllTemplates ? '▼ 閉じる' : '▶ 詳細表示'}
+                </button>
+              </div>
+              
+              {/* おすすめテンプレート（常に表示） */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => onTemplateSelect('おすすめ')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                >
+                  おすすめ<br/>42ハンド
+                </button>
+                <button
+                  onClick={() => onTemplateSelect('おすすめ2')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                >
+                  おすすめ2<br/>32ハンド
+                </button>
+              </div>
+              
+              {/* アコーディオンメニュー */}
+              {showAllTemplates && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onTemplateSelect('おすすめ3')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    おすすめ3<br/>24ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('プレミアム')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    プレミアム<br/>9ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('ブロードウェイ')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    ブロードウェイ<br/>12ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('スーコネ')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    スーコネ<br/>8ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('スモールペア')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    スモールペア
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('エーススート')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    エーススート
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 選択完了ボタン */}
         <div className="mt-auto">
