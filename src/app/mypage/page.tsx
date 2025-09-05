@@ -26,7 +26,7 @@ interface TrainingStats {
 }
 
 export default function MyPage() {
-  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, practiceCount, maxPracticeCount, subscriptionStatus } = useAuth();
+  const { user, isEmailVerified, isMasterUser, hasActiveSubscription, dailyPracticeCount, maxPracticeCount, subscriptionStatus } = useAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [stats, setStats] = useState<TrainingStats>({
     totalQuestions: 0,

@@ -2320,7 +2320,7 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
+  const { canPractice, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
   
   // 開発環境でのみデバッグログを表示
   if (process.env.NODE_ENV === 'development') {
@@ -6168,6 +6168,16 @@ function MTTTrainingPage() {
   return (
     <AuthGuard>
       <div className="relative">
+        {/* ヘッダーを条件付きで非表示（モバイル版でトレーニング画面の場合のみ） */}
+        {spot && (
+          <style jsx global>{`
+            @media (max-width: 767px) {
+              header {
+                display: none !important;
+              }
+            }
+          `}</style>
+        )}
 
       
       {/* 管理者ログアウトボタン（ログイン時のみ表示、PC版のみ） */}

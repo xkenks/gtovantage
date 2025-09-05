@@ -6,7 +6,7 @@ import { FaChalkboardTeacher, FaClipboardList, FaGraduationCap, FaUsers, FaTroph
 import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 export default function Home() {
-  const { user, isAuthenticated, hasActiveSubscription, practiceCount } = useAuth();
+  const { user, isAuthenticated, hasActiveSubscription, dailyPracticeCount } = useAuth();
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       {/* Hero Section */}
@@ -52,7 +52,7 @@ export default function Home() {
             <p className="text-base md:text-xl lg:text-2xl text-gray-300 mb-6 md:mb-8 max-w-3xl mx-auto leading-relaxed px-2">
               {isAuthenticated ? (
                 <>
-                  今日の練習回数: {practiceCount}回
+                  今日の練習回数: {dailyPracticeCount}回
                   {!hasActiveSubscription && (
                     <>
                       <br className="hidden sm:block" />
