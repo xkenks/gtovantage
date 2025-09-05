@@ -1353,6 +1353,12 @@ export const HandRangeSelector: React.FC<{
   
   const [selectedHands, setSelectedHands] = useState<string[]>(initialSelectedHands);
   const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
+  const [currentSelection, setCurrentSelection] = useState<{ row: number; col: number } | null>(null);
+  const [hasDragged, setHasDragged] = useState(false);
+  const [isRangeSelectMode, setIsRangeSelectMode] = useState(false);
+  const [rangeFirstClick, setRangeFirstClick] = useState<{ row: number; col: number } | null>(null);
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
@@ -1360,6 +1366,27 @@ export const HandRangeSelector: React.FC<{
       onSelectHands(selectedHands);
     }
   }, [selectedHands, onSelectHands]);
+
+  // 範囲内のハンドが選択中かどうか確認する関数
+  const isInSelectedRange = (row: number, col: number) => {
+    if (!isRangeSelectMode || !rangeFirstClick) return false;
+    
+    const minRow = Math.min(rangeFirstClick.row, row);
+    const maxRow = Math.max(rangeFirstClick.row, row);
+    const minCol = Math.min(rangeFirstClick.col, col);
+    const maxCol = Math.max(rangeFirstClick.col, col);
+    
+    return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
+  };
+
+  // ハンドクリック処理
+  const handleHandClick = (hand: string) => {
+    if (selectedHands.includes(hand)) {
+      setSelectedHands(prev => prev.filter(h => h !== hand));
+    } else {
+      setSelectedHands(prev => [...prev, hand]);
+    }
+  };
 
   // ハンドグリッドを生成する関数
   const generateHandGrid = () => {
@@ -1397,21 +1424,108 @@ export const HandRangeSelector: React.FC<{
 
         const isSelected = selectedHands.includes(hand);
         
+        // 色を取得する関数
+        const getHandColor = () => {
+          // 範囲選択モードで開始点を設定済みの場合
+          if (isRangeSelectMode && rangeFirstClick) {
+            if (rangeFirstClick.row === i && rangeFirstClick.col === j) {
+              return 'bg-green-500 border-green-600'; // 開始点は緑色
+            }
+            // 現在のセルが範囲内の場合は水色でプレビュー
+            if (isInSelectedRange(i, j)) {
+              return 'bg-cyan-400 border-cyan-500';
+            }
+          }
+          
+          // 通常の選択状態
+          if (isSelected) {
+            return 'bg-purple-600 text-white border-2 border-purple-400';
+          } else {
+            return 'bg-gray-700 text-gray-100 md:text-white hover:bg-gray-600 border border-gray-600';
+          }
+        };
+        
         row.push(
           <button
             key={hand}
-            onClick={() => {
-              if (isSelected) {
-                setSelectedHands(prev => prev.filter(h => h !== hand));
-              } else {
-                setSelectedHands(prev => [...prev, hand]);
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+              setSelectionStart({ row: i, col: j });
+              setCurrentSelection({ row: i, col: j });
+              setHasDragged(false);
+              
+              // 範囲選択モードの開始点を設定
+              if (isRangeSelectMode) {
+                setRangeFirstClick({ row: i, col: j });
               }
             }}
-            className={`w-8 h-8 md:w-10 md:h-10 text-xs md:text-xl font-bold rounded transition-all duration-200 ${
-              isSelected 
-                ? 'bg-purple-600 text-white border-2 border-purple-400' 
-                : 'bg-gray-700 text-gray-100 md:text-white hover:bg-gray-600 border border-gray-600'
-            }`}
+            onMouseEnter={() => {
+              if (isDragging) {
+                setCurrentSelection({ row: i, col: j });
+                setHasDragged(true);
+              }
+            }}
+            onMouseUp={() => {
+              if (isDragging) {
+                if (!hasDragged) {
+                  // 単一クリック
+                  handleHandClick(hand);
+                } else if (selectionStart) {
+                  // 範囲選択
+                  const minRow = Math.min(selectionStart.row, currentSelection?.row || selectionStart.row);
+                  const maxRow = Math.max(selectionStart.row, currentSelection?.row || selectionStart.row);
+                  const minCol = Math.min(selectionStart.col, currentSelection?.col || selectionStart.col);
+                  const maxCol = Math.max(selectionStart.col, currentSelection?.col || selectionStart.col);
+                  
+                  const rangeHands: string[] = [];
+                  for (let r = minRow; r <= maxRow; r++) {
+                    for (let c = minCol; c <= maxCol; c++) {
+                      let rangeHand = '';
+                      if (r === c) {
+                        rangeHand = ranks[r] + ranks[c]; // ペア
+                      } else if (r < c) {
+                        rangeHand = ranks[r] + ranks[c] + 's'; // スーテッド
+                      } else {
+                        rangeHand = ranks[c] + ranks[r] + 'o'; // オフスーツ
+                      }
+                      rangeHands.push(rangeHand);
+                    }
+                  }
+                  
+                  // 範囲選択されたハンドを選択済みリストに追加/削除
+                  setSelectedHands(prev => {
+                    const newSelected = [...prev];
+                    const allInRange = rangeHands.every(h => prev.includes(h));
+                    
+                    if (allInRange) {
+                      // 全て選択済みの場合は解除
+                      rangeHands.forEach(h => {
+                        const index = newSelected.indexOf(h);
+                        if (index > -1) {
+                          newSelected.splice(index, 1);
+                        }
+                      });
+                    } else {
+                      // 一部または全て未選択の場合は追加
+                      rangeHands.forEach(h => {
+                        if (!newSelected.includes(h)) {
+                          newSelected.push(h);
+                        }
+                      });
+                    }
+                    return newSelected;
+                  });
+                }
+                
+                setIsDragging(false);
+                setSelectionStart(null);
+                setCurrentSelection(null);
+                setHasDragged(false);
+                setRangeFirstClick(null);
+              }
+            }}
+            className={`w-8 h-8 md:w-10 md:h-10 text-xs md:text-xl font-bold rounded transition-all duration-200 ${getHandColor()}`}
             style={{ fontSize: '40px' }}
           >
             {hand}
@@ -1455,6 +1569,43 @@ export const HandRangeSelector: React.FC<{
             </div>
           </div>
         )}
+
+        {/* 操作モード切り替え */}
+        <div className="mb-4">
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-semibold">🎯 選択モード</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsRangeSelectMode(false)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    !isRangeSelectMode 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  単一選択
+                </button>
+                <button
+                  onClick={() => setIsRangeSelectMode(true)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isRangeSelectMode 
+                      ? 'bg-green-600 text-white' 
+                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                  }`}
+                >
+                  範囲選択
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">
+              {isRangeSelectMode 
+                ? '💡 範囲選択モード: 開始点をクリックしてから終了点をクリックすると範囲選択できます' 
+                : '💡 単一選択モード: クリックで単一選択、ドラッグで範囲選択ができます'
+              }
+            </p>
+          </div>
+        </div>
 
         {/* ハンドレンジグリッド */}
         <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>
@@ -1542,6 +1693,46 @@ export const HandRangeSelector: React.FC<{
 
         {/* 選択完了ボタン */}
         <div className="mt-auto">
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => {
+                // 全ハンドを取得（NONEハンド除外フィルター適用）
+                const allHands = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+                const allAvailableHands: string[] = [];
+                
+                for (let i = 0; i < 13; i++) {
+                  for (let j = 0; j < 13; j++) {
+                    let hand = '';
+                    if (i === j) {
+                      hand = allHands[i] + allHands[j];
+                    } else if (i < j) {
+                      hand = allHands[i] + allHands[j] + 's';
+                    } else {
+                      hand = allHands[j] + allHands[i] + 'o';
+                    }
+                    
+                    // NONEハンド除外が有効な場合は、NONEハンドをスキップ
+                    if (excludeNoneHands && noneHands.includes(hand)) {
+                      continue;
+                    }
+                    
+                    allAvailableHands.push(hand);
+                  }
+                }
+                
+                setSelectedHands(allAvailableHands);
+              }}
+              className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              全選択
+            </button>
+            <button
+              onClick={() => setSelectedHands([])}
+              className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              全解除
+            </button>
+          </div>
           <button
             onClick={() => {
               onSelectHands(selectedHands);

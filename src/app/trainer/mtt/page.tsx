@@ -731,8 +731,6 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-3 md:p-5">
-            <h3 className="text-sm md:text-lg font-medium mb-3 md:mb-4">ハンド範囲選択</h3>
-            
             <button 
               onClick={openHandSelector}
               className="w-full py-2 md:py-4 px-3 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-lg flex items-center justify-center"
