@@ -386,17 +386,12 @@ const SimpleHandRangeSelector: React.FC<{
             <span>レベル6</span>
             <span>全レンジ</span>
           </div>
-          <div className="mt-1 text-xs text-gray-500">
-            <p>レベル0: ランダム出題</p>
-            <p>レベル1-6: 段階的なハンドセット</p>
-            <p>全レンジ: 全選択（全てのハンド）</p>
-          </div>
         </div>
 
         <div className="mb-1 md:mb-4">
           <button
             onClick={handleConfirm}
-            className="w-full px-2 md:px-4 py-1 md:py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
+            className="w-full px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
           >
             選択完了 ({selectedHands.length}ハンド)
           </button>
