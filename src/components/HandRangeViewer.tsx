@@ -299,8 +299,8 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   const grid = generateGrid();
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[60] p-4 md:p-6 pt-24 md:pt-28 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gray-900 rounded-3xl max-w-[95vw] md:max-w-[80vw] w-full h-[calc(100dvh-7rem)] md:h-[calc(100vh-8rem)] max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-8rem)] overflow-hidden shadow-2xl border border-gray-800 flex flex-col" style={{ maxHeight: 'calc(100dvh - 7rem)' }}>
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gray-900 rounded-3xl max-w-[95vw] md:max-w-[80vw] w-full h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-hidden shadow-2xl border border-gray-800 flex flex-col" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
         {/* ヘッダー */}
         <div className="bg-gray-800 p-3 md:p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex justify-between items-center">
