@@ -7287,7 +7287,7 @@ function MTTTrainingPage() {
                                           ? 'text-green-300' 
                                           : 'text-gray-300'
                                     }`}>
-                                      {displayAction === 'ALL_IN' ? 'ALL_IN' : action}
+                                      {displayAction === 'ALL_IN' ? 'ALLIN' : action}
                                       {isCorrectAction && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${

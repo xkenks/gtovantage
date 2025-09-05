@@ -360,7 +360,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
               CALL: {stats.CALL.percentage}%
             </div>
             <div className="bg-red-900 text-white px-2 py-1 rounded font-medium">
-              ALL IN: {stats.ALL_IN.percentage}%
+              ALLIN: {stats.ALL_IN.percentage}%
             </div>
             <div className="bg-blue-500 text-white px-2 py-1 rounded font-medium">
               FOLD: {stats.FOLD.percentage}%
