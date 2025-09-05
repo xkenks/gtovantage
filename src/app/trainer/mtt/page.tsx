@@ -448,7 +448,7 @@ export default function MTTTrainerPage() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
   
-  const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB', '10BB'];
+  const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB'];
   const stackSizes = getAllowedStackSizes();
   const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   
@@ -640,18 +640,10 @@ export default function MTTTrainerPage() {
           <h1 className="text-lg md:text-3xl font-bold text-center">MTTプリフロップトレーニング - チップEV</h1>
         </div>
         
-        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
-          <div className="flex justify-between items-center mb-3 md:mb-4">
+        <div className="bg-gray-800 rounded-xl p-2 md:p-4 shadow-lg mb-3 md:mb-6">
+          <div className="flex justify-between items-center mb-2 md:mb-3">
             <h2 className="text-base md:text-xl font-semibold">シナリオ設定</h2>
             <div className="flex items-center gap-1 md:gap-2">
-              {(saveStatus === 'saving' || saveStatus === 'saved') && (
-                <div className={`text-xs px-2 md:px-3 py-1 rounded-lg transition-all duration-300 ${
-                  saveStatus === 'saving' ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-600/50' :
-                  'text-green-400 bg-green-900/30 border border-green-600/50'
-                }`}>
-                  {saveStatus === 'saving' ? '🔄 保存中' : '✅ 完了'}
-                </div>
-              )}
               <button
                 onClick={resetSettings}
                 className="px-2 md:px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs md:text-sm rounded-lg transition-colors"
@@ -668,7 +660,7 @@ export default function MTTTrainerPage() {
               {allStackSizes.map(stack => (
                 <button 
                   key={stack}
-                  className={`px-1.5 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-base transition-colors ${
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base transition-colors ${
                     stackSize === stack 
                       ? canUseStackSize(stack) ? 'bg-yellow-600' : 'bg-red-600' 
                       : canUseStackSize(stack) ? 'bg-gray-700 hover:bg-yellow-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
@@ -691,11 +683,11 @@ export default function MTTTrainerPage() {
           
           <div className="mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-medium mb-2">あなたのポジション</h3>
-            <div className="flex flex-wrap gap-0.5 md:gap-2">
+            <div className="flex flex-wrap gap-1 md:gap-2">
               {positions.map(pos => (
                 <button 
                   key={pos}
-                  className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                  className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
                   onClick={() => setPosition(pos)}
                 >
                   {pos}
@@ -707,9 +699,9 @@ export default function MTTTrainerPage() {
           {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
             <div className="mb-4 md:mb-6">
               <h3 className="text-sm md:text-lg font-medium mb-2">相手のポジション</h3>
-              <div className="flex flex-wrap gap-0.5 md:gap-2">
+              <div className="flex flex-wrap gap-1 md:gap-2">
                 <button 
-                  className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${
+                  className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${
                     opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700'
                   } transition-colors hover:bg-blue-500`}
                   onClick={() => setOpponentPosition('random')}
@@ -721,7 +713,7 @@ export default function MTTTrainerPage() {
                   return (
                     <button 
                       key={pos}
-                      className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${
+                      className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${
                         opponentPosition === pos ? 'bg-blue-600' : 
                         isValid ? 'bg-gray-700' : 'bg-gray-500'
                       } transition-colors ${
