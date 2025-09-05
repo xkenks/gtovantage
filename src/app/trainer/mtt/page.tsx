@@ -480,7 +480,7 @@ export default function MTTTrainerPage() {
   const validOpponentPositions = getValidOpponentPositions(position, actionType);
   
   const actionTypes = [
-    { id: 'openraise', label: 'オープンレイズ' },
+    { id: 'openraise', label: 'オープン' },
     { id: 'vsopen', label: 'vs オープン', disabled: position === 'UTG' },
     { id: 'vs3bet', label: 'vs 3ベット', disabled: position === 'BB' },
     { id: 'vs4bet', label: 'vs 4ベット', disabled: stackSize === '15BB' || stackSize === '10BB' || position === 'UTG' },
@@ -637,15 +637,12 @@ export default function MTTTrainerPage() {
       <div className="min-h-screen bg-gray-900 text-white p-2 md:p-8">
         <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-3 md:mb-6">
-          <h1 className="text-xl md:text-3xl font-bold text-center">MTTプリフロップトレーニング</h1>
+          <h1 className="text-lg md:text-3xl font-bold text-center">MTTプリフロップトレーニング - チップEV</h1>
         </div>
-        <p className="text-center text-gray-300 mb-4 md:mb-8 text-sm md:text-base">
-          トーナメントに特化したプリフロップ意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
-        </p>
         
         <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
           <div className="flex justify-between items-center mb-3 md:mb-4">
-            <h2 className="text-lg md:text-xl font-semibold">シナリオ設定</h2>
+            <h2 className="text-base md:text-xl font-semibold">シナリオ設定</h2>
             <div className="flex items-center gap-1 md:gap-2">
               {(saveStatus === 'saving' || saveStatus === 'saved') && (
                 <div className={`text-xs px-2 md:px-3 py-1 rounded-lg transition-all duration-300 ${
@@ -666,12 +663,12 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-base md:text-lg font-medium mb-2">エフェクティブスタック</h3>
+            <h3 className="text-sm md:text-lg font-medium mb-2">エフェクティブスタック</h3>
             <div className="flex flex-wrap gap-1 md:gap-2">
               {allStackSizes.map(stack => (
                 <button 
                   key={stack}
-                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base transition-colors ${
+                  className={`px-1.5 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-base transition-colors ${
                     stackSize === stack 
                       ? canUseStackSize(stack) ? 'bg-yellow-600' : 'bg-red-600' 
                       : canUseStackSize(stack) ? 'bg-gray-700 hover:bg-yellow-500' : 'bg-gray-800 text-gray-500 cursor-not-allowed'
@@ -693,12 +690,12 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-base md:text-lg font-medium mb-2">あなたのポジション</h3>
-            <div className="flex flex-wrap gap-1 md:gap-2">
+            <h3 className="text-sm md:text-lg font-medium mb-2">あなたのポジション</h3>
+            <div className="flex flex-wrap gap-0.5 md:gap-2">
               {positions.map(pos => (
                 <button 
                   key={pos}
-                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                  className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
                   onClick={() => setPosition(pos)}
                 >
                   {pos}
@@ -709,10 +706,10 @@ export default function MTTTrainerPage() {
           
           {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
             <div className="mb-4 md:mb-6">
-              <h3 className="text-base md:text-lg font-medium mb-2">相手のポジション</h3>
-              <div className="flex flex-wrap gap-1 md:gap-2">
+              <h3 className="text-sm md:text-lg font-medium mb-2">相手のポジション</h3>
+              <div className="flex flex-wrap gap-0.5 md:gap-2">
                 <button 
-                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                  className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${
                     opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700'
                   } transition-colors hover:bg-blue-500`}
                   onClick={() => setOpponentPosition('random')}
@@ -724,7 +721,7 @@ export default function MTTTrainerPage() {
                   return (
                     <button 
                       key={pos}
-                      className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                      className={`px-1 md:px-3 py-0.5 md:py-2 rounded text-xs md:text-base ${
                         opponentPosition === pos ? 'bg-blue-600' : 
                         isValid ? 'bg-gray-700' : 'bg-gray-500'
                       } transition-colors ${
@@ -747,12 +744,12 @@ export default function MTTTrainerPage() {
           )}
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-base md:text-lg font-medium mb-2">アクションタイプ</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
+            <h3 className="text-sm md:text-lg font-medium mb-2">アクションタイプ</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1 md:gap-2">
               {actionTypes.map(action => (
                 <button 
                   key={action.id}
-                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                  className={`px-1.5 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-base ${
                     action.disabled ? 'bg-gray-500 cursor-not-allowed opacity-50' : 
                     actionType === action.id ? 'bg-red-600' : 'bg-gray-700'
                   } transition-colors text-left ${!action.disabled ? 'hover:bg-red-500' : ''}`}
@@ -766,22 +763,22 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-3 md:p-5">
-            <h3 className="text-base md:text-lg font-medium mb-3 md:mb-4">ハンド範囲選択</h3>
+            <h3 className="text-sm md:text-lg font-medium mb-3 md:mb-4">ハンド範囲選択</h3>
             
             <button 
               onClick={openHandSelector}
-              className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-base md:text-lg transition-colors shadow-lg flex items-center justify-center"
+              className="w-full py-2 md:py-4 px-3 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-lg flex items-center justify-center"
             >
               ハンドを選択
             </button>
             
             {selectedHands.length > 0 ? (
-              <div className="mt-3 md:mt-4">
-                <div className="text-xs md:text-sm text-purple-300 mb-2">{selectedHands.length}種類のハンドを選択中</div>
-                <div className="bg-gray-800 rounded-lg p-2 md:p-3 max-h-24 md:max-h-32 overflow-auto border border-gray-700">
-                  <div className="flex flex-wrap gap-1 md:gap-2">
+              <div className="mt-2 md:mt-4">
+                <div className="text-xs md:text-sm text-purple-300 mb-1 md:mb-2">{selectedHands.length}種類のハンドを選択中</div>
+                <div className="bg-gray-800 rounded-lg p-1.5 md:p-3 max-h-16 md:max-h-32 overflow-auto border border-gray-700">
+                  <div className="flex flex-wrap gap-0.5 md:gap-2">
                     {selectedHands.map(hand => (
-                      <span key={hand} className="inline-block px-1.5 md:px-2 py-0.5 md:py-1 bg-purple-700 rounded text-xs font-medium">
+                      <span key={hand} className="inline-block px-1 md:px-2 py-0.5 md:py-1 bg-purple-700 rounded text-xs font-medium">
                         {hand}
                       </span>
                     ))}
@@ -803,21 +800,13 @@ export default function MTTTrainerPage() {
           </button>
         </div>
         
-        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
-          <h2 className="text-lg md:text-xl font-semibold mb-2 md:mb-3">MTTプリフロップトレーニングとは？</h2>
-          <p className="mb-3 md:mb-4 text-gray-300 text-sm md:text-base">
-            MTT（マルチテーブルトーナメント）でのプリフロップGTO戦略を学習します。
-            このトレーニングではチップEVを考慮しており、ICM（Independent Chip Model）は考慮していません。
-            スタックサイズに応じて戦略を変える必要があります。
-          </p>
-        </div>
 
 
         
         {showHandSelector && (
           <SimpleHandRangeSelector
             onSelectHands={handleHandSelectionChange}
-            title="MTTプリフロップトレーニング用ハンド範囲選択"
+            title="MTTプリフロップトレーニング - チップEV用ハンド範囲選択"
             onClose={() => setShowHandSelector(false)}
             initialSelectedHands={selectedHands}
             position={position}

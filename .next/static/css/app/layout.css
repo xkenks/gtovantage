@@ -1053,6 +1053,9 @@ video {
 .max-h-\[98vh\] {
   max-height: 98vh;
 }
+.max-h-16 {
+  max-height: 4rem;
+}
 .min-h-12 {
   min-height: 3rem;
 }
@@ -3195,6 +3198,10 @@ video {
 
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .sm\:flex-row {

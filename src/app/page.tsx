@@ -222,7 +222,7 @@ export default function Home() {
                 <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
                   <FaTrophy className="text-lg md:text-xl text-white" />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold text-white">MTTプリフロップトレーニング</h3>
+                <h3 className="text-xl md:text-2xl font-bold text-white">MTTプリフロップトレーニング - チップEV</h3>
               </div>
               <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
                 トーナメントに特化したプリフロップ戦略を学び、MTTでの勝率を向上させます。このトレーニングではチップEVを考慮しており、ICMは考慮していません。スタックサイズに応じた戦略調整や、ポジション別の最適プレイを習得。プリフロップGTO戦略を実践的に学習できます。
