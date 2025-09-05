@@ -1098,8 +1098,8 @@ const HandRangeGrid: React.FC<{
   };
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-20 md:pt-24 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 h-[calc(100dvh-6rem)] md:h-[calc(100vh-7rem)] max-h-[calc(100dvh-6rem)] md:max-h-[calc(100vh-7rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 6rem)' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-24 md:pt-28 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 h-[calc(100dvh-7rem)] md:h-[calc(100vh-8rem)] max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-8rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 7rem)' }}>
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -1425,8 +1425,8 @@ export const HandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-20 md:pt-24 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 h-[calc(100dvh-6rem)] md:h-[calc(100vh-7rem)] max-h-[calc(100dvh-6rem)] md:max-h-[calc(100vh-7rem)] shadow-2xl border border-gray-700 flex flex-col" style={{ maxHeight: 'calc(100dvh - 6rem)' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-24 md:pt-28 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 h-[calc(100dvh-7rem)] md:h-[calc(100vh-8rem)] max-h-[calc(100dvh-7rem)] md:max-h-[calc(100vh-8rem)] shadow-2xl border border-gray-700 flex flex-col" style={{ maxHeight: 'calc(100dvh - 7rem)' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
