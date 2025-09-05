@@ -5998,6 +5998,13 @@ function MTTTrainingPage() {
           key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
         );
         
+        console.log('🎯 オールイン特別検索:', { 
+          action,
+          allinKeys,
+          frequencies: gtoData.frequencies,
+          isCustomRange: (gtoData as any)?.isCustomRange
+        });
+        
         if (allinKeys.length > 0) {
           foundFrequency = gtoData.frequencies[allinKeys[0]];
           usedVariant = allinKeys[0];
@@ -6006,33 +6013,52 @@ function MTTTrainingPage() {
             frequency: foundFrequency,
             isCustomRange: (gtoData as any)?.isCustomRange
           });
+        } else {
+          // ALL INキーが見つからない場合、明示的に0%として扱う
+          foundFrequency = 0;
+          console.log('🎯 オールインキー未発見 - 0%として扱う:', { 
+            action,
+            availableKeys: Object.keys(gtoData.frequencies)
+          });
         }
       }
     }
     
-    if (foundFrequency > 0) {
-      // カスタムレンジの場合は、頻度が10%以上なら正解扱い
-      if ((gtoData as any)?.isCustomRange) {
-        console.log('🎯 カスタムレンジ判定（統合版）:', {
+    // 頻度情報がある場合の判定
+    if (gtoData?.frequencies) {
+      // 頻度が0%の場合は確実に不正解
+      if (foundFrequency === 0) {
+        correct = false;
+        console.log('🎯 頻度0% - 不正解:', {
           selectedAction: action,
-          usedVariant,
           foundFrequency,
-          threshold: 10,
-          isCorrect: foundFrequency >= 10
+          isCorrect: false,
+          frequencies: gtoData.frequencies
         });
-        if (foundFrequency >= 10) {
-          correct = true;
+      } else if (foundFrequency > 0) {
+        // カスタムレンジの場合は、頻度が10%以上なら正解扱い
+        if ((gtoData as any)?.isCustomRange) {
+          console.log('🎯 カスタムレンジ判定（統合版）:', {
+            selectedAction: action,
+            usedVariant,
+            foundFrequency,
+            threshold: 10,
+            isCorrect: foundFrequency >= 10
+          });
+          if (foundFrequency >= 10) {
+            correct = true;
+          } else {
+            correct = false;
+          }
         } else {
-          correct = false;
-        }
-      } else {
-        // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
-        if (foundFrequency >= 30) {
-          correct = true;
-        } else if (foundFrequency >= 10) {
-          correct = true; // 部分正解も正解扱い
-        } else {
-          correct = false;
+          // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
+          if (foundFrequency >= 30) {
+            correct = true;
+          } else if (foundFrequency >= 10) {
+            correct = true; // 部分正解も正解扱い
+          } else {
+            correct = false;
+          }
         }
       }
     } else {
@@ -6065,6 +6091,17 @@ function MTTTrainingPage() {
         key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
       ) : []
     });
+    
+    // ALL INアクションの特別処理：頻度が0%の場合は確実に不正解
+    if (action === 'ALL IN' || action === 'ALL_IN') {
+      const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
+                           gtoData?.frequencies?.['ALL IN'] || 
+                           gtoData?.frequencies?.['ALLIN'] || 0;
+      if (allInFrequency === 0) {
+        correct = false;
+        console.log('🚨 ALL IN 0% - 強制的に不正解:', { action, allInFrequency, correct });
+      }
+    }
     
     setIsCorrect(correct);
     setShowResults(true);
@@ -7046,10 +7083,8 @@ function MTTTrainingPage() {
                         (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
                         (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0);
                       
-                      const hasAllin = (!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                        (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
-                        (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
-                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0));
+                      // ALL INボタンを強制的に表示
+                      const hasAllin = true;
                       
                       // グリッド列数を決定
                       let gridCols = 2; // FOLD, CALL は常にある
@@ -7080,14 +7115,35 @@ function MTTTrainingPage() {
                             </button>
                           )}
                           {/* ALL INボタン - スタックサイズ付き */}
-                          {hasAllin && (
-                            <button
-                              className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
-                              onClick={() => handleActionSelect('ALL IN')}
-                            >
-                              ALLIN {betSizes.allinSize}
-                            </button>
-                          )}
+                          {(() => {
+                            // 複数のキーでALL IN頻度を確認
+                            const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
+                                                 gtoData?.frequencies?.['ALL IN'] || 
+                                                 gtoData?.frequencies?.['ALLIN'] || 0;
+                            const isAllInCorrect = allInFrequency > 0;
+                            
+                            // デバッグログを出力
+                            console.log('ALL IN Debug:', { 
+                              allInFrequency, 
+                              isAllInCorrect, 
+                              frequencies: gtoData?.frequencies,
+                              spot: spot,
+                              betSizes: betSizes
+                            });
+                            
+                            return (
+                              <button
+                                className={`py-3 rounded-lg font-bold text-lg shadow-lg text-white transition-all border border-gray-700 ${
+                                  isAllInCorrect
+                                    ? 'bg-green-600 hover:bg-green-700'
+                                    : 'bg-red-600 hover:bg-red-700'
+                                }`}
+                                onClick={() => handleActionSelect('ALL IN')}
+                              >
+                                ALLIN {betSizes.allinSize}
+                              </button>
+                            );
+                          })()}
                         </div>
                       );
                     })()
