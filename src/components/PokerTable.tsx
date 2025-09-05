@@ -1851,6 +1851,68 @@ export const PokerTable: React.FC<PokerTableProps> = ({
             const centerX = 50;
             const centerY = 35;
             
+                      // 座標に基づく統一されたチップ位置調整関数
+        const getUnifiedChipTransform = (pos: PositionInfo): string => {
+          let transform = 'translate(-50%, -50%)';
+                
+                // 上部のチップ（y <= 10）は上に移動
+                if (pos.y <= 10) {
+                  transform += ' translateY(-20px)';
+                }
+                
+                // 10時の位置（左上）のチップは少し下に移動
+                if (pos.x > 15 && pos.x < 45 && pos.y <= 20) {
+                  transform += ' translateY(45px) translateX(15px)';
+                }
+                
+                // LJプレイヤーのチップ（2.1のチップ）を少し右下に移動
+                if (pos.x > 0 && pos.x < 50 && pos.y <= 35) {
+                  transform += ' translateY(15px) translateX(8px)';
+                }
+                
+                // 8時の位置（左下）のチップは少し上に移動
+                if (pos.x < 30 && pos.y > 50) {
+                  transform += ' translateY(25px)';
+                }
+                
+                // 6時の位置（下部）のチップは少し上に移動
+                if (pos.x > 40 && pos.x < 60 && pos.y > 70) {
+                  transform += ' translateY(10px)';
+                }
+                
+                // 2時の位置（右上）のチップは更に下に移動 + さらに左に移動
+                if (pos.x > 80 && pos.y <= 10) {
+                  transform += ' translateX(-12px) translateY(25px)';
+                }
+                
+                // 3時の位置（右側）のチップは更に上と少し左に移動
+                if (pos.x > 70) {
+                  transform += ' translateY(-18px) translateX(2px)';
+                }
+                
+                // 4時の位置（右下）のチップは少し下に移動
+                if (pos.x > 60 && pos.x < 80 && pos.y > 50) {
+                  transform += ' translateY(35px) translateX(12px)';
+                }
+                
+                // SBプレイヤーのチップ（0.5のチップ）を少し下に移動
+                if (pos.x > 60 && pos.x < 100 && pos.y > 30 && pos.y < 70) {
+                  transform += ' translateY(5px)';
+                }
+                
+                // 9時の位置（左下）のチップはほんの少しだけ上に移動
+                if (pos.x < 60 && pos.y > 60) {
+                  transform += ' translateY(-18px)';
+                }
+                
+                // 9時の位置（左側）のチップは少し下に移動
+                if (pos.x < 30) {
+                  transform += ' translateY(-12px)';
+                }
+                
+                return transform;
+              };
+
               // 実際のポジション座標からポット方向へのチップ配置を計算
               const getOptimalChipPosition = (pos: {x: number, y: number}, positionName: string) => {
                 // ポジションからポット方向のベクトルを計算
@@ -1865,7 +1927,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 let offsetX = 0; // 水平微調整
                 let offsetY = 0; // 垂直微調整
                 
-                                 if (positionName === 'SB') {
+                if (positionName === 'SB') {
                    // SBの場合：ポジション別の精密調整
                    if (pos.x > 80) { // 右側にSBがある場合（BTNの右等）
                      moveDistance = 16;
@@ -1971,7 +2033,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`, 
                       top: `${chipPos.y}%`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: getUnifiedChipTransform(sbPos)
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -1997,7 +2059,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`, 
                       top: `${chipPos.y}%`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: getUnifiedChipTransform(bbPos)
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2020,7 +2082,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`,
                       top: `${chipPos.y}%`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: getUnifiedChipTransform(openRaiserPosition)
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2055,7 +2117,6 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           });
           
           // 3ベッターのチップ表示（vs3ベットとvs4ベット）
-          console.log(`🔍 3ベッターチップ表示条件チェック: threeBetterInfoMobile=${!!threeBetterInfoMobile}, threeBetSize=${currentSpot?.threeBetSize}, threeBetterPosMobile=${threeBetterPosMobile}, actionType=${currentSpot.actionType}`);
           if (threeBetterInfoMobile && currentSpot?.threeBetSize && threeBetterPosMobile && (currentSpot.actionType === 'vs3bet' || currentSpot.actionType === 'vs4bet')) {
             const chipPos = getOptimalChipPosition(threeBetterInfoMobile, threeBetterPosMobile);
         
@@ -2066,7 +2127,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: getUnifiedChipTransform(threeBetterInfoMobile)
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2089,7 +2150,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: 'translate(-50%, -50%)'
+                  transform: getUnifiedChipTransform(fourBetterInfoMobile)
                 }}
               >
                 <div className="flex items-center space-x-1">
