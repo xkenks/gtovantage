@@ -273,7 +273,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>30BBモード</span>
+                    <span>20BBモード</span>
                   </li>
                   <li className="flex items-center gap-2 text-gray-500">
                     <span className="text-red-400">×</span>

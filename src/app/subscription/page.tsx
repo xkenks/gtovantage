@@ -100,7 +100,7 @@ export default function SubscriptionPage() {
                     </li>
                     <li className="flex items-center text-sm text-gray-300">
                       <FaCheck className="text-green-400 mr-2 flex-shrink-0" />
-                      MTTシナリオ（30BB限定）
+                      MTTシナリオ（20BB限定）
                     </li>
                   </ul>
                   <div className="text-center">

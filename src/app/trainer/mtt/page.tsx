@@ -473,8 +473,8 @@ export default function MTTTrainerPage() {
         if (settings.stackSize && canUseStackSize(settings.stackSize)) {
           setStackSize(settings.stackSize);
         } else if (settings.stackSize && !canUseStackSize(settings.stackSize)) {
-          // 保存されたスタックサイズが使用できない場合は30BBに変更
-          setStackSize('30BB');
+          // 保存されたスタックサイズが使用できない場合は20BBに変更
+          setStackSize('20BB');
         }
         if (settings.position && positions.includes(settings.position)) {
           setPosition(settings.position);
@@ -642,7 +642,7 @@ export default function MTTTrainerPage() {
                   }`}
                   onClick={() => canUseStackSize(stack) && setStackSize(stack)}
                   disabled={!canUseStackSize(stack)}
-                  title={!canUseStackSize(stack) ? '無料プランでは30BBのみ利用可能です' : ''}
+                  title={!canUseStackSize(stack) ? '無料プランでは20BBのみ利用可能です' : ''}
                 >
                   {stack}
                   {!canUseStackSize(stack) && <span className="ml-1 text-xs">🔒</span>}
@@ -651,7 +651,7 @@ export default function MTTTrainerPage() {
             </div>
             {stackSizes.length === 1 && (
               <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                💡 無料プランでは30BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
+                💡 無料プランでは20BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
               </div>
             )}
           </div>
