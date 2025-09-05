@@ -696,44 +696,45 @@ export default function MTTTrainerPage() {
             </div>
           </div>
           
-          {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
-            <div className="mb-4 md:mb-6">
-              <h3 className="text-sm md:text-lg font-medium mb-2">相手のポジション</h3>
-              <div className="flex flex-wrap gap-1 md:gap-2">
-                <button 
-                  className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${
-                    opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700'
-                  } transition-colors hover:bg-blue-500`}
-                  onClick={() => setOpponentPosition('random')}
-                >
-                  ランダム
-                </button>
-                {positions.map(pos => {
-                  const isValid = validOpponentPositions.includes(pos);
-                  return (
-                    <button 
-                      key={pos}
-                      className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${
-                        opponentPosition === pos ? 'bg-blue-600' : 
-                        isValid ? 'bg-gray-700' : 'bg-gray-500'
-                      } transition-colors ${
-                        isValid ? 'hover:bg-blue-500' : 'cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={() => isValid && setOpponentPosition(pos)}
-                      disabled={!isValid}
-                    >
-                      {pos}
-                    </button>
-                  );
-                })}
-              </div>
-              {validOpponentPositions.length === 0 && (
-                <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                  ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
-                </div>
-              )}
+          <div className="mb-4 md:mb-6">
+            <h3 className="text-sm md:text-lg font-medium mb-2">相手のポジション</h3>
+            <div className="flex flex-wrap gap-1 md:gap-2">
+              <button 
+                className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base transition-colors ${
+                  (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') 
+                    ? (opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-blue-500')
+                    : 'bg-gray-500 cursor-not-allowed opacity-50'
+                }`}
+                onClick={() => (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && setOpponentPosition('random')}
+                disabled={!(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet')}
+              >
+                ランダム
+              </button>
+              {positions.map(pos => {
+                const isValid = validOpponentPositions.includes(pos);
+                const isActionTypeValid = (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet');
+                return (
+                  <button 
+                    key={pos}
+                    className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base transition-colors ${
+                      !isActionTypeValid ? 'bg-gray-500 cursor-not-allowed opacity-50' :
+                      opponentPosition === pos ? 'bg-blue-600' : 
+                      isValid ? 'bg-gray-700 hover:bg-blue-500' : 'bg-gray-500 cursor-not-allowed opacity-50'
+                    }`}
+                    onClick={() => isActionTypeValid && isValid && setOpponentPosition(pos)}
+                    disabled={!isActionTypeValid || !isValid}
+                  >
+                    {pos}
+                  </button>
+                );
+              })}
             </div>
-          )}
+            {!validOpponentPositions.length && (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
+              <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
+                ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
+              </div>
+            )}
+          </div>
           
           <div className="mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-medium mb-2">アクションタイプ</h3>
