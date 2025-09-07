@@ -4171,13 +4171,26 @@ function MTTTrainingPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
+  // localStorageが利用可能かチェックする関数
+  const isLocalStorageAvailable = () => {
+    try {
+      const test = '__localStorage_test__';
+      localStorage.setItem(test, test);
+      localStorage.removeItem(test);
+      return true;
+    } catch (e) {
+      console.warn('localStorageが利用できません（シークレットモード等）:', e);
+      return false;
+    }
+  };
+
   // システム全体からレンジデータを自動読み込み（エンタープライズ機能）
   useEffect(() => {
     const loadSystemRanges = async () => {
       // 新しい端末での初回アクセスかどうかをチェック
-      const isFirstVisit = !localStorage.getItem('mtt-ranges-timestamp');
+      const isFirstVisit = !isLocalStorageAvailable() || !localStorage.getItem('mtt-ranges-timestamp');
       if (isFirstVisit) {
-        console.log('🎯 新しい端末での初回アクセスを検出');
+        console.log('🎯 新しい端末での初回アクセスを検出（localStorage利用可能:', isLocalStorageAvailable(), ')');
       }
       console.log('🎯 カスタムレンジ読み込み開始');
       
@@ -4185,7 +4198,7 @@ function MTTTrainingPage() {
       if (!isSaving) {
         // 統合ストレージシステムからデータを読み込み
         const localRanges = await storageManager.loadRanges();
-        const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
+        const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
         
         // ローカルデータがある場合は一時的に設定（後でAPIと比較）
         if (localRanges && Object.keys(localRanges).length > 0) {
@@ -4211,8 +4224,8 @@ function MTTTrainingPage() {
           const systemData = await response.json();
           
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            const localRanges = localStorage.getItem('mtt-custom-ranges');
-            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
+            const localRanges = isLocalStorageAvailable() ? localStorage.getItem('mtt-custom-ranges') : null;
+            const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
             let shouldUpdate = false;
             
             console.log('🎯 システムAPIデータ確認:', {
@@ -4254,8 +4267,10 @@ function MTTTrainingPage() {
               });
               
               setCustomRanges(systemData.ranges);
-              localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
-              localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
+              if (isLocalStorageAvailable()) {
+                localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+                localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
+              }
               console.log('✅ システムAPIからレンジデータを自動同期しました（QQ復元済み）');
               console.log('🎯 システムAPIレンジ詳細:', {
                 rangeKeys: Object.keys(systemData.ranges),
@@ -4284,8 +4299,8 @@ function MTTTrainingPage() {
           const fileData = await fileResponse.json();
           
           if (fileData.ranges && Object.keys(fileData.ranges).length > 0) {
-            const localRanges = localStorage.getItem('mtt-custom-ranges');
-            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
+            const localRanges = isLocalStorageAvailable() ? localStorage.getItem('mtt-custom-ranges') : null;
+            const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
             let shouldUpdate = false;
             
             if (!localRanges) {
@@ -4315,8 +4330,10 @@ function MTTTrainingPage() {
               });
               
               setCustomRanges(fileData.ranges);
-              localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
-              localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
+              if (isLocalStorageAvailable()) {
+                localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
+                localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
+              }
               console.log(`✅ データファイルからレンジデータを自動同期しました（QQ復元済み、${Object.keys(fileData.ranges).length}ポジション）`);
               console.log('🎯 ファイルレンジ詳細:', {
                 rangeKeys: Object.keys(fileData.ranges),
@@ -7504,7 +7521,7 @@ function MTTTrainingPage() {
           }
           
           // まだ見つからない場合は、ローカルストレージから直接取得を試行
-          if (!rangeData) {
+          if (!rangeData && isLocalStorageAvailable()) {
             const localRanges = localStorage.getItem('mtt-custom-ranges');
             if (localRanges) {
               try {
