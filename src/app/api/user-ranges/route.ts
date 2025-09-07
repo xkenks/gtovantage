@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
   
   const userId = authResult.uid;
   
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'ユーザーIDが取得できませんでした' },
+      { status: 401 }
+    );
+  }
+  
   try {
     // キャッシュから取得
     if (userRangeCache[userId] && cacheLastUpdated) {
@@ -89,6 +96,13 @@ export async function POST(request: NextRequest) {
   }
   
   const userId = authResult.uid;
+  
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'ユーザーIDが取得できませんでした' },
+      { status: 401 }
+    );
+  }
   
   try {
     const body = await request.json();
