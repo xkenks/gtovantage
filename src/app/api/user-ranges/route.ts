@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyFirebaseToken } from '@/lib/firebase';
+import { verifyFirebaseToken } from '@/lib/firebase-admin';
 
 // メモリキャッシュ（本番環境ではRedis等を使用推奨）
 let userRangeCache: Record<string, any> = {};
