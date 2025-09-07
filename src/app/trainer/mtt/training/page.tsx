@@ -390,9 +390,9 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
+      // 15BBの場合は新しいキー形式を優先、既存形式をフォールバック
       rangeKey = `open_${position}_15BB`;
-      fallbackRangeKey = `open_${position}`;
+      fallbackRangeKey = `${position}_15BB`; // 既存形式
       console.log('🎯 15BB オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey, 
@@ -402,7 +402,7 @@ const simulateMTTGTOData = (
     } else {
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `open_${position}_${stackSize}`;
-      // 15BBレンジがある場合はフォールバックとして使用
+      // 15BBレンジがある場合はフォールバックとして使用（新旧両方の形式）
       fallbackRangeKey = `open_${position}_15BB`;
       console.log('🎯 その他スタックサイズ オープンレイズ レンジキー設定:', { 
         stackSize, 
@@ -7490,20 +7490,41 @@ function MTTTrainingPage() {
         const rangeKey = getCurrentSpotRangeKey();
         let rangeData = rangeKey ? customRanges[rangeKey] : null;
         
-        // カスタムレンジが見つからない場合は、ローカルストレージから直接取得を試行
+        // カスタムレンジが見つからない場合は、フォールバック処理を実行
         if (!rangeData && rangeKey) {
-          const localRanges = localStorage.getItem('mtt-custom-ranges');
-          if (localRanges) {
-            try {
-              const parsedRanges = JSON.parse(localRanges);
-              rangeData = parsedRanges[rangeKey] || null;
-              console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
-                rangeKey,
-                found: !!rangeData,
-                rangeDataSize: rangeData ? Object.keys(rangeData).length : 0
-              });
-            } catch (e) {
-              console.error('ローカルストレージからの直接取得に失敗:', e);
+          // オープンレイズの場合、既存のレンジキー形式も試す
+          if (rangeKey.startsWith('open_') && rangeKey.includes('_15BB')) {
+            const fallbackKey = rangeKey.replace('open_', ''); // open_UTG_15BB -> UTG_15BB
+            rangeData = customRanges[fallbackKey] || null;
+            console.log('🎯 ハンドレンジビューアー: オープンレイズフォールバック試行:', {
+              originalKey: rangeKey,
+              fallbackKey,
+              found: !!rangeData
+            });
+          }
+          
+          // まだ見つからない場合は、ローカルストレージから直接取得を試行
+          if (!rangeData) {
+            const localRanges = localStorage.getItem('mtt-custom-ranges');
+            if (localRanges) {
+              try {
+                const parsedRanges = JSON.parse(localRanges);
+                rangeData = parsedRanges[rangeKey] || null;
+                
+                // オープンレイズの場合はフォールバックキーも試す
+                if (!rangeData && rangeKey.startsWith('open_') && rangeKey.includes('_15BB')) {
+                  const fallbackKey = rangeKey.replace('open_', '');
+                  rangeData = parsedRanges[fallbackKey] || null;
+                }
+                
+                console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
+                  rangeKey,
+                  found: !!rangeData,
+                  rangeDataSize: rangeData ? Object.keys(rangeData).length : 0
+                });
+              } catch (e) {
+                console.error('ローカルストレージからの直接取得に失敗:', e);
+              }
             }
           }
         }
