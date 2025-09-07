@@ -391,8 +391,8 @@ const simulateMTTGTOData = (
     
     if (stackSize === '15BB') {
       // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
-      rangeKey = `${position}_15BB`;
-      fallbackRangeKey = position;
+      rangeKey = `open_${position}_15BB`;
+      fallbackRangeKey = `open_${position}`;
       console.log('🎯 15BB オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey, 
@@ -401,9 +401,9 @@ const simulateMTTGTOData = (
       });
     } else {
       // その他のスタックサイズは新しいキー形式を使用
-      rangeKey = `${position}_${stackSize}`;
+      rangeKey = `open_${position}_${stackSize}`;
       // 15BBレンジがある場合はフォールバックとして使用
-      fallbackRangeKey = position;
+      fallbackRangeKey = `open_${position}_15BB`;
       console.log('🎯 その他スタックサイズ オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey,
@@ -2428,9 +2428,9 @@ function MTTTrainingPage() {
     if (actionType === 'open' || actionType === 'openraise') {
       // オープンレンジの場合
       if (stackDepth === '15BB') {
-        return heroPosition || null; // 15BBの場合はポジション名のみ
+        return heroPosition ? `open_${heroPosition}_15BB` : null; // 15BBの場合はopen_プレフィックス付き
       } else {
-        return heroPosition && stackDepth ? `${heroPosition}_${stackDepth}` : null; // その他のスタックサイズ
+        return heroPosition && stackDepth ? `open_${heroPosition}_${stackDepth}` : null; // その他のスタックサイズもopen_プレフィックス付き
       }
     } else if (actionType === 'vsopen' && spot.openRaiserPosition) {
       // vsオープンレンジの場合
@@ -7375,8 +7375,24 @@ function MTTTrainingPage() {
           let editorStackSize = parseInt(stackSize.replace('BB', ''));
           let initialRange = customRanges[selectedEditPosition];
           
-          // スタックサイズ込みレンジキー（例：UTG_15BB）の場合
-          if (selectedEditPosition.includes('_') && selectedEditPosition.includes('BB')) {
+          // オープンレンジキー（例：open_UTG_15BB）の場合
+          if (selectedEditPosition.startsWith('open_')) {
+            const parts = selectedEditPosition.split('_');
+            if (parts.length === 3) {
+              displayPosition = parts[1]; // open_UTG_15BB -> UTG
+              editorStackSize = parseInt(parts[2].replace('BB', ''));
+              
+              // 15BBの場合、既存のレンジキー（open_ポジション名のみ）も確認
+              // ただし、オールイン・リンプキーは除外（完全に独立したレンジとして扱う）
+              if (parts[2] === '15BB' && !initialRange && customRanges[`open_${parts[1]}`] && 
+                  !selectedEditPosition.includes('_allin') && !selectedEditPosition.includes('_limp')) {
+                initialRange = customRanges[`open_${parts[1]}`];
+                console.log('15BB互換性: 既存オープンレンジを使用', { position: parts[1], range: initialRange });
+              }
+            }
+          }
+          // スタックサイズ込みレンジキー（例：UTG_15BB）の場合（後方互換性のため）
+          else if (selectedEditPosition.includes('_') && selectedEditPosition.includes('BB')) {
             const parts = selectedEditPosition.split('_');
             if (parts.length === 2) {
               displayPosition = parts[0];
