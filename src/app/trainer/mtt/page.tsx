@@ -224,7 +224,7 @@ const SimpleHandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-4 pb-safe-bottom">
       <style jsx>{`
         .slider {
           -webkit-appearance: none;
@@ -288,7 +288,7 @@ const SimpleHandRangeSelector: React.FC<{
           background: transparent;
         }
       `}</style>
-      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
+      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-4rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-4rem)] overflow-y-auto shadow-2xl border border-gray-700">
         <div className="flex justify-between items-center mb-1 md:mb-4">
           <h2 className="text-sm md:text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-0.5 md:p-2 rounded-lg transition-all duration-200">✕</button>

@@ -299,10 +299,10 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
   const grid = generateGrid();
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gray-900 rounded-3xl max-w-[95vw] md:max-w-[80vw] w-full h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-hidden shadow-2xl border border-gray-800 flex flex-col" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-0 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gray-900 rounded-3xl max-w-[95vw] md:max-w-[90vw] lg:max-w-[80vw] w-full h-[calc(100dvh-9rem)] md:h-[calc(100vh-2rem)] lg:h-screen max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-2rem)] lg:max-h-screen overflow-hidden shadow-2xl border border-gray-800 flex flex-col" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
         {/* ヘッダー */}
-        <div className="bg-gray-800 p-3 md:p-4 border-b border-gray-700 flex-shrink-0">
+        <div className="bg-gray-800 p-2 md:p-3 border-b border-gray-700 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -351,7 +351,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
         </div>
 
         {/* 統計バー */}
-        <div className="p-2 md:p-3 bg-gray-800 border-b border-gray-700 flex-shrink-0">
+        <div className="p-1 md:p-2 bg-gray-800 border-b border-gray-700 flex-shrink-0">
           <div className="flex gap-1 md:gap-2 flex-wrap text-xs">
             <div className="bg-red-500 text-white px-2 py-1 rounded font-medium">
               RAISE: {stats.MIN.percentage}%
@@ -372,13 +372,13 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
         </div>
 
         {/* ハンドグリッド - 既存のHandRangeの正確なデザインを使用 */}
-        <div className="p-2 md:p-4 flex-1 overflow-auto bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-          <div className="grid grid-cols-13 gap-0.5 md:gap-1 max-w-4xl md:max-w-none mx-auto w-full">
+        <div className="p-1 md:p-2 lg:p-4 flex-1 overflow-auto bg-gradient-to-br from-gray-900 to-gray-800 flex items-start justify-center">
+          <div className="grid grid-cols-13 gap-0.5 md:gap-0.5 lg:gap-1 max-w-4xl md:max-w-none mx-auto w-full pt-2">
             {grid.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                                                  <div
                   key={`${rowIndex}-${colIndex}`}
-                  className={`text-white text-[10px] md:text-sm font-bold py-0.5 md:py-1 px-1 md:px-1.5 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.5rem] md:min-h-[2rem] flex flex-col items-center justify-center hand-range-viewer-cell relative ${
+                  className={`text-white text-[8px] md:text-[10px] lg:text-sm font-bold py-0.5 md:py-0.5 lg:py-1 px-0.5 md:px-1 lg:px-1.5 text-center rounded transition-all duration-200 hover:shadow-md min-h-[1.2rem] md:min-h-[1.5rem] lg:min-h-[2rem] flex flex-col items-center justify-center hand-range-viewer-cell relative ${
                     (() => {
                       const handInfo = rangeData[cell.hand];
                       if (handInfo?.action === 'MIXED' && handInfo.mixedFrequencies) {
@@ -393,7 +393,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                   data-has-range={!!rangeData[cell.hand]}
                 >
                   {/* ハンド名 */}
-                  <div className="text-[8px] md:text-xs font-bold leading-none">
+                  <div className="text-[7px] md:text-[8px] lg:text-xs font-bold leading-none">
                     {cell.hand}
                   </div>
                   
@@ -410,7 +410,7 @@ const HandRangeViewer: React.FC<HandRangeViewerProps> = ({
                       if ((freq.FOLD || 0) > 0) ratios.push(`F${freq.FOLD || 0}%`);
                       
                       return (
-                        <div className="hidden md:block text-[7px] leading-none mt-0.5">
+                        <div className="hidden lg:block text-[6px] md:text-[7px] leading-none mt-0.5">
                           {ratios.join('')}
                         </div>
                       );

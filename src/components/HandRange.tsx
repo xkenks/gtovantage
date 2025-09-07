@@ -1098,8 +1098,8 @@ const HandRangeGrid: React.FC<{
   };
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center md:items-start justify-center md:justify-start z-[60] p-4 md:p-0 pt-32 md:pt-0 pb-safe-bottom">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl md:rounded-none p-6 md:p-0 max-w-4xl md:max-w-full w-full mx-4 md:mx-0 h-[calc(100dvh-9rem)] md:h-screen max-h-[calc(100dvh-9rem)] md:max-h-screen overflow-y-auto shadow-2xl border border-gray-700">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -1540,8 +1540,8 @@ export const HandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
-      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] shadow-2xl border border-gray-700 flex flex-col" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center md:items-start justify-center md:justify-start z-[60] p-4 md:p-0 pt-32 md:pt-0 pb-safe-bottom">
+      <div className="bg-gray-900 rounded-xl md:rounded-none p-6 md:p-0 max-w-6xl md:max-w-full w-full mx-4 md:mx-0 h-[calc(100dvh-9rem)] md:h-screen max-h-[calc(100dvh-9rem)] md:max-h-screen shadow-2xl border border-gray-700 flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
@@ -2185,7 +2185,8 @@ export const MTTRangeEditor: React.FC<{
   onClose: () => void;
   initialRange?: Record<string, HandInfo>;
   isSaving?: boolean;
-}> = ({ position, stackSize, onSaveRange, onClose, initialRange, isSaving = false }) => {
+  isAdmin?: boolean;
+}> = ({ position, stackSize, onSaveRange, onClose, initialRange, isSaving = false, isAdmin = false }) => {
   const [selectedAction, setSelectedAction] = useState<'MIN' | 'ALL_IN' | 'CALL' | 'FOLD' | 'CLEAR'>('MIN');
   const [rangeData, setRangeData] = useState<Record<string, HandInfo>>(initialRange || {});
   const [isDragging, setIsDragging] = useState(false);
@@ -2805,37 +2806,32 @@ export const MTTRangeEditor: React.FC<{
               キャンセル
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 console.log('🔘 MTTRangeEditor 保存ボタンクリック:', { 
                   position, 
                   rangeDataSize: Object.keys(rangeData).length, 
                   isSaving,
+                  isAdmin,
                   rangeData: Object.keys(rangeData).slice(0, 5),
                   onSaveRangeType: typeof onSaveRange
                 });
                 
-                // 強制的に保存を実行
+                // 管理者権限チェック
+                if (!isAdmin) {
+                  alert('❌ カスタムレンジの編集は管理者のみ可能です\n\n管理者としてログインしてください');
+                  return;
+                }
+                
+                // 保存処理を実行
                 try {
-                  onSaveRange(position, rangeData);
+                  await onSaveRange(position, rangeData);
                   console.log('✅ onSaveRange 実行完了');
-                  
-                  // 直接ローカルストレージにも保存（フォールバック）
-                  try {
-                    const currentRanges = JSON.parse(localStorage.getItem('mtt-custom-ranges') || '{}');
-                    currentRanges[position] = rangeData;
-                    localStorage.setItem('mtt-custom-ranges', JSON.stringify(currentRanges));
-                    localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
-                    console.log('✅ ローカルストレージに直接保存完了');
-                  } catch (storageError) {
-                    console.error('❌ ローカルストレージ保存失敗:', storageError);
-                  }
                   
                   // 保存成功のフィードバック
                   alert(`✅ ${position}のレンジを保存しました\n\n設定されたハンド数: ${Object.keys(rangeData).length}`);
                   
-                  if (!isSaving) {
-                    onClose();
-                  }
+                  // エディターを閉じる
+                  onClose();
                 } catch (error) {
                   console.error('❌ onSaveRange 実行エラー:', error);
                   alert(`❌ 保存中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-09-04T17:42:43.146Z",
+  "lastUpdated": "2025-09-07T10:32:11.099Z",
   "ranges": {
     "vsopen_UTG1_vs_UTG": {
       "55": {
@@ -115127,11 +115127,59 @@
         "action": "CALL",
         "frequency": 100
       }
+    },
+    "vs4bet_SB_vs_UTG_40BB": {
+      "88": {
+        "action": "MIXED",
+        "frequency": 100,
+        "mixedFrequencies": {
+          "MIN": 0,
+          "ALL_IN": 0,
+          "CALL": 25,
+          "FOLD": 75
+        }
+      },
+      "99": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AA": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AQs": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "AKo": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "KK": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "QQ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "JJ": {
+        "action": "CALL",
+        "frequency": 100
+      },
+      "TT": {
+        "action": "CALL",
+        "frequency": 100
+      }
     }
   },
   "metadata": {
-    "totalPositions": 429,
-    "totalHands": 20137,
+    "totalPositions": 430,
+    "totalHands": 20147,
     "creator": "MTT Admin System",
     "environment": "development"
   }

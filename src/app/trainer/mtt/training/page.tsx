@@ -4579,9 +4579,8 @@ function MTTTrainingPage() {
         try {
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const backupKey = `mtt-custom-ranges-auto-backup-${timestamp}`;
-          localStorage.setItem(backupKey, currentRanges);
           
-          // 古い自動バックアップを削除（最新の5個のみ保持）
+          // 古い自動バックアップを先に削除して容量を確保
           const autoBackupKeys = Object.keys(localStorage).filter(key => 
             key.startsWith('mtt-custom-ranges-auto-backup-')
           ).sort().reverse();
@@ -4593,9 +4592,36 @@ function MTTTrainingPage() {
             });
           }
           
+          localStorage.setItem(backupKey, currentRanges);
           console.log('💾 自動バックアップを作成:', backupKey);
         } catch (error) {
-          console.error('自動バックアップ作成に失敗:', error);
+          if (error.name === 'QuotaExceededError') {
+            console.warn('localStorage容量不足のため、より多くの古いバックアップを削除します');
+            // 容量不足の場合は、より積極的に古いバックアップを削除
+            const autoBackupKeys = Object.keys(localStorage).filter(key => 
+              key.startsWith('mtt-custom-ranges-auto-backup-')
+            ).sort().reverse();
+            
+            // 最新の2個以外をすべて削除
+            if (autoBackupKeys.length > 2) {
+              autoBackupKeys.slice(2).forEach(key => {
+                localStorage.removeItem(key);
+                console.log('🗑️ 容量不足により古いバックアップを削除:', key);
+              });
+            }
+            
+            // 再試行
+            try {
+              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+              const backupKey = `mtt-custom-ranges-auto-backup-${timestamp}`;
+              localStorage.setItem(backupKey, currentRanges);
+              console.log('💾 再試行で自動バックアップを作成:', backupKey);
+            } catch (retryError) {
+              console.error('再試行でもバックアップ作成に失敗:', retryError);
+            }
+          } else {
+            console.error('自動バックアップ作成に失敗:', error);
+          }
         }
       }
     };
@@ -4663,8 +4689,16 @@ function MTTTrainingPage() {
       rangeDataValid: !!rangeData,
       rangeDataSize: rangeData ? Object.keys(rangeData).length : 0,
       isSaving,
+      isAdmin,
       timestamp: new Date().toISOString()
     });
+
+    // 管理者権限チェック
+    if (!isAdmin) {
+      console.error('❌ 管理者権限がありません。カスタムレンジの保存は管理者のみ可能です');
+      alert('❌ カスタムレンジの編集は管理者のみ可能です\n\n管理者としてログインしてください');
+      return;
+    }
 
     // データの妥当性をチェック
     if (!validateRangeData(rangeData)) {
@@ -4674,22 +4708,16 @@ function MTTTrainingPage() {
 
     // 保存中の場合は少し待ってから再試行
     if (isSaving) {
-      console.log('⏳ 他の保存処理が実行中です。1秒後に再試行します:', { 
+      console.log('⏳ 他の保存処理が実行中です。500ms後に再試行します:', { 
         position, 
         isSaving,
         timestamp: new Date().toISOString()
       });
       
       setTimeout(() => {
-        if (!isSaving) {
-          console.log('🔄 再試行: handleSaveRange', position);
-          handleSaveRange(position, rangeData);
-        } else {
-          console.error('❌ 保存の再試行に失敗しました。isSavingフラグを強制リセットします');
-          setIsSaving(false);
-          handleSaveRange(position, rangeData);
-        }
-      }, 1000);
+        console.log('🔄 再試行: handleSaveRange', position);
+        handleSaveRange(position, rangeData);
+      }, 500);
       return;
     }
 
@@ -4758,6 +4786,8 @@ function MTTTrainingPage() {
       
       // 統合ストレージシステムで安全に保存
       const saveResult = await storageManager.saveRanges(newCustomRanges);
+      
+      console.log('💾 ストレージ保存結果:', saveResult);
       
       if (saveResult.success) {
         const currentTimestamp = new Date().toISOString();
@@ -4828,20 +4858,25 @@ function MTTTrainingPage() {
           vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
         });
       } else {
-        console.error('❌ 統合ストレージ保存失敗');
-        alert(`❌ レンジの保存に失敗しました`);
+        console.error('❌ 統合ストレージ保存失敗:', saveResult.error);
+        
+        // フォールバック: 直接localStorageに保存を試行
+        try {
+          localStorage.setItem('mtt-custom-ranges', JSON.stringify(newCustomRanges));
+          localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
+          console.log('✅ フォールバック保存成功 (localStorage)');
+          alert(`✅ ${position}のレンジを保存しました（フォールバック保存）`);
+        } catch (fallbackError) {
+          console.error('❌ フォールバック保存も失敗:', fallbackError);
+          alert(`❌ レンジの保存に失敗しました\n\nエラー: ${saveResult.error || 'ストレージエラー'}`);
+        }
       }
     } catch (error) {
       console.error('❌ レンジ保存エラー:', error);
       alert(`❌ ${position}の保存中にエラーが発生しました\n\nエラー詳細: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      setIsSaving(false);
       console.log('🎯 保存処理完了:', position);
-      
-      // 確実にフラグをリセットするための安全装置
-      setTimeout(() => {
-        setIsSaving(false);
-      }, 100);
+      setIsSaving(false);
     }
   };
 
@@ -7413,6 +7448,7 @@ function MTTTrainingPage() {
               onClose={() => setShowRangeEditor(false)}
               initialRange={initialRange}
               isSaving={isSaving}
+              isAdmin={isAdmin}
             />
           );
         })()

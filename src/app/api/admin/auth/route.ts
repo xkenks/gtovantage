@@ -8,7 +8,7 @@ const LOCKOUT_DURATION = 15 * 60 * 1000; // 15分
 
 // 管理者認証情報（環境変数から取得 - 開発環境ではデフォルト値を使用）
 const ADMIN_CREDENTIALS = {
-  username: process.env.ADMIN_USERNAME || 'gto-admin',
+  username: process.env.ADMIN_USER || process.env.ADMIN_USERNAME || 'gto-admin',
   password: process.env.ADMIN_PASSWORD || 'GTO2024Admin!'
 };
 
@@ -16,9 +16,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024'
 
 // 本番環境での環境変数検証
 if (process.env.NODE_ENV === 'production') {
-  if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
+  if ((!process.env.ADMIN_USER && !process.env.ADMIN_USERNAME) || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
     console.error('❌ 本番環境で管理者認証に必要な環境変数が設定されていません');
-    console.error('ADMIN_USERNAME, ADMIN_PASSWORD, JWT_SECRET を設定してください');
+    console.error('ADMIN_USER (または ADMIN_USERNAME), ADMIN_PASSWORD, JWT_SECRET を設定してください');
   }
 }
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // 本番環境での環境変数検証
-    if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET)) {
+    if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_USER && !process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET)) {
       console.error(`管理者認証試行が拒否されました（本番環境で環境変数未設定）: IP ${clientIP}`);
       const response = NextResponse.json(
         { error: '管理者認証システムが設定されていません' },
