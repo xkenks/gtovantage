@@ -4595,7 +4595,7 @@ function MTTTrainingPage() {
           localStorage.setItem(backupKey, currentRanges);
           console.log('💾 自動バックアップを作成:', backupKey);
         } catch (error) {
-          if (error.name === 'QuotaExceededError') {
+          if (error instanceof Error && error.name === 'QuotaExceededError') {
             console.warn('localStorage容量不足のため、より多くの古いバックアップを削除します');
             // 容量不足の場合は、より積極的に古いバックアップを削除
             const autoBackupKeys = Object.keys(localStorage).filter(key => 
