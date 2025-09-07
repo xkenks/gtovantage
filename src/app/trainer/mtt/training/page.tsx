@@ -4224,7 +4224,6 @@ function MTTTrainingPage() {
                 
                 // 一般ユーザーのカスタムレンジをマージ
                 const mergedRanges = {
-                  ...systemData?.ranges || {},
                   ...userRangesData.ranges
                 };
                 
