@@ -4887,7 +4887,7 @@ function MTTTrainingPage() {
               body: JSON.stringify({
                 ranges: newCustomRanges,
                 metadata: {
-                  creator: user?.email || 'Anonymous',
+                  creator: (user as any)?.email || 'Anonymous',
                   totalRanges: Object.keys(newCustomRanges).length,
                   timestamp: new Date().toISOString()
                 }
