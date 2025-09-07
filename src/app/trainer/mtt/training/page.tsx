@@ -7819,12 +7819,4 @@ function MTTTrainingPage() {
     </div>
     </AuthGuard>
   );
-} 
-
-export default function MTTTrainingPageWrapper() {
-  return (
-    <Suspense>
-      <MTTTrainingPage />
-    </Suspense>
-  );
 }
