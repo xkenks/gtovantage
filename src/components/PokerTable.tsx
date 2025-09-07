@@ -2029,7 +2029,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`, 
                       top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform(sbPos)
+                  transform: getUnifiedChipTransform({...sbPos, label: 'SB', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2055,7 +2055,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`, 
                       top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform(bbPos)
+                  transform: getUnifiedChipTransform({...bbPos, label: 'BB', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2078,7 +2078,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`,
                       top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform(openRaiserPosition)
+                  transform: getUnifiedChipTransform({...openRaiserPosition, label: openRaiserPos || '', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2123,7 +2123,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform(threeBetterInfoMobile)
+                  transform: getUnifiedChipTransform({...threeBetterInfoMobile, label: threeBetterPosMobile || '', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2146,7 +2146,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform(fourBetterInfoMobile)
+                  transform: getUnifiedChipTransform({...fourBetterInfoMobile, label: fourBetterPosMobile || '', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
