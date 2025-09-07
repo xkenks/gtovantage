@@ -7820,3 +7820,5 @@ function MTTTrainingPage() {
     </AuthGuard>
   );
 }
+
+export default MTTTrainingPage;
