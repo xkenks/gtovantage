@@ -441,7 +441,14 @@ const simulateMTTGTOData = (
       usedRangeKey = fallbackRangeKey;
       console.log('✅ オープンレイズ フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
-      console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
+      // 追加のフォールバック: 既存形式のレンジキーも試す
+      const legacyKey = `${position}_${stackSize}`;
+      if (customRanges && customRanges[legacyKey] && customRanges[legacyKey][normalizedHandType]) {
+        customHandData = customRanges[legacyKey][normalizedHandType];
+        usedRangeKey = legacyKey;
+        console.log('✅ オープンレイズ レガシーレンジ使用:', { legacyKey, handType: normalizedHandType, customHandData });
+      } else {
+        console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
         rangeKey, 
         fallbackRangeKey, 
         handType: normalizedHandType,
@@ -7510,13 +7517,14 @@ function MTTTrainingPage() {
         // カスタムレンジが見つからない場合は、フォールバック処理を実行
         if (!rangeData && rangeKey) {
           // オープンレイズの場合、既存のレンジキー形式も試す
-          if (rangeKey.startsWith('open_') && rangeKey.includes('_15BB')) {
+          if (rangeKey.startsWith('open_')) {
             const fallbackKey = rangeKey.replace('open_', ''); // open_UTG_15BB -> UTG_15BB
             rangeData = customRanges[fallbackKey] || null;
             console.log('🎯 ハンドレンジビューアー: オープンレイズフォールバック試行:', {
               originalKey: rangeKey,
               fallbackKey,
-              found: !!rangeData
+              found: !!rangeData,
+              availableKeys: Object.keys(customRanges).filter(key => key.includes(fallbackKey.split('_')[0]))
             });
           }
           
@@ -7529,9 +7537,14 @@ function MTTTrainingPage() {
                 rangeData = parsedRanges[rangeKey] || null;
                 
                 // オープンレイズの場合はフォールバックキーも試す
-                if (!rangeData && rangeKey.startsWith('open_') && rangeKey.includes('_15BB')) {
+                if (!rangeData && rangeKey.startsWith('open_')) {
                   const fallbackKey = rangeKey.replace('open_', '');
                   rangeData = parsedRanges[fallbackKey] || null;
+                  console.log('🎯 ローカルストレージフォールバック試行:', {
+                    originalKey: rangeKey,
+                    fallbackKey,
+                    found: !!rangeData
+                  });
                 }
                 
                 console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
