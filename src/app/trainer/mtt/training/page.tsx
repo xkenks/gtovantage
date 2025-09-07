@@ -2320,7 +2320,7 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
+  const { canPractice, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
   
   // 開発環境でのみデバッグログを表示
   if (process.env.NODE_ENV === 'development') {
@@ -4204,6 +4204,50 @@ function MTTTrainingPage() {
       }
       
       try {
+        // 一般ユーザーのカスタムレンジを読み込み
+        if (!isAdmin && token) {
+          console.log('🎯 一般ユーザーカスタムレンジの読み込みを試行');
+          try {
+            const userRangesResponse = await fetch('/api/user-ranges', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (userRangesResponse.ok) {
+              const userRangesData = await userRangesResponse.json();
+              if (userRangesData.ranges && Object.keys(userRangesData.ranges).length > 0) {
+                console.log('✅ 一般ユーザーカスタムレンジ取得成功:', {
+                  userRangeCount: Object.keys(userRangesData.ranges).length,
+                  userRangeKeys: Object.keys(userRangesData.ranges).slice(0, 5)
+                });
+                
+                // 一般ユーザーのカスタムレンジをマージ
+                const mergedRanges = {
+                  ...systemData?.ranges || {},
+                  ...userRangesData.ranges
+                };
+                
+                setCustomRanges(mergedRanges);
+                setLastRangeUpdate(Date.now());
+                
+                // ローカルストレージにも保存
+                const timestampResult = storageManager.safeSetItem('mtt-ranges-timestamp', new Date().toISOString());
+                const saveResult = await storageManager.saveRanges(mergedRanges);
+                
+                console.log('✅ 一般ユーザーカスタムレンジをマージして保存完了:', {
+                  totalRanges: Object.keys(mergedRanges).length,
+                  saveMethod: saveResult.method
+                });
+                
+                return; // 一般ユーザーのカスタムレンジ読み込み完了
+              }
+            }
+          } catch (error) {
+            console.log('⚠️ 一般ユーザーカスタムレンジ読み込みエラー:', error);
+          }
+        }
+        
         // APIからの読み込みを試行（常に実行）
         console.log('🎯 システムAPIからの読み込みを試行');
         const response = await fetch('/api/mtt-ranges');
@@ -4452,32 +4496,63 @@ function MTTTrainingPage() {
       }
       
       try {
-        console.log('🔄 定期的なサーバーGTOレンジ同期を実行中...');
-        const response = await fetch('/api/mtt-ranges');
-        if (response.ok) {
-          const systemData = await response.json();
-          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            // 現在のレンジと比較（インポートしたデータを保護）
-            const currentRangesString = JSON.stringify(customRanges);
-            const serverRangesString = JSON.stringify(systemData.ranges);
-            
-            // 管理者のみサーバーレンジで更新、一般ユーザーは既存データを保持
-            if (isAdmin && currentRangesString !== serverRangesString) {
-              console.log('🚀 管理者モード: サーバーGTOレンジが更新されました');
+        console.log('🔄 定期的なレンジ同期を実行中...');
+        
+        // 管理者の場合はシステムレンジを同期
+        if (isAdmin) {
+          const response = await fetch('/api/mtt-ranges');
+          if (response.ok) {
+            const systemData = await response.json();
+            if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+              const currentRangesString = JSON.stringify(customRanges);
+              const serverRangesString = JSON.stringify(systemData.ranges);
               
-              // 管理者の場合のみサーバーレンジを適用
-              setCustomRanges(systemData.ranges);
-              setLastRangeUpdate(Date.now());
-              
-              console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
-            } else {
-              console.log('📋 インポートデータを保護: 同期をスキップ');
+              if (currentRangesString !== serverRangesString) {
+                console.log('🚀 管理者モード: サーバーGTOレンジが更新されました');
+                setCustomRanges(systemData.ranges);
+                setLastRangeUpdate(Date.now());
+                console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
+              }
             }
-          } else {
-            console.log('⚠️ サーバーにGTOレンジが存在しません');
+          }
+        } else if (token) {
+          // 一般ユーザーの場合はカスタムレンジを同期
+          const userRangesResponse = await fetch('/api/user-ranges', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (userRangesResponse.ok) {
+            const userRangesData = await userRangesResponse.json();
+            if (userRangesData.ranges && Object.keys(userRangesData.ranges).length > 0) {
+              // システムレンジとマージ
+              const systemResponse = await fetch('/api/mtt-ranges');
+              let mergedRanges = { ...userRangesData.ranges };
+              
+              if (systemResponse.ok) {
+                const systemData = await systemResponse.json();
+                if (systemData.ranges) {
+                  mergedRanges = {
+                    ...systemData.ranges,
+                    ...userRangesData.ranges
+                  };
+                }
+              }
+              
+              const currentRangesString = JSON.stringify(customRanges);
+              const mergedRangesString = JSON.stringify(mergedRanges);
+              
+              if (currentRangesString !== mergedRangesString) {
+                console.log('🔄 一般ユーザー: カスタムレンジが更新されました');
+                setCustomRanges(mergedRanges);
+                setLastRangeUpdate(Date.now());
+                console.log('✅ 定期同期完了: カスタムレンジを同期');
+              }
+            }
           }
         } else {
-          console.log('⚠️ サーバーGTOレンジAPI応答エラー:', response.status);
+          console.log('📋 認証なし: 同期をスキップ');
         }
       } catch (error) {
         console.log('⚠️ 定期同期エラー:', error);
@@ -4799,10 +4874,37 @@ function MTTTrainingPage() {
             console.error('❌ API保存エラー:', error);
           }
         } else {
-          console.log('📌 管理者でないため、サーバーベースレンジシステムを利用（ローカル保存は使用しない）');
+          console.log('📌 一般ユーザー: カスタムレンジをサーバーに保存して他ユーザーと同期');
           
-          // 一般ユーザーはサーバーレンジを直接参照するため、保存は行わない
-          console.log('ℹ️ 一般ユーザーのレンジ変更は保存されません - 管理者GTOレンジが常に適用されます');
+          // 一般ユーザーもカスタムレンジをサーバーに保存（他ユーザーとの同期のため）
+          try {
+            console.log('🔒 一般ユーザーとしてカスタムレンジをサーバーに保存開始');
+            const response = await fetch('/api/user-ranges', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                ranges: newCustomRanges,
+                metadata: {
+                  creator: user?.email || 'Anonymous',
+                  totalRanges: Object.keys(newCustomRanges).length,
+                  timestamp: new Date().toISOString()
+                }
+              })
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log('✅ 一般ユーザーカスタムレンジ保存成功:', result);
+            } else {
+              const error = await response.json();
+              console.error('❌ 一般ユーザーカスタムレンジ保存失敗:', error.error || '保存に失敗しました');
+            }
+          } catch (error) {
+            console.error('❌ 一般ユーザーAPI保存エラー:', error);
+          }
         }
         
         console.log('🎯 保存詳細:', {
@@ -5998,6 +6100,13 @@ function MTTTrainingPage() {
           key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
         );
         
+        console.log('🎯 オールイン特別検索:', { 
+          action,
+          allinKeys,
+          frequencies: gtoData.frequencies,
+          isCustomRange: (gtoData as any)?.isCustomRange
+        });
+        
         if (allinKeys.length > 0) {
           foundFrequency = gtoData.frequencies[allinKeys[0]];
           usedVariant = allinKeys[0];
@@ -6006,33 +6115,52 @@ function MTTTrainingPage() {
             frequency: foundFrequency,
             isCustomRange: (gtoData as any)?.isCustomRange
           });
+        } else {
+          // ALL INキーが見つからない場合、明示的に0%として扱う
+          foundFrequency = 0;
+          console.log('🎯 オールインキー未発見 - 0%として扱う:', { 
+            action,
+            availableKeys: Object.keys(gtoData.frequencies)
+          });
         }
       }
     }
     
-    if (foundFrequency > 0) {
-      // カスタムレンジの場合は、頻度が10%以上なら正解扱い
-      if ((gtoData as any)?.isCustomRange) {
-        console.log('🎯 カスタムレンジ判定（統合版）:', {
+    // 頻度情報がある場合の判定
+    if (gtoData?.frequencies) {
+      // 頻度が0%の場合は確実に不正解
+      if (foundFrequency === 0) {
+        correct = false;
+        console.log('🎯 頻度0% - 不正解:', {
           selectedAction: action,
-          usedVariant,
           foundFrequency,
-          threshold: 10,
-          isCorrect: foundFrequency >= 10
+          isCorrect: false,
+          frequencies: gtoData.frequencies
         });
-        if (foundFrequency >= 10) {
-          correct = true;
+      } else if (foundFrequency > 0) {
+        // カスタムレンジの場合は、頻度が10%以上なら正解扱い
+        if ((gtoData as any)?.isCustomRange) {
+          console.log('🎯 カスタムレンジ判定（統合版）:', {
+            selectedAction: action,
+            usedVariant,
+            foundFrequency,
+            threshold: 10,
+            isCorrect: foundFrequency >= 10
+          });
+          if (foundFrequency >= 10) {
+            correct = true;
+          } else {
+            correct = false;
+          }
         } else {
-          correct = false;
-        }
-      } else {
-        // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
-        if (foundFrequency >= 30) {
-          correct = true;
-        } else if (foundFrequency >= 10) {
-          correct = true; // 部分正解も正解扱い
-        } else {
-          correct = false;
+          // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
+          if (foundFrequency >= 30) {
+            correct = true;
+          } else if (foundFrequency >= 10) {
+            correct = true; // 部分正解も正解扱い
+          } else {
+            correct = false;
+          }
         }
       }
     } else {
@@ -6065,6 +6193,17 @@ function MTTTrainingPage() {
         key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
       ) : []
     });
+    
+    // ALL INアクションの特別処理：頻度が0%の場合は確実に不正解
+    if (action === 'ALL IN' || action === 'ALL_IN') {
+      const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
+                           gtoData?.frequencies?.['ALL IN'] || 
+                           gtoData?.frequencies?.['ALLIN'] || 0;
+      if (allInFrequency === 0) {
+        correct = false;
+        console.log('🚨 ALL IN 0% - 強制的に不正解:', { action, allInFrequency, correct });
+      }
+    }
     
     setIsCorrect(correct);
     setShowResults(true);
@@ -6168,6 +6307,16 @@ function MTTTrainingPage() {
   return (
     <AuthGuard>
       <div className="relative">
+        {/* ヘッダーを条件付きで非表示（モバイル版でトレーニング画面の場合のみ） */}
+        {spot && (
+          <style jsx global>{`
+            @media (max-width: 767px) {
+              header {
+                display: none !important;
+              }
+            }
+          `}</style>
+        )}
 
       
       {/* 管理者ログアウトボタン（ログイン時のみ表示、PC版のみ） */}
@@ -7036,10 +7185,8 @@ function MTTTrainingPage() {
                         (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
                         (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0);
                       
-                      const hasAllin = (!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
-                        (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
-                        (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
-                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0));
+                      // ALL INボタンを強制的に表示
+                      const hasAllin = true;
                       
                       // グリッド列数を決定
                       let gridCols = 2; // FOLD, CALL は常にある
@@ -7070,14 +7217,35 @@ function MTTTrainingPage() {
                             </button>
                           )}
                           {/* ALL INボタン - スタックサイズ付き */}
-                          {hasAllin && (
-                            <button
-                              className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
-                              onClick={() => handleActionSelect('ALL IN')}
-                            >
-                              ALLIN {betSizes.allinSize}
-                            </button>
-                          )}
+                          {(() => {
+                            // 複数のキーでALL IN頻度を確認
+                            const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
+                                                 gtoData?.frequencies?.['ALL IN'] || 
+                                                 gtoData?.frequencies?.['ALLIN'] || 0;
+                            const isAllInCorrect = allInFrequency > 0;
+                            
+                            // デバッグログを出力
+                            console.log('ALL IN Debug:', { 
+                              allInFrequency, 
+                              isAllInCorrect, 
+                              frequencies: gtoData?.frequencies,
+                              spot: spot,
+                              betSizes: betSizes
+                            });
+                            
+                            return (
+                              <button
+                                className={`py-3 rounded-lg font-bold text-lg shadow-lg text-white transition-all border border-gray-700 ${
+                                  isAllInCorrect
+                                    ? 'bg-green-600 hover:bg-green-700'
+                                    : 'bg-red-600 hover:bg-red-700'
+                                }`}
+                                onClick={() => handleActionSelect('ALL IN')}
+                              >
+                                ALLIN {betSizes.allinSize}
+                              </button>
+                            );
+                          })()}
                         </div>
                       );
                     })()
@@ -7221,7 +7389,7 @@ function MTTTrainingPage() {
                                           ? 'text-green-300' 
                                           : 'text-gray-300'
                                     }`}>
-                                      {displayAction === 'ALL_IN' ? 'ALL_IN' : action}
+                                      {displayAction === 'ALL_IN' ? 'ALLIN' : action}
                                       {isCorrectAction && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${

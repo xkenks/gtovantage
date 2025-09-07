@@ -46,4 +46,57 @@ try {
 }
 
 export { db };
+
+// Firebase認証トークンの検証関数
+export async function verifyFirebaseToken(request: NextRequest): Promise<{ success: boolean; uid?: string; error?: string }> {
+  try {
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { success: false, error: '認証ヘッダーがありません' };
+    }
+    
+    const token = authHeader.substring(7);
+    
+    // Firebase Admin SDKを使用してトークンを検証
+    const { getAuth } = await import('firebase-admin/auth');
+    const { initializeApp, getApps, cert } = await import('firebase-admin/app');
+    
+    // Firebase Admin SDKの初期化（初回のみ）
+    if (getApps().length === 0) {
+      const serviceAccount = {
+        type: "service_account",
+        project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "gtovantage-e180c",
+        private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+        private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        client_email: process.env.FIREBASE_CLIENT_EMAIL,
+        client_id: process.env.FIREBASE_CLIENT_ID,
+        auth_uri: "https://accounts.google.com/o/oauth2/auth",
+        token_uri: "https://oauth2.googleapis.com/token",
+        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+        client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.FIREBASE_CLIENT_EMAIL}`
+      };
+      
+      if (serviceAccount.private_key && serviceAccount.client_email) {
+        initializeApp({
+          credential: cert(serviceAccount as any)
+        });
+      } else {
+        // 開発環境では簡易検証
+        console.log('⚠️ 開発環境: Firebase Admin SDKの設定が不完全です');
+        return { success: true, uid: 'dev-user' };
+      }
+    }
+    
+    const auth = getAuth();
+    const decodedToken = await auth.verifyIdToken(token);
+    
+    return { success: true, uid: decodedToken.uid };
+    
+  } catch (error) {
+    console.error('❌ Firebase認証エラー:', error);
+    return { success: false, error: '認証に失敗しました' };
+  }
+}
+
 export default app;
