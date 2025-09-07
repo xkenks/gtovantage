@@ -390,9 +390,9 @@ const simulateMTTGTOData = (
     let fallbackRangeKey: string | null = null;
     
     if (stackSize === '15BB') {
-      // 15BBの場合は新しいキー形式を優先、既存形式をフォールバック
-      rangeKey = `open_${position}_15BB`;
-      fallbackRangeKey = `${position}_15BB`; // 既存形式
+      // 15BBの場合はスタックサイズを含むキーを優先（管理画面で設定される形式）
+      rangeKey = `${position}_15BB`;
+      fallbackRangeKey = position;
       console.log('🎯 15BB オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey, 
@@ -401,9 +401,9 @@ const simulateMTTGTOData = (
       });
     } else {
       // その他のスタックサイズは新しいキー形式を使用
-      rangeKey = `open_${position}_${stackSize}`;
-      // 15BBレンジがある場合はフォールバックとして使用（新旧両方の形式）
-      fallbackRangeKey = `open_${position}_15BB`;
+      rangeKey = `${position}_${stackSize}`;
+      // 15BBレンジがある場合はフォールバックとして使用
+      fallbackRangeKey = position;
       console.log('🎯 その他スタックサイズ オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey,
@@ -441,14 +441,7 @@ const simulateMTTGTOData = (
       usedRangeKey = fallbackRangeKey;
       console.log('✅ オープンレイズ フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
     } else {
-      // 追加のフォールバック: 既存形式のレンジキーも試す
-      const legacyKey = `${position}_${stackSize}`;
-      if (customRanges && customRanges[legacyKey] && customRanges[legacyKey][normalizedHandType]) {
-        customHandData = customRanges[legacyKey][normalizedHandType];
-        usedRangeKey = legacyKey;
-        console.log('✅ オープンレイズ レガシーレンジ使用:', { legacyKey, handType: normalizedHandType, customHandData });
-      } else {
-        console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
+      console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
         rangeKey, 
         fallbackRangeKey, 
         handType: normalizedHandType,
@@ -2327,7 +2320,7 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
+  const { canPractice, practiceCount, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
   
   // 開発環境でのみデバッグログを表示
   if (process.env.NODE_ENV === 'development') {
@@ -2435,9 +2428,9 @@ function MTTTrainingPage() {
     if (actionType === 'open' || actionType === 'openraise') {
       // オープンレンジの場合
       if (stackDepth === '15BB') {
-        return heroPosition ? `open_${heroPosition}_15BB` : null; // 15BBの場合はopen_プレフィックス付き
+        return heroPosition || null; // 15BBの場合はポジション名のみ
       } else {
-        return heroPosition && stackDepth ? `open_${heroPosition}_${stackDepth}` : null; // その他のスタックサイズもopen_プレフィックス付き
+        return heroPosition && stackDepth ? `${heroPosition}_${stackDepth}` : null; // その他のスタックサイズ
       }
     } else if (actionType === 'vsopen' && spot.openRaiserPosition) {
       // vsオープンレンジの場合
@@ -4178,26 +4171,13 @@ function MTTTrainingPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
-  // localStorageが利用可能かチェックする関数
-  const isLocalStorageAvailable = () => {
-    try {
-      const test = '__localStorage_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
-      return true;
-    } catch (e) {
-      console.warn('localStorageが利用できません（シークレットモード等）:', e);
-      return false;
-    }
-  };
-
   // システム全体からレンジデータを自動読み込み（エンタープライズ機能）
   useEffect(() => {
     const loadSystemRanges = async () => {
       // 新しい端末での初回アクセスかどうかをチェック
-      const isFirstVisit = !isLocalStorageAvailable() || !localStorage.getItem('mtt-ranges-timestamp');
+      const isFirstVisit = !localStorage.getItem('mtt-ranges-timestamp');
       if (isFirstVisit) {
-        console.log('🎯 新しい端末での初回アクセスを検出（localStorage利用可能:', isLocalStorageAvailable(), ')');
+        console.log('🎯 新しい端末での初回アクセスを検出');
       }
       console.log('🎯 カスタムレンジ読み込み開始');
       
@@ -4205,7 +4185,7 @@ function MTTTrainingPage() {
       if (!isSaving) {
         // 統合ストレージシステムからデータを読み込み
         const localRanges = await storageManager.loadRanges();
-        const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
+        const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
         
         // ローカルデータがある場合は一時的に設定（後でAPIと比較）
         if (localRanges && Object.keys(localRanges).length > 0) {
@@ -4231,8 +4211,8 @@ function MTTTrainingPage() {
           const systemData = await response.json();
           
           if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-            const localRanges = isLocalStorageAvailable() ? localStorage.getItem('mtt-custom-ranges') : null;
-            const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
+            const localRanges = localStorage.getItem('mtt-custom-ranges');
+            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
             let shouldUpdate = false;
             
             console.log('🎯 システムAPIデータ確認:', {
@@ -4274,10 +4254,8 @@ function MTTTrainingPage() {
               });
               
               setCustomRanges(systemData.ranges);
-              if (isLocalStorageAvailable()) {
-                localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
-                localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
-              }
+              localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+              localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated || new Date().toISOString());
               console.log('✅ システムAPIからレンジデータを自動同期しました（QQ復元済み）');
               console.log('🎯 システムAPIレンジ詳細:', {
                 rangeKeys: Object.keys(systemData.ranges),
@@ -4306,8 +4284,8 @@ function MTTTrainingPage() {
           const fileData = await fileResponse.json();
           
           if (fileData.ranges && Object.keys(fileData.ranges).length > 0) {
-            const localRanges = isLocalStorageAvailable() ? localStorage.getItem('mtt-custom-ranges') : null;
-            const localTimestamp = isLocalStorageAvailable() ? localStorage.getItem('mtt-ranges-timestamp') : null;
+            const localRanges = localStorage.getItem('mtt-custom-ranges');
+            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
             let shouldUpdate = false;
             
             if (!localRanges) {
@@ -4337,10 +4315,8 @@ function MTTTrainingPage() {
               });
               
               setCustomRanges(fileData.ranges);
-              if (isLocalStorageAvailable()) {
-                localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
-                localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
-              }
+              localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
+              localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
               console.log(`✅ データファイルからレンジデータを自動同期しました（QQ復元済み、${Object.keys(fileData.ranges).length}ポジション）`);
               console.log('🎯 ファイルレンジ詳細:', {
                 rangeKeys: Object.keys(fileData.ranges),
@@ -4603,8 +4579,9 @@ function MTTTrainingPage() {
         try {
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const backupKey = `mtt-custom-ranges-auto-backup-${timestamp}`;
+          localStorage.setItem(backupKey, currentRanges);
           
-          // 古い自動バックアップを先に削除して容量を確保
+          // 古い自動バックアップを削除（最新の5個のみ保持）
           const autoBackupKeys = Object.keys(localStorage).filter(key => 
             key.startsWith('mtt-custom-ranges-auto-backup-')
           ).sort().reverse();
@@ -4616,36 +4593,9 @@ function MTTTrainingPage() {
             });
           }
           
-          localStorage.setItem(backupKey, currentRanges);
           console.log('💾 自動バックアップを作成:', backupKey);
         } catch (error) {
-          if (error instanceof Error && error.name === 'QuotaExceededError') {
-            console.warn('localStorage容量不足のため、より多くの古いバックアップを削除します');
-            // 容量不足の場合は、より積極的に古いバックアップを削除
-            const autoBackupKeys = Object.keys(localStorage).filter(key => 
-              key.startsWith('mtt-custom-ranges-auto-backup-')
-            ).sort().reverse();
-            
-            // 最新の2個以外をすべて削除
-            if (autoBackupKeys.length > 2) {
-              autoBackupKeys.slice(2).forEach(key => {
-                localStorage.removeItem(key);
-                console.log('🗑️ 容量不足により古いバックアップを削除:', key);
-              });
-            }
-            
-            // 再試行
-            try {
-              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-              const backupKey = `mtt-custom-ranges-auto-backup-${timestamp}`;
-              localStorage.setItem(backupKey, currentRanges);
-              console.log('💾 再試行で自動バックアップを作成:', backupKey);
-            } catch (retryError) {
-              console.error('再試行でもバックアップ作成に失敗:', retryError);
-            }
-          } else {
-            console.error('自動バックアップ作成に失敗:', error);
-          }
+          console.error('自動バックアップ作成に失敗:', error);
         }
       }
     };
@@ -4713,16 +4663,8 @@ function MTTTrainingPage() {
       rangeDataValid: !!rangeData,
       rangeDataSize: rangeData ? Object.keys(rangeData).length : 0,
       isSaving,
-      isAdmin,
       timestamp: new Date().toISOString()
     });
-
-    // 管理者権限チェック
-    if (!isAdmin) {
-      console.error('❌ 管理者権限がありません。カスタムレンジの保存は管理者のみ可能です');
-      alert('❌ カスタムレンジの編集は管理者のみ可能です\n\n管理者としてログインしてください');
-      return;
-    }
 
     // データの妥当性をチェック
     if (!validateRangeData(rangeData)) {
@@ -4732,16 +4674,22 @@ function MTTTrainingPage() {
 
     // 保存中の場合は少し待ってから再試行
     if (isSaving) {
-      console.log('⏳ 他の保存処理が実行中です。500ms後に再試行します:', { 
+      console.log('⏳ 他の保存処理が実行中です。1秒後に再試行します:', { 
         position, 
         isSaving,
         timestamp: new Date().toISOString()
       });
       
       setTimeout(() => {
-        console.log('🔄 再試行: handleSaveRange', position);
-        handleSaveRange(position, rangeData);
-      }, 500);
+        if (!isSaving) {
+          console.log('🔄 再試行: handleSaveRange', position);
+          handleSaveRange(position, rangeData);
+        } else {
+          console.error('❌ 保存の再試行に失敗しました。isSavingフラグを強制リセットします');
+          setIsSaving(false);
+          handleSaveRange(position, rangeData);
+        }
+      }, 1000);
       return;
     }
 
@@ -4810,8 +4758,6 @@ function MTTTrainingPage() {
       
       // 統合ストレージシステムで安全に保存
       const saveResult = await storageManager.saveRanges(newCustomRanges);
-      
-      console.log('💾 ストレージ保存結果:', saveResult);
       
       if (saveResult.success) {
         const currentTimestamp = new Date().toISOString();
@@ -4882,25 +4828,20 @@ function MTTTrainingPage() {
           vs4betAllRanges: Object.keys(newCustomRanges).filter(key => key.includes('vs4bet'))
         });
       } else {
-        console.error('❌ 統合ストレージ保存失敗:', saveResult.error);
-        
-        // フォールバック: 直接localStorageに保存を試行
-        try {
-          localStorage.setItem('mtt-custom-ranges', JSON.stringify(newCustomRanges));
-          localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
-          console.log('✅ フォールバック保存成功 (localStorage)');
-          alert(`✅ ${position}のレンジを保存しました（フォールバック保存）`);
-        } catch (fallbackError) {
-          console.error('❌ フォールバック保存も失敗:', fallbackError);
-          alert(`❌ レンジの保存に失敗しました\n\nエラー: ${saveResult.error || 'ストレージエラー'}`);
-        }
+        console.error('❌ 統合ストレージ保存失敗');
+        alert(`❌ レンジの保存に失敗しました`);
       }
     } catch (error) {
       console.error('❌ レンジ保存エラー:', error);
       alert(`❌ ${position}の保存中にエラーが発生しました\n\nエラー詳細: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      console.log('🎯 保存処理完了:', position);
       setIsSaving(false);
+      console.log('🎯 保存処理完了:', position);
+      
+      // 確実にフラグをリセットするための安全装置
+      setTimeout(() => {
+        setIsSaving(false);
+      }, 100);
     }
   };
 
@@ -6057,13 +5998,6 @@ function MTTTrainingPage() {
           key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
         );
         
-        console.log('🎯 オールイン特別検索:', { 
-          action,
-          allinKeys,
-          frequencies: gtoData.frequencies,
-          isCustomRange: (gtoData as any)?.isCustomRange
-        });
-        
         if (allinKeys.length > 0) {
           foundFrequency = gtoData.frequencies[allinKeys[0]];
           usedVariant = allinKeys[0];
@@ -6072,52 +6006,33 @@ function MTTTrainingPage() {
             frequency: foundFrequency,
             isCustomRange: (gtoData as any)?.isCustomRange
           });
-        } else {
-          // ALL INキーが見つからない場合、明示的に0%として扱う
-          foundFrequency = 0;
-          console.log('🎯 オールインキー未発見 - 0%として扱う:', { 
-            action,
-            availableKeys: Object.keys(gtoData.frequencies)
-          });
         }
       }
     }
     
-    // 頻度情報がある場合の判定
-    if (gtoData?.frequencies) {
-      // 頻度が0%の場合は確実に不正解
-      if (foundFrequency === 0) {
-        correct = false;
-        console.log('🎯 頻度0% - 不正解:', {
+    if (foundFrequency > 0) {
+      // カスタムレンジの場合は、頻度が10%以上なら正解扱い
+      if ((gtoData as any)?.isCustomRange) {
+        console.log('🎯 カスタムレンジ判定（統合版）:', {
           selectedAction: action,
+          usedVariant,
           foundFrequency,
-          isCorrect: false,
-          frequencies: gtoData.frequencies
+          threshold: 10,
+          isCorrect: foundFrequency >= 10
         });
-      } else if (foundFrequency > 0) {
-        // カスタムレンジの場合は、頻度が10%以上なら正解扱い
-        if ((gtoData as any)?.isCustomRange) {
-          console.log('🎯 カスタムレンジ判定（統合版）:', {
-            selectedAction: action,
-            usedVariant,
-            foundFrequency,
-            threshold: 10,
-            isCorrect: foundFrequency >= 10
-          });
-          if (foundFrequency >= 10) {
-            correct = true;
-          } else {
-            correct = false;
-          }
+        if (foundFrequency >= 10) {
+          correct = true;
         } else {
-          // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
-          if (foundFrequency >= 30) {
-            correct = true;
-          } else if (foundFrequency >= 10) {
-            correct = true; // 部分正解も正解扱い
-          } else {
-            correct = false;
-          }
+          correct = false;
+        }
+      } else {
+        // 通常の場合は、頻度が30%以上なら正解扱い、10%以上なら部分正解扱い
+        if (foundFrequency >= 30) {
+          correct = true;
+        } else if (foundFrequency >= 10) {
+          correct = true; // 部分正解も正解扱い
+        } else {
+          correct = false;
         }
       }
     } else {
@@ -6150,17 +6065,6 @@ function MTTTrainingPage() {
         key.toUpperCase().includes('ALL') || key.toUpperCase().includes('ALLIN')
       ) : []
     });
-    
-    // ALL INアクションの特別処理：頻度が0%の場合は確実に不正解
-    if (action === 'ALL IN' || action === 'ALL_IN') {
-      const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
-                           gtoData?.frequencies?.['ALL IN'] || 
-                           gtoData?.frequencies?.['ALLIN'] || 0;
-      if (allInFrequency === 0) {
-        correct = false;
-        console.log('🚨 ALL IN 0% - 強制的に不正解:', { action, allInFrequency, correct });
-      }
-    }
     
     setIsCorrect(correct);
     setShowResults(true);
@@ -6264,16 +6168,6 @@ function MTTTrainingPage() {
   return (
     <AuthGuard>
       <div className="relative">
-        {/* ヘッダーを条件付きで非表示（モバイル版でトレーニング画面の場合のみ） */}
-        {spot && (
-          <style jsx global>{`
-            @media (max-width: 767px) {
-              header {
-                display: none !important;
-              }
-            }
-          `}</style>
-        )}
 
       
       {/* 管理者ログアウトボタン（ログイン時のみ表示、PC版のみ） */}
@@ -7142,8 +7036,10 @@ function MTTTrainingPage() {
                         (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
                         (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0);
                       
-                      // ALL INボタンを強制的に表示
-                      const hasAllin = true;
+                      const hasAllin = (!spot || spot.actionType !== 'vs3bet' || spot.stackDepth !== '15BB') && 
+                        (!spot || spot.actionType !== 'vs3bet' || spot.threeBetType !== 'allin') &&
+                        (!spot || spot.actionType !== 'vsopen' || spot.stackDepth !== '15BB' || spot.openRaiseSize !== 15.0) && 
+                        (parseInt(stackSize) <= 80 || (gtoData && gtoData.frequencies && gtoData.frequencies['ALL_IN'] > 0));
                       
                       // グリッド列数を決定
                       let gridCols = 2; // FOLD, CALL は常にある
@@ -7174,35 +7070,14 @@ function MTTTrainingPage() {
                             </button>
                           )}
                           {/* ALL INボタン - スタックサイズ付き */}
-                          {(() => {
-                            // 複数のキーでALL IN頻度を確認
-                            const allInFrequency = gtoData?.frequencies?.['ALL_IN'] || 
-                                                 gtoData?.frequencies?.['ALL IN'] || 
-                                                 gtoData?.frequencies?.['ALLIN'] || 0;
-                            const isAllInCorrect = allInFrequency > 0;
-                            
-                            // デバッグログを出力
-                            console.log('ALL IN Debug:', { 
-                              allInFrequency, 
-                              isAllInCorrect, 
-                              frequencies: gtoData?.frequencies,
-                              spot: spot,
-                              betSizes: betSizes
-                            });
-                            
-                            return (
-                              <button
-                                className={`py-3 rounded-lg font-bold text-lg shadow-lg text-white transition-all border border-gray-700 ${
-                                  isAllInCorrect
-                                    ? 'bg-green-600 hover:bg-green-700'
-                                    : 'bg-red-600 hover:bg-red-700'
-                                }`}
-                                onClick={() => handleActionSelect('ALL IN')}
-                              >
-                                ALLIN {betSizes.allinSize}
-                              </button>
-                            );
-                          })()}
+                          {hasAllin && (
+                            <button
+                              className="py-3 rounded-lg font-bold text-lg shadow-lg bg-purple-600 hover:bg-purple-700 text-white transition-all border border-gray-700"
+                              onClick={() => handleActionSelect('ALL IN')}
+                            >
+                              ALLIN {betSizes.allinSize}
+                            </button>
+                          )}
                         </div>
                       );
                     })()
@@ -7346,7 +7221,7 @@ function MTTTrainingPage() {
                                           ? 'text-green-300' 
                                           : 'text-gray-300'
                                     }`}>
-                                      {displayAction === 'ALL_IN' ? 'ALLIN' : action}
+                                      {displayAction === 'ALL_IN' ? 'ALL_IN' : action}
                                       {isCorrectAction && ' (推奨)'}
                                     </span>
                                     <span className={`font-bold ${
@@ -7399,24 +7274,8 @@ function MTTTrainingPage() {
           let editorStackSize = parseInt(stackSize.replace('BB', ''));
           let initialRange = customRanges[selectedEditPosition];
           
-          // オープンレンジキー（例：open_UTG_15BB）の場合
-          if (selectedEditPosition.startsWith('open_')) {
-            const parts = selectedEditPosition.split('_');
-            if (parts.length === 3) {
-              displayPosition = parts[1]; // open_UTG_15BB -> UTG
-              editorStackSize = parseInt(parts[2].replace('BB', ''));
-              
-              // 15BBの場合、既存のレンジキー（open_ポジション名のみ）も確認
-              // ただし、オールイン・リンプキーは除外（完全に独立したレンジとして扱う）
-              if (parts[2] === '15BB' && !initialRange && customRanges[`open_${parts[1]}`] && 
-                  !selectedEditPosition.includes('_allin') && !selectedEditPosition.includes('_limp')) {
-                initialRange = customRanges[`open_${parts[1]}`];
-                console.log('15BB互換性: 既存オープンレンジを使用', { position: parts[1], range: initialRange });
-              }
-            }
-          }
-          // スタックサイズ込みレンジキー（例：UTG_15BB）の場合（後方互換性のため）
-          else if (selectedEditPosition.includes('_') && selectedEditPosition.includes('BB')) {
+          // スタックサイズ込みレンジキー（例：UTG_15BB）の場合
+          if (selectedEditPosition.includes('_') && selectedEditPosition.includes('BB')) {
             const parts = selectedEditPosition.split('_');
             if (parts.length === 2) {
               displayPosition = parts[0];
@@ -7488,7 +7347,6 @@ function MTTTrainingPage() {
               onClose={() => setShowRangeEditor(false)}
               initialRange={initialRange}
               isSaving={isSaving}
-              isAdmin={isAdmin}
             />
           );
         })()
@@ -7514,47 +7372,20 @@ function MTTTrainingPage() {
         const rangeKey = getCurrentSpotRangeKey();
         let rangeData = rangeKey ? customRanges[rangeKey] : null;
         
-        // カスタムレンジが見つからない場合は、フォールバック処理を実行
+        // カスタムレンジが見つからない場合は、ローカルストレージから直接取得を試行
         if (!rangeData && rangeKey) {
-          // オープンレイズの場合、既存のレンジキー形式も試す
-          if (rangeKey.startsWith('open_')) {
-            const fallbackKey = rangeKey.replace('open_', ''); // open_UTG_15BB -> UTG_15BB
-            rangeData = customRanges[fallbackKey] || null;
-            console.log('🎯 ハンドレンジビューアー: オープンレイズフォールバック試行:', {
-              originalKey: rangeKey,
-              fallbackKey,
-              found: !!rangeData,
-              availableKeys: Object.keys(customRanges).filter(key => key.includes(fallbackKey.split('_')[0]))
-            });
-          }
-          
-          // まだ見つからない場合は、ローカルストレージから直接取得を試行
-          if (!rangeData && isLocalStorageAvailable()) {
-            const localRanges = localStorage.getItem('mtt-custom-ranges');
-            if (localRanges) {
-              try {
-                const parsedRanges = JSON.parse(localRanges);
-                rangeData = parsedRanges[rangeKey] || null;
-                
-                // オープンレイズの場合はフォールバックキーも試す
-                if (!rangeData && rangeKey.startsWith('open_')) {
-                  const fallbackKey = rangeKey.replace('open_', '');
-                  rangeData = parsedRanges[fallbackKey] || null;
-                  console.log('🎯 ローカルストレージフォールバック試行:', {
-                    originalKey: rangeKey,
-                    fallbackKey,
-                    found: !!rangeData
-                  });
-                }
-                
-                console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
-                  rangeKey,
-                  found: !!rangeData,
-                  rangeDataSize: rangeData ? Object.keys(rangeData).length : 0
-                });
-              } catch (e) {
-                console.error('ローカルストレージからの直接取得に失敗:', e);
-              }
+          const localRanges = localStorage.getItem('mtt-custom-ranges');
+          if (localRanges) {
+            try {
+              const parsedRanges = JSON.parse(localRanges);
+              rangeData = parsedRanges[rangeKey] || null;
+              console.log('🎯 ハンドレンジビューアー: ローカルストレージから直接取得:', {
+                rangeKey,
+                found: !!rangeData,
+                rangeDataSize: rangeData ? Object.keys(rangeData).length : 0
+              });
+            } catch (e) {
+              console.error('ローカルストレージからの直接取得に失敗:', e);
             }
           }
         }
@@ -7819,6 +7650,12 @@ function MTTTrainingPage() {
     </div>
     </AuthGuard>
   );
-}
+} 
 
-export default MTTTrainingPage;
+export default function MTTTrainingPageWrapper() {
+  return (
+    <Suspense>
+      <MTTTrainingPage />
+    </Suspense>
+  );
+}

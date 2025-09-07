@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       status: 'new' as const,
       userAgent: request.headers.get('user-agent') || '',
-      ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
+      ip: request.ip || request.headers.get('x-forwarded-for') || 'unknown'
     };
 
     // 開発環境用：コンソールに出力

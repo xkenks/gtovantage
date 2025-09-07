@@ -56,6 +56,7 @@ interface FirebaseAuthContextType {
   isMasterUser: boolean;
   hasActiveSubscription: boolean;
   canPractice: boolean;
+  practiceCount: number;
   maxPracticeCount: number;
   dailyPracticeCount: number;
   incrementPracticeCount: () => void;
@@ -76,6 +77,7 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('free');
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | undefined>(undefined);
+  const [practiceCount, setPracticeCount] = useState(0);
   const [dailyPracticeCount, setDailyPracticeCount] = useState(0);
   const [lastPracticeDate, setLastPracticeDate] = useState<string>('');
 
@@ -451,7 +453,10 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   
   // プラクティス回数増加
   const incrementPracticeCount = () => {
-    if (user) {
+    setPracticeCount(prev => prev + 1);
+    
+    // ライトプランと無料プランの場合は日次カウントも増加
+    if ((subscriptionStatus === 'light' || subscriptionStatus === 'free') && user) {
       const newDailyCount = dailyPracticeCount + 1;
       setDailyPracticeCount(newDailyCount);
       
@@ -499,6 +504,7 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
     isMasterUser,
     hasActiveSubscription,
     canPractice,
+    practiceCount,
     maxPracticeCount,
     dailyPracticeCount,
     incrementPracticeCount,

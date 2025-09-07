@@ -28,8 +28,7 @@ export function AdminLogin({ onClose }: AdminLoginProps) {
     console.log('管理者ログイン試行:', {
       username,
       passwordLength: password.length,
-      device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-      timestamp: new Date().toISOString()
+      device: /Mobile|Android|iPhone/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
     });
 
     try {

@@ -23,7 +23,6 @@ const SimpleHandRangeSelector: React.FC<{
   stackSize?: string;
   actionType?: string;
   excludeNoneHands?: boolean;
-  onTemplateSelect?: (templateName: string) => void;
 }> = ({ 
   onSelectHands, 
   onClose, 
@@ -32,8 +31,7 @@ const SimpleHandRangeSelector: React.FC<{
   position,
   stackSize,
   actionType,
-  excludeNoneHands = false,
-  onTemplateSelect
+  excludeNoneHands = false
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartHand, setDragStartHand] = useState<string>('');
@@ -42,7 +40,6 @@ const SimpleHandRangeSelector: React.FC<{
   const [dragStartSelected, setDragStartSelected] = useState<boolean>(false);
   const [dragDistance, setDragDistance] = useState<number>(0);
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
-  const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
   
   // NONEアクションのハンドを取得する関数
   const getNoneHands = (): string[] => {
@@ -224,7 +221,7 @@ const SimpleHandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-4 pb-safe-bottom">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <style jsx>{`
         .slider {
           -webkit-appearance: none;
@@ -288,7 +285,7 @@ const SimpleHandRangeSelector: React.FC<{
           background: transparent;
         }
       `}</style>
-      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-4rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-4rem)] overflow-y-auto shadow-2xl border border-gray-700">
+      <div className="bg-gray-900 rounded-xl p-2 md:p-6 max-w-4xl w-full mx-1 md:mx-4 max-h-[98vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
         <div className="flex justify-between items-center mb-1 md:mb-4">
           <h2 className="text-sm md:text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-0.5 md:p-2 rounded-lg transition-all duration-200">✕</button>
@@ -350,6 +347,10 @@ const SimpleHandRangeSelector: React.FC<{
 
         {/* レベルスライダー */}
         <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-2 border border-gray-600">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs md:text-sm text-white font-medium">レベル選択</span>
+            <span className="text-xs md:text-sm text-purple-400 font-bold" id="level-display">レベル0</span>
+          </div>
           <input
             type="range"
             min="0"
@@ -359,6 +360,15 @@ const SimpleHandRangeSelector: React.FC<{
             onChange={(e) => {
               const level = Number(e.target.value);
               handleLevelChange(level);
+              // レベル表示を更新
+              const levelDisplay = document.getElementById('level-display');
+              if (levelDisplay) {
+                if (level === 7) {
+                  levelDisplay.textContent = '全レンジ';
+                } else {
+                  levelDisplay.textContent = `レベル${level}`;
+                }
+              }
             }}
             className="w-full h-1 md:h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider transition-all duration-300 ease-in-out"
             style={{
@@ -366,20 +376,35 @@ const SimpleHandRangeSelector: React.FC<{
               transition: 'background 0.3s ease-in-out'
             }}
           />
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>レベル0</span>
+            <span>レベル1</span>
+            <span>レベル2</span>
+            <span>レベル3</span>
+            <span>レベル4</span>
+            <span>レベル5</span>
+            <span>レベル6</span>
+            <span>全レンジ</span>
+          </div>
+          <div className="mt-1 text-xs text-gray-500">
+            <p>レベル0: ランダム出題</p>
+            <p>レベル1-6: 段階的なハンドセット</p>
+            <p>全レンジ: 全選択（全てのハンド）</p>
+          </div>
         </div>
 
         <div className="mb-1 md:mb-4">
           <button
             onClick={handleConfirm}
-            className="w-full px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
+            className="w-full px-2 md:px-4 py-1 md:py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs md:text-base font-bold rounded-lg transition-all duration-200 shadow-lg"
           >
             選択完了 ({selectedHands.length}ハンド)
           </button>
         </div>
         
-        {/* ハンドテンプレートセクション */}
+        {/* テンプレート選択セクション */}
         <div className="mb-1 md:mb-4 bg-gray-800 rounded-lg p-1 md:p-3 border border-gray-600">
-          <h3 className="text-xs md:text-sm font-semibold text-white mb-1 md:mb-2">ハンドテンプレート</h3>
+          <h3 className="text-xs md:text-sm font-semibold text-white mb-1 md:mb-2">📋 ハンドテンプレート</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
             {Object.entries(HAND_TEMPLATES).map(([templateName, hands]) => (
               <button
@@ -423,7 +448,7 @@ export default function MTTTrainerPage() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | null>(null);
   const [hasLocalStorage, setHasLocalStorage] = useState(false);
   
-  const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB'];
+  const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB', '10BB'];
   const stackSizes = getAllowedStackSizes();
   const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
   
@@ -455,10 +480,10 @@ export default function MTTTrainerPage() {
   const validOpponentPositions = getValidOpponentPositions(position, actionType);
   
   const actionTypes = [
-    { id: 'openraise', label: 'オープン' },
-    { id: 'vsopen', label: 'vs オープン', disabled: position === 'UTG' },
+    { id: 'openraise', label: 'オープンレイズ' },
+    { id: 'vsopen', label: 'vs オープン' },
     { id: 'vs3bet', label: 'vs 3ベット', disabled: position === 'BB' },
-    { id: 'vs4bet', label: 'vs 4ベット', disabled: stackSize === '15BB' || stackSize === '10BB' || position === 'UTG' },
+    { id: 'vs4bet', label: 'vs 4ベット', disabled: stackSize === '15BB' || stackSize === '10BB' },
     { id: 'random', label: 'ランダム' },
   ];
 
@@ -473,8 +498,8 @@ export default function MTTTrainerPage() {
         if (settings.stackSize && canUseStackSize(settings.stackSize)) {
           setStackSize(settings.stackSize);
         } else if (settings.stackSize && !canUseStackSize(settings.stackSize)) {
-          // 保存されたスタックサイズが使用できない場合は20BBに変更
-          setStackSize('20BB');
+          // 保存されたスタックサイズが使用できない場合は30BBに変更
+          setStackSize('30BB');
         }
         if (settings.position && positions.includes(settings.position)) {
           setPosition(settings.position);
@@ -612,13 +637,24 @@ export default function MTTTrainerPage() {
       <div className="min-h-screen bg-gray-900 text-white p-2 md:p-8">
         <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-3 md:mb-6">
-          <h1 className="text-lg md:text-3xl font-bold text-center">MTTプリフロップトレーニング - チップEV</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-center">MTTプリフロップトレーニング</h1>
         </div>
+        <p className="text-center text-gray-300 mb-4 md:mb-8 text-sm md:text-base">
+          トーナメントに特化したプリフロップ意思決定トレーニングで、MTTでの最適な戦略を学びましょう。
+        </p>
         
-        <div className="bg-gray-800 rounded-xl p-2 md:p-4 shadow-lg mb-3 md:mb-6">
-          <div className="flex justify-between items-center mb-2 md:mb-3">
-            <h2 className="text-base md:text-xl font-semibold">シナリオ設定</h2>
+        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
+          <div className="flex justify-between items-center mb-3 md:mb-4">
+            <h2 className="text-lg md:text-xl font-semibold">シナリオ設定</h2>
             <div className="flex items-center gap-1 md:gap-2">
+              {(saveStatus === 'saving' || saveStatus === 'saved') && (
+                <div className={`text-xs px-2 md:px-3 py-1 rounded-lg transition-all duration-300 ${
+                  saveStatus === 'saving' ? 'text-yellow-400 bg-yellow-900/30 border border-yellow-600/50' :
+                  'text-green-400 bg-green-900/30 border border-green-600/50'
+                }`}>
+                  {saveStatus === 'saving' ? '🔄 保存中' : '✅ 完了'}
+                </div>
+              )}
               <button
                 onClick={resetSettings}
                 className="px-2 md:px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs md:text-sm rounded-lg transition-colors"
@@ -630,7 +666,7 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-medium mb-2">エフェクティブスタック</h3>
+            <h3 className="text-base md:text-lg font-medium mb-2">エフェクティブスタック</h3>
             <div className="flex flex-wrap gap-1 md:gap-2">
               {allStackSizes.map(stack => (
                 <button 
@@ -642,7 +678,7 @@ export default function MTTTrainerPage() {
                   }`}
                   onClick={() => canUseStackSize(stack) && setStackSize(stack)}
                   disabled={!canUseStackSize(stack)}
-                  title={!canUseStackSize(stack) ? '無料プランでは20BBのみ利用可能です' : ''}
+                  title={!canUseStackSize(stack) ? '無料プランでは30BBのみ利用可能です' : ''}
                 >
                   {stack}
                   {!canUseStackSize(stack) && <span className="ml-1 text-xs">🔒</span>}
@@ -651,18 +687,18 @@ export default function MTTTrainerPage() {
             </div>
             {stackSizes.length === 1 && (
               <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                💡 無料プランでは20BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
+                💡 無料プランでは30BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
               </div>
             )}
           </div>
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-medium mb-2">あなたのポジション</h3>
+            <h3 className="text-base md:text-lg font-medium mb-2">あなたのポジション</h3>
             <div className="flex flex-wrap gap-1 md:gap-2">
               {positions.map(pos => (
                 <button 
                   key={pos}
-                  className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
                   onClick={() => setPosition(pos)}
                 >
                   {pos}
@@ -671,53 +707,52 @@ export default function MTTTrainerPage() {
             </div>
           </div>
           
-          <div className="mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-medium mb-2">相手のポジション</h3>
-            <div className="flex flex-wrap gap-1 md:gap-2">
-              <button 
-                className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base transition-colors ${
-                  (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') 
-                    ? (opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-blue-500')
-                    : 'bg-gray-500 cursor-not-allowed opacity-50'
-                }`}
-                onClick={() => (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && setOpponentPosition('random')}
-                disabled={!(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet')}
-              >
-                ランダム
-              </button>
-              {positions.map(pos => {
-                const isValid = validOpponentPositions.includes(pos);
-                const isActionTypeValid = (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet');
-                return (
-                  <button 
-                    key={pos}
-                    className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base transition-colors ${
-                      !isActionTypeValid ? 'bg-gray-500 cursor-not-allowed opacity-50' :
-                      opponentPosition === pos ? 'bg-blue-600' : 
-                      isValid ? 'bg-gray-700 hover:bg-blue-500' : 'bg-gray-500 cursor-not-allowed opacity-50'
-                    }`}
-                    onClick={() => isActionTypeValid && isValid && setOpponentPosition(pos)}
-                    disabled={!isActionTypeValid || !isValid}
-                  >
-                    {pos}
-                  </button>
-                );
-              })}
-            </div>
-            {!validOpponentPositions.length && (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
-              <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
+          {(actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
+            <div className="mb-4 md:mb-6">
+              <h3 className="text-base md:text-lg font-medium mb-2">相手のポジション</h3>
+              <div className="flex flex-wrap gap-1 md:gap-2">
+                <button 
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                    opponentPosition === 'random' ? 'bg-blue-600' : 'bg-gray-700'
+                  } transition-colors hover:bg-blue-500`}
+                  onClick={() => setOpponentPosition('random')}
+                >
+                  ランダム
+                </button>
+                {positions.map(pos => {
+                  const isValid = validOpponentPositions.includes(pos);
+                  return (
+                    <button 
+                      key={pos}
+                      className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
+                        opponentPosition === pos ? 'bg-blue-600' : 
+                        isValid ? 'bg-gray-700' : 'bg-gray-500'
+                      } transition-colors ${
+                        isValid ? 'hover:bg-blue-500' : 'cursor-not-allowed opacity-50'
+                      }`}
+                      onClick={() => isValid && setOpponentPosition(pos)}
+                      disabled={!isValid}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </div>
+              {validOpponentPositions.length === 0 && (
+                <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
+                  ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="mb-4 md:mb-6">
-            <h3 className="text-sm md:text-lg font-medium mb-2">アクションタイプ</h3>
-            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 gap-1 md:gap-2">
+            <h3 className="text-base md:text-lg font-medium mb-2">アクションタイプ</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-1 md:gap-2">
               {actionTypes.map(action => (
                 <button 
                   key={action.id}
-                  className={`px-1.5 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-base ${
+                  className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-sm md:text-base ${
                     action.disabled ? 'bg-gray-500 cursor-not-allowed opacity-50' : 
                     actionType === action.id ? 'bg-red-600' : 'bg-gray-700'
                   } transition-colors text-left ${!action.disabled ? 'hover:bg-red-500' : ''}`}
@@ -731,20 +766,22 @@ export default function MTTTrainerPage() {
           </div>
           
           <div className="mb-4 md:mb-8 bg-gray-700 bg-opacity-50 rounded-lg p-3 md:p-5">
+            <h3 className="text-base md:text-lg font-medium mb-3 md:mb-4">ハンド範囲選択</h3>
+            
             <button 
               onClick={openHandSelector}
-              className="w-full py-2 md:py-4 px-3 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-sm md:text-lg transition-colors shadow-lg flex items-center justify-center"
+              className="w-full py-3 md:py-4 px-4 md:px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-bold text-base md:text-lg transition-colors shadow-lg flex items-center justify-center"
             >
               ハンドを選択
             </button>
             
             {selectedHands.length > 0 ? (
-              <div className="mt-2 md:mt-4">
-                <div className="text-xs md:text-sm text-purple-300 mb-1 md:mb-2">{selectedHands.length}種類のハンドを選択中</div>
-                <div className="bg-gray-800 rounded-lg p-1.5 md:p-3 max-h-16 md:max-h-32 overflow-auto border border-gray-700">
-                  <div className="flex flex-wrap gap-0.5 md:gap-2">
+              <div className="mt-3 md:mt-4">
+                <div className="text-xs md:text-sm text-purple-300 mb-2">{selectedHands.length}種類のハンドを選択中</div>
+                <div className="bg-gray-800 rounded-lg p-2 md:p-3 max-h-24 md:max-h-32 overflow-auto border border-gray-700">
+                  <div className="flex flex-wrap gap-1 md:gap-2">
                     {selectedHands.map(hand => (
-                      <span key={hand} className="inline-block px-1 md:px-2 py-0.5 md:py-1 bg-purple-700 rounded text-xs font-medium">
+                      <span key={hand} className="inline-block px-1.5 md:px-2 py-0.5 md:py-1 bg-purple-700 rounded text-xs font-medium">
                         {hand}
                       </span>
                     ))}
@@ -766,13 +803,21 @@ export default function MTTTrainerPage() {
           </button>
         </div>
         
+        <div className="bg-gray-800 rounded-xl p-3 md:p-6 shadow-lg mb-4 md:mb-8">
+          <h2 className="text-lg md:text-xl font-semibold mb-2 md:mb-3">MTTプリフロップトレーニングとは？</h2>
+          <p className="mb-3 md:mb-4 text-gray-300 text-sm md:text-base">
+            MTT（マルチテーブルトーナメント）でのプリフロップGTO戦略を学習します。
+            このトレーニングではチップEVを考慮しており、ICM（Independent Chip Model）は考慮していません。
+            スタックサイズに応じて戦略を変える必要があります。
+          </p>
+        </div>
 
 
         
         {showHandSelector && (
           <SimpleHandRangeSelector
             onSelectHands={handleHandSelectionChange}
-            title="MTTプリフロップトレーニング - チップEV用ハンド範囲選択"
+            title="MTTプリフロップトレーニング用ハンド範囲選択"
             onClose={() => setShowHandSelector(false)}
             initialSelectedHands={selectedHands}
             position={position}

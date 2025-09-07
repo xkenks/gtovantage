@@ -1098,8 +1098,8 @@ const HandRangeGrid: React.FC<{
   };
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center md:items-start justify-center md:justify-start z-[60] p-4 md:p-0 pt-32 md:pt-0 pb-safe-bottom">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl md:rounded-none p-6 md:p-0 max-w-4xl md:max-w-full w-full mx-4 md:mx-0 h-[calc(100dvh-9rem)] md:h-screen max-h-[calc(100dvh-9rem)] md:max-h-screen overflow-y-auto shadow-2xl border border-gray-700">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -1210,10 +1210,15 @@ export const HandRangeButton: React.FC<{
 
 // トレーニング用ハンドテンプレート定義
 export const HAND_TEMPLATES = {
-  'おすすめ': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'AKo', 'AQo', 'AJo', 'KQs', 'KJs', 'KTs', 'JTs', 'T9s', 'KQo', 'QJs', 'QTs', 'K9s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'ATo', 'K8s', 'Q9s', 'J9s', 'T8s', '98s', '87s', '76s', 'A2s'],
-  'おすすめ2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
-  'おすすめ3': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
-  'おすすめ4': [
+  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
+  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
+  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
+  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
+  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
+  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s'],
+  '際どい判断': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
+  '際どい判断2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
+  'CO練習': [
     // Axオフスーツ
     'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
     // Kxスーテッド
@@ -1239,14 +1244,8 @@ export const HAND_TEMPLATES = {
     // ポケットペア
     '44', '33', '22',
     // オフスーツブロードウェイ
-    'T9o', 'J9o', 'J8o', 'Q9o', 'Q8o', 'K9o', 'K8o'
-  ],
-  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
-  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
-  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
-  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
-  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
-  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s']
+    'T9o', 'J9o', 'J8o', '98o', 'Q9o', 'Q8o', 'K9o', 'K8o'
+  ]
 };
 
 // ハンドレンジセレクターコンポーネント
@@ -1352,13 +1351,6 @@ export const HandRangeSelector: React.FC<{
   }
   
   const [selectedHands, setSelectedHands] = useState<string[]>(initialSelectedHands);
-  const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
-  const [currentSelection, setCurrentSelection] = useState<{ row: number; col: number } | null>(null);
-  const [hasDragged, setHasDragged] = useState(false);
-  const [isRangeSelectMode, setIsRangeSelectMode] = useState(false);
-  const [rangeFirstClick, setRangeFirstClick] = useState<{ row: number; col: number } | null>(null);
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
@@ -1366,27 +1358,6 @@ export const HandRangeSelector: React.FC<{
       onSelectHands(selectedHands);
     }
   }, [selectedHands, onSelectHands]);
-
-  // 範囲内のハンドが選択中かどうか確認する関数
-  const isInSelectedRange = (row: number, col: number) => {
-    if (!isRangeSelectMode || !rangeFirstClick) return false;
-    
-    const minRow = Math.min(rangeFirstClick.row, row);
-    const maxRow = Math.max(rangeFirstClick.row, row);
-    const minCol = Math.min(rangeFirstClick.col, col);
-    const maxCol = Math.max(rangeFirstClick.col, col);
-    
-    return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
-  };
-
-  // ハンドクリック処理
-  const handleHandClick = (hand: string) => {
-    if (selectedHands.includes(hand)) {
-      setSelectedHands(prev => prev.filter(h => h !== hand));
-    } else {
-      setSelectedHands(prev => [...prev, hand]);
-    }
-  };
 
   // ハンドグリッドを生成する関数
   const generateHandGrid = () => {
@@ -1424,108 +1395,21 @@ export const HandRangeSelector: React.FC<{
 
         const isSelected = selectedHands.includes(hand);
         
-        // 色を取得する関数
-        const getHandColor = () => {
-          // 範囲選択モードで開始点を設定済みの場合
-          if (isRangeSelectMode && rangeFirstClick) {
-            if (rangeFirstClick.row === i && rangeFirstClick.col === j) {
-              return 'bg-green-500 border-green-600'; // 開始点は緑色
-            }
-            // 現在のセルが範囲内の場合は水色でプレビュー
-            if (isInSelectedRange(i, j)) {
-              return 'bg-cyan-400 border-cyan-500';
-            }
-          }
-          
-          // 通常の選択状態
-          if (isSelected) {
-            return 'bg-purple-600 text-white border-2 border-purple-400';
-          } else {
-            return 'bg-gray-700 text-gray-100 md:text-white hover:bg-gray-600 border border-gray-600';
-          }
-        };
-        
         row.push(
           <button
             key={hand}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsDragging(true);
-              setSelectionStart({ row: i, col: j });
-              setCurrentSelection({ row: i, col: j });
-              setHasDragged(false);
-              
-              // 範囲選択モードの開始点を設定
-              if (isRangeSelectMode) {
-                setRangeFirstClick({ row: i, col: j });
+            onClick={() => {
+              if (isSelected) {
+                setSelectedHands(prev => prev.filter(h => h !== hand));
+              } else {
+                setSelectedHands(prev => [...prev, hand]);
               }
             }}
-            onMouseEnter={() => {
-              if (isDragging) {
-                setCurrentSelection({ row: i, col: j });
-                setHasDragged(true);
-              }
-            }}
-            onMouseUp={() => {
-              if (isDragging) {
-                if (!hasDragged) {
-                  // 単一クリック
-                  handleHandClick(hand);
-                } else if (selectionStart) {
-                  // 範囲選択
-                  const minRow = Math.min(selectionStart.row, currentSelection?.row || selectionStart.row);
-                  const maxRow = Math.max(selectionStart.row, currentSelection?.row || selectionStart.row);
-                  const minCol = Math.min(selectionStart.col, currentSelection?.col || selectionStart.col);
-                  const maxCol = Math.max(selectionStart.col, currentSelection?.col || selectionStart.col);
-                  
-                  const rangeHands: string[] = [];
-                  for (let r = minRow; r <= maxRow; r++) {
-                    for (let c = minCol; c <= maxCol; c++) {
-                      let rangeHand = '';
-                      if (r === c) {
-                        rangeHand = ranks[r] + ranks[c]; // ペア
-                      } else if (r < c) {
-                        rangeHand = ranks[r] + ranks[c] + 's'; // スーテッド
-                      } else {
-                        rangeHand = ranks[c] + ranks[r] + 'o'; // オフスーツ
-                      }
-                      rangeHands.push(rangeHand);
-                    }
-                  }
-                  
-                  // 範囲選択されたハンドを選択済みリストに追加/削除
-                  setSelectedHands(prev => {
-                    const newSelected = [...prev];
-                    const allInRange = rangeHands.every(h => prev.includes(h));
-                    
-                    if (allInRange) {
-                      // 全て選択済みの場合は解除
-                      rangeHands.forEach(h => {
-                        const index = newSelected.indexOf(h);
-                        if (index > -1) {
-                          newSelected.splice(index, 1);
-                        }
-                      });
-                    } else {
-                      // 一部または全て未選択の場合は追加
-                      rangeHands.forEach(h => {
-                        if (!newSelected.includes(h)) {
-                          newSelected.push(h);
-                        }
-                      });
-                    }
-                    return newSelected;
-                  });
-                }
-                
-                setIsDragging(false);
-                setSelectionStart(null);
-                setCurrentSelection(null);
-                setHasDragged(false);
-                setRangeFirstClick(null);
-              }
-            }}
-            className={`w-8 h-8 md:w-10 md:h-10 text-xs md:text-xl font-bold rounded transition-all duration-200 ${getHandColor()}`}
+            className={`w-8 h-8 md:w-10 md:h-10 text-xs md:text-xl font-bold rounded transition-all duration-200 ${
+              isSelected 
+                ? 'bg-purple-600 text-white border-2 border-purple-400' 
+                : 'bg-gray-700 text-gray-100 md:text-white hover:bg-gray-600 border border-gray-600'
+            }`}
             style={{ fontSize: '40px' }}
           >
             {hand}
@@ -1540,8 +1424,8 @@ export const HandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center md:items-start justify-center md:justify-start z-[60] p-4 md:p-0 pt-32 md:pt-0 pb-safe-bottom">
-      <div className="bg-gray-900 rounded-xl md:rounded-none p-6 md:p-0 max-w-6xl md:max-w-full w-full mx-4 md:mx-0 h-[calc(100dvh-9rem)] md:h-screen max-h-[calc(100dvh-9rem)] md:max-h-screen shadow-2xl border border-gray-700 flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] shadow-2xl border border-gray-700 flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
@@ -1570,43 +1454,6 @@ export const HandRangeSelector: React.FC<{
           </div>
         )}
 
-        {/* 操作モード切り替え */}
-        <div className="mb-4">
-          <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold">🎯 選択モード</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsRangeSelectMode(false)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    !isRangeSelectMode 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  単一選択
-                </button>
-                <button
-                  onClick={() => setIsRangeSelectMode(true)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isRangeSelectMode 
-                      ? 'bg-green-600 text-white' 
-                      : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                  }`}
-                >
-                  範囲選択
-                </button>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400">
-              {isRangeSelectMode 
-                ? '💡 範囲選択モード: 開始点をクリックしてから終了点をクリックすると範囲選択できます' 
-                : '💡 単一選択モード: クリックで単一選択、ドラッグで範囲選択ができます'
-              }
-            </p>
-          </div>
-        </div>
-
         {/* ハンドレンジグリッド */}
         <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '400px' }}>
           <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
@@ -1616,123 +1463,8 @@ export const HandRangeSelector: React.FC<{
           </div>
         </div>
 
-        {/* ハンドテンプレートセクション */}
-        {onTemplateSelect && (
-          <div className="mb-4">
-            <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-semibold">📚 ハンドテンプレート</h3>
-                <button
-                  onClick={() => setShowAllTemplates(!showAllTemplates)}
-                  className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
-                >
-                  {showAllTemplates ? '▼ 閉じる' : '▶ 詳細表示'}
-                </button>
-              </div>
-              
-              {/* おすすめテンプレート（常に表示） */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <button
-                  onClick={() => onTemplateSelect('おすすめ')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                >
-                  おすすめ<br/>42ハンド
-                </button>
-                <button
-                  onClick={() => onTemplateSelect('おすすめ2')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                >
-                  おすすめ2<br/>32ハンド
-                </button>
-              </div>
-              
-              {/* アコーディオンメニュー */}
-              {showAllTemplates && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => onTemplateSelect('おすすめ3')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    おすすめ3<br/>24ハンド
-                  </button>
-                  <button
-                    onClick={() => onTemplateSelect('プレミアム')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    プレミアム<br/>9ハンド
-                  </button>
-                  <button
-                    onClick={() => onTemplateSelect('ブロードウェイ')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    ブロードウェイ<br/>12ハンド
-                  </button>
-                  <button
-                    onClick={() => onTemplateSelect('スーコネ')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    スーコネ<br/>8ハンド
-                  </button>
-                  <button
-                    onClick={() => onTemplateSelect('スモールペア')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    スモールペア
-                  </button>
-                  <button
-                    onClick={() => onTemplateSelect('エーススート')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-                  >
-                    エーススート
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* 選択完了ボタン */}
         <div className="mt-auto">
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => {
-                // 全ハンドを取得（NONEハンド除外フィルター適用）
-                const allHands = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-                const allAvailableHands: string[] = [];
-                
-                for (let i = 0; i < 13; i++) {
-                  for (let j = 0; j < 13; j++) {
-                    let hand = '';
-                    if (i === j) {
-                      hand = allHands[i] + allHands[j];
-                    } else if (i < j) {
-                      hand = allHands[i] + allHands[j] + 's';
-                    } else {
-                      hand = allHands[j] + allHands[i] + 'o';
-                    }
-                    
-                    // NONEハンド除外が有効な場合は、NONEハンドをスキップ
-                    if (excludeNoneHands && noneHands.includes(hand)) {
-                      continue;
-                    }
-                    
-                    allAvailableHands.push(hand);
-                  }
-                }
-                
-                setSelectedHands(allAvailableHands);
-              }}
-              className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200"
-            >
-              全選択
-            </button>
-            <button
-              onClick={() => setSelectedHands([])}
-              className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all duration-200"
-            >
-              全解除
-            </button>
-          </div>
           <button
             onClick={() => {
               onSelectHands(selectedHands);
@@ -2185,8 +1917,7 @@ export const MTTRangeEditor: React.FC<{
   onClose: () => void;
   initialRange?: Record<string, HandInfo>;
   isSaving?: boolean;
-  isAdmin?: boolean;
-}> = ({ position, stackSize, onSaveRange, onClose, initialRange, isSaving = false, isAdmin = false }) => {
+}> = ({ position, stackSize, onSaveRange, onClose, initialRange, isSaving = false }) => {
   const [selectedAction, setSelectedAction] = useState<'MIN' | 'ALL_IN' | 'CALL' | 'FOLD' | 'CLEAR'>('MIN');
   const [rangeData, setRangeData] = useState<Record<string, HandInfo>>(initialRange || {});
   const [isDragging, setIsDragging] = useState(false);
@@ -2806,32 +2537,37 @@ export const MTTRangeEditor: React.FC<{
               キャンセル
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 console.log('🔘 MTTRangeEditor 保存ボタンクリック:', { 
                   position, 
                   rangeDataSize: Object.keys(rangeData).length, 
                   isSaving,
-                  isAdmin,
                   rangeData: Object.keys(rangeData).slice(0, 5),
                   onSaveRangeType: typeof onSaveRange
                 });
                 
-                // 管理者権限チェック
-                if (!isAdmin) {
-                  alert('❌ カスタムレンジの編集は管理者のみ可能です\n\n管理者としてログインしてください');
-                  return;
-                }
-                
-                // 保存処理を実行
+                // 強制的に保存を実行
                 try {
-                  await onSaveRange(position, rangeData);
+                  onSaveRange(position, rangeData);
                   console.log('✅ onSaveRange 実行完了');
+                  
+                  // 直接ローカルストレージにも保存（フォールバック）
+                  try {
+                    const currentRanges = JSON.parse(localStorage.getItem('mtt-custom-ranges') || '{}');
+                    currentRanges[position] = rangeData;
+                    localStorage.setItem('mtt-custom-ranges', JSON.stringify(currentRanges));
+                    localStorage.setItem('mtt-ranges-timestamp', new Date().toISOString());
+                    console.log('✅ ローカルストレージに直接保存完了');
+                  } catch (storageError) {
+                    console.error('❌ ローカルストレージ保存失敗:', storageError);
+                  }
                   
                   // 保存成功のフィードバック
                   alert(`✅ ${position}のレンジを保存しました\n\n設定されたハンド数: ${Object.keys(rangeData).length}`);
                   
-                  // エディターを閉じる
-                  onClose();
+                  if (!isSaving) {
+                    onClose();
+                  }
                 } catch (error) {
                   console.error('❌ onSaveRange 実行エラー:', error);
                   alert(`❌ 保存中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);

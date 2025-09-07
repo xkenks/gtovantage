@@ -6,21 +6,13 @@ const failedAttempts = new Map<string, { count: number; lastAttempt: number }>()
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15分
 
-// 管理者認証情報（環境変数から取得 - 開発環境ではデフォルト値を使用）
+// 管理者認証情報（環境変数から取得）
 const ADMIN_CREDENTIALS = {
-  username: process.env.ADMIN_USER || process.env.ADMIN_USERNAME || 'gto-admin',
+  username: process.env.ADMIN_USERNAME || 'gto-admin',
   password: process.env.ADMIN_PASSWORD || 'GTO2024Admin!'
 };
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024';
-
-// 本番環境での環境変数検証
-if (process.env.NODE_ENV === 'production') {
-  if ((!process.env.ADMIN_USER && !process.env.ADMIN_USERNAME) || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
-    console.error('❌ 本番環境で管理者認証に必要な環境変数が設定されていません');
-    console.error('ADMIN_USER (または ADMIN_USERNAME), ADMIN_PASSWORD, JWT_SECRET を設定してください');
-  }
-}
 
 // IPアドレス取得ヘルパー
 function getClientIP(request: NextRequest): string {
@@ -90,16 +82,6 @@ export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request);
   
   try {
-    // 本番環境での環境変数検証
-    if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_USER && !process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET)) {
-      console.error(`管理者認証試行が拒否されました（本番環境で環境変数未設定）: IP ${clientIP}`);
-      const response = NextResponse.json(
-        { error: '管理者認証システムが設定されていません' },
-        { status: 503 }
-      );
-      return setCORSHeaders(response);
-    }
-
     // レート制限チェック
     if (!checkRateLimit(clientIP)) {
       console.warn(`ログイン試行が制限されました: IP ${clientIP}`);
@@ -121,7 +103,17 @@ export async function POST(request: NextRequest) {
       return setCORSHeaders(response);
     }
 
-    console.log(`管理者認証試行: ユーザー名="${username}", IP: ${clientIP}`);
+    console.log(`認証試行: ユーザー名="${username}", IP: ${clientIP}`);
+    console.log(`🔍 認証詳細:`, {
+      入力ユーザー名: username,
+      入力パスワード長: password.length,
+      設定ユーザー名: ADMIN_CREDENTIALS.username,
+      設定パスワード長: ADMIN_CREDENTIALS.password.length,
+      ユーザー名一致: username === ADMIN_CREDENTIALS.username,
+      パスワード一致: password === ADMIN_CREDENTIALS.password,
+      入力パスワード: password, // デバッグ用（本番では削除）
+      設定パスワード: ADMIN_CREDENTIALS.password // デバッグ用（本番では削除）
+    });
 
     // 認証チェック
     if (username !== ADMIN_CREDENTIALS.username || password !== ADMIN_CREDENTIALS.password) {
@@ -146,10 +138,10 @@ export async function POST(request: NextRequest) {
         ip: clientIP
       },
       JWT_SECRET,
-      { expiresIn: '2h' } // セキュリティ強化: 2時間で期限切れ
+      { expiresIn: '24h' }
     );
 
-    console.log(`✅ 管理者ログイン成功: ${username}, IP: ${clientIP}, 時刻: ${new Date().toISOString()}`);
+    console.log(`管理者ログイン成功: ${username}, IP: ${clientIP}`);
 
     const response = NextResponse.json({
       success: true,
