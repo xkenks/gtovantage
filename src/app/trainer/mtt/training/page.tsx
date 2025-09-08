@@ -403,11 +403,14 @@ const simulateMTTGTOData = (
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `${position}_${stackSize}`;
       // 15BBレンジがある場合はフォールバックとして使用
-      fallbackRangeKey = position;
+      fallbackRangeKey = `${position}_15BB`;
+      // さらにフォールバックとしてポジション名のみも試行
+      const finalFallbackKey = position;
       console.log('🎯 その他スタックサイズ オープンレイズ レンジキー設定:', { 
         stackSize, 
         rangeKey,
         fallbackRangeKey,
+        finalFallbackKey,
         handType: normalizedHandType 
       });
     }
@@ -429,28 +432,40 @@ const simulateMTTGTOData = (
       ) : []
     });
     
-    // スタック固有レンジを優先し、フォールバックレンジも確認
+    // スタック固有レンジを優先し、複数フォールバックレンジも確認
     let customHandData = null;
     let usedRangeKey = rangeKey;
     
+    // 1. メインレンジキーを試行
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
       customHandData = customRanges[rangeKey][normalizedHandType];
       console.log('✅ オープンレイズ カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
-    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+    } 
+    // 2. 15BBフォールバックを試行
+    else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
       customHandData = customRanges[fallbackRangeKey][normalizedHandType];
       usedRangeKey = fallbackRangeKey;
-      console.log('✅ オープンレイズ フォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+      console.log('✅ オープンレイズ 15BBフォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } 
+    // 3. ポジション名のみのフォールバックを試行
+    else if (customRanges && customRanges[position] && customRanges[position][normalizedHandType]) {
+      customHandData = customRanges[position][normalizedHandType];
+      usedRangeKey = position;
+      console.log('✅ オープンレイズ ポジション名フォールバックレンジ使用:', { position, handType: normalizedHandType, customHandData });
     } else {
       console.log('❌ オープンレイズ カスタムレンジ未発見:', { 
         rangeKey, 
         fallbackRangeKey, 
+        position,
         handType: normalizedHandType,
         hasCustomRanges: !!customRanges,
         availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
         hasRangeKey: !!(customRanges && customRanges[rangeKey]),
         hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        hasPositionKey: !!(customRanges && customRanges[position]),
         rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
-        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : [],
+        positionKeyData: customRanges && customRanges[position] ? Object.keys(customRanges[position]) : []
       });
     }
     
@@ -620,9 +635,12 @@ const simulateMTTGTOData = (
     } else {
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `vsopen_${position}_vs_${openerPosition}_${stackSize}`;
+      // 15BBレンジがある場合はフォールバックとして使用
+      fallbackRangeKey = `vsopen_${position}_vs_${openerPosition}`;
       console.log('🎯 その他スタックサイズ vsopen レンジキー設定:', { 
         stackSize, 
         rangeKey,
+        fallbackRangeKey,
         handType: normalizedHandType 
       });
     }
@@ -645,16 +663,32 @@ const simulateMTTGTOData = (
       fallbackRangeData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : null
     });
     
-    // スタック固有レンジを優先し、15BBの場合は既存レンジにもフォールバック
+    // スタック固有レンジを優先し、複数フォールバックレンジも確認
     let customHandData = null;
     let usedRangeKey = rangeKey;
     
+    // 1. メインレンジキーを試行
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
       customHandData = customRanges[rangeKey][normalizedHandType];
-    } else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
+      console.log('✅ vsopen カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
+    } 
+    // 2. 15BBフォールバックを試行
+    else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
       customHandData = customRanges[fallbackRangeKey][normalizedHandType];
       usedRangeKey = fallbackRangeKey;
-      console.log('15BB互換性: 既存vsオープンレンジを使用', { fallbackRangeKey, handType: normalizedHandType });
+      console.log('✅ vsopen 15BBフォールバックレンジ使用:', { fallbackRangeKey, handType: normalizedHandType, customHandData });
+    } else {
+      console.log('❌ vsopen カスタムレンジ未発見:', { 
+        rangeKey, 
+        fallbackRangeKey, 
+        handType: normalizedHandType,
+        hasCustomRanges: !!customRanges,
+        availableRangeKeys: customRanges ? Object.keys(customRanges) : [],
+        hasRangeKey: !!(customRanges && customRanges[rangeKey]),
+        hasFallbackKey: !!(customRanges && fallbackRangeKey && customRanges[fallbackRangeKey]),
+        rangeKeyData: customRanges && customRanges[rangeKey] ? Object.keys(customRanges[rangeKey]) : [],
+        fallbackKeyData: customRanges && fallbackRangeKey && customRanges[fallbackRangeKey] ? Object.keys(customRanges[fallbackRangeKey]) : []
+      });
     }
     
     if (customHandData) {
@@ -1077,9 +1111,12 @@ const simulateMTTGTOData = (
     } else {
       // その他のスタックサイズは新しいキー形式を使用
       rangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}_${stackSize}`;
+      // 15BBレンジがある場合はフォールバックとして使用
+      fallbackRangeKey = `vs3bet_${normalizedPosition}_vs_${normalizedThreeBetterPosition}`;
       console.log('🎯 その他スタックサイズ vs3bet レンジキー設定:', { 
         stackSize, 
         rangeKey,
+        fallbackRangeKey,
         handType: normalizedHandType 
       });
     }
@@ -1483,8 +1520,8 @@ const simulateMTTGTOData = (
     
     // スタック固有のレンジキーを構築（3ベッター vs 4ベッターの形式）
     const rangeKey = `vs4bet_${position}_vs_${fourBetterPosition}_${stackSize}`;
-    // 15BBの場合は既存キーとの互換性も確認
-    const fallbackRangeKey = stackSize === '15BB' ? `vs4bet_${position}_vs_${fourBetterPosition}` : null;
+    // 15BBレンジがある場合はフォールバックとして使用
+    const fallbackRangeKey = `vs4bet_${position}_vs_${fourBetterPosition}`;
     
     console.log('🔍 vs 4ベット分析:', {
       rangeKey,
@@ -4177,7 +4214,7 @@ function MTTTrainingPage() {
       // 新しい端末での初回アクセスかどうかをチェック
       const isFirstVisit = !localStorage.getItem('mtt-ranges-timestamp');
       if (isFirstVisit) {
-        console.log('🎯 新しい端末での初回アクセスを検出');
+        console.log('🎯 新しい端末での初回アクセスを検出 - システムレンジを優先読み込み');
       }
       console.log('🎯 カスタムレンジ読み込み開始');
       
@@ -4196,10 +4233,13 @@ function MTTTrainingPage() {
             vsopenKeys: Object.keys(localRanges).filter(key => key.startsWith('vsopen_')),
             vs3betKeys: Object.keys(localRanges).filter(key => key.startsWith('vs3bet_')),
             vs4betKeys: Object.keys(localRanges).filter(key => key.startsWith('vs4bet_')),
+            openRaiseKeys: Object.keys(localRanges).filter(key => !key.startsWith('vs') && !key.includes('_')),
             sampleVsopenRange: Object.keys(localRanges).filter(key => key.startsWith('vsopen_'))[0] ? 
               Object.keys(localRanges[Object.keys(localRanges).filter(key => key.startsWith('vsopen_'))[0]]) : null
           });
           // ローカルデータがあってもAPIとの同期を続行
+        } else if (isFirstVisit) {
+          console.log('🎯 初回アクセス: ローカルデータなし - システムレンジを優先読み込み');
         }
       }
       
@@ -5317,6 +5357,15 @@ function MTTTrainingPage() {
             // メモリストレージに保存
             storageManager.memoryStorage.set('mtt-custom-ranges', JSON.stringify(systemData.ranges));
             storageManager.memoryStorage.set('mtt-ranges-timestamp', systemData.lastUpdated);
+            
+            // プライベートモードでもlocalStorageに保存を試行（可能な場合）
+            try {
+              localStorage.setItem('mtt-custom-ranges', JSON.stringify(systemData.ranges));
+              localStorage.setItem('mtt-ranges-timestamp', systemData.lastUpdated);
+              console.log('✅ プライベートモード: localStorageにも保存成功');
+            } catch (localError) {
+              console.log('⚠️ プライベートモード: localStorage保存失敗（正常）:', localError);
+            }
             
             return systemData.ranges;
           }
