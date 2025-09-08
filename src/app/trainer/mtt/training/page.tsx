@@ -2915,29 +2915,41 @@ function MTTTrainingPage() {
       console.log('🎯 vs3bet 3ベッターポジション設定開始:', {
         heroPosition: position,
         heroIndex: getPositionIndex(position),
-        urlThreeBetter: searchParams.get('threebetter')
+        urlThreeBetter: searchParams.get('threebetter'),
+        isRandomMode
       });
       
-      const urlThreeBetter = searchParams.get('threebetter');
-      if (urlThreeBetter) {
-        const threeBetterIndex = getPositionIndex(urlThreeBetter);
-        const positionIndex = getPositionIndex(position);
-        if (threeBetterIndex > positionIndex) {
-          openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
-          setCurrentOpponentPosition(urlThreeBetter);
-          console.log('✅ URLパラメータから3ベッターポジション設定:', {
-            urlThreeBetter,
-            threeBetterIndex,
-            positionIndex,
-            isValid: threeBetterIndex > positionIndex
-          });
-        } else {
-          console.log('❌ URLパラメータの3ベッターポジションが無効:', {
-            urlThreeBetter,
-            threeBetterIndex,
-            positionIndex,
-            isValid: threeBetterIndex > positionIndex
-          });
+      // ランダムモードの場合は、ヒーローをオープンレイザーに設定
+      if (isRandomMode) {
+        openerPosition = currentPosition; // ランダムで選択されたポジションをオープンレイザーに設定
+        setCurrentOpponentPosition(currentPosition);
+        console.log('🎯 ランダムモード: ヒーローをオープンレイザーに設定:', {
+          heroPosition: position,
+          openerPosition: currentPosition,
+          isRandomMode
+        });
+      } else {
+        const urlThreeBetter = searchParams.get('threebetter');
+        if (urlThreeBetter) {
+          const threeBetterIndex = getPositionIndex(urlThreeBetter);
+          const positionIndex = getPositionIndex(position);
+          if (threeBetterIndex > positionIndex) {
+            openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
+            setCurrentOpponentPosition(urlThreeBetter);
+            console.log('✅ URLパラメータから3ベッターポジション設定:', {
+              urlThreeBetter,
+              threeBetterIndex,
+              positionIndex,
+              isValid: threeBetterIndex > positionIndex
+            });
+          } else {
+            console.log('❌ URLパラメータの3ベッターポジションが無効:', {
+              urlThreeBetter,
+              threeBetterIndex,
+              positionIndex,
+              isValid: threeBetterIndex > positionIndex
+            });
+          }
         }
       }
       
@@ -3101,25 +3113,52 @@ function MTTTrainingPage() {
       });
     } else if (actionType === 'vs4bet') {
       // vs4betの場合、4ベッターをランダムに選択（3ベッターより前のポジション）
-      const urlFourBetter = searchParams.get('fourbetter');
-      if (urlFourBetter) {
-        const fourBetterIndex = getPositionIndex(urlFourBetter);
-        const positionIndex = getPositionIndex(position);
-        if (fourBetterIndex < positionIndex) {
-          openerPosition = urlFourBetter; // vs4betでは4ベッターの情報をopenerPositionパラメータで渡す
-          setCurrentOpponentPosition(urlFourBetter);
-        }
-      }
+      console.log('🎯 vs4bet 4ベッターポジション設定開始:', {
+        heroPosition: position,
+        heroIndex: getPositionIndex(position),
+        urlFourBetter: searchParams.get('fourbetter'),
+        isRandomMode
+      });
       
-      if (!openerPosition) {
-        const positionIndex = getPositionIndex(position);
-        if (positionIndex > 0) {
-          const validFourBetters = POSITION_ORDER.slice(0, positionIndex);
-          if (validFourBetters.length > 0) {
-            openerPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+      // ランダムモードの場合は、ヒーローを3ベッターに設定
+      if (isRandomMode) {
+        openerPosition = currentPosition; // ランダムで選択されたポジションを3ベッターに設定
+        setCurrentOpponentPosition(currentPosition);
+        console.log('🎯 ランダムモード: ヒーローを3ベッターに設定:', {
+          heroPosition: position,
+          threeBetterPosition: currentPosition,
+          isRandomMode
+        });
+      } else {
+        const urlFourBetter = searchParams.get('fourbetter');
+        if (urlFourBetter) {
+          const fourBetterIndex = getPositionIndex(urlFourBetter);
+          const positionIndex = getPositionIndex(position);
+          if (fourBetterIndex < positionIndex) {
+            openerPosition = urlFourBetter; // vs4betでは4ベッターの情報をopenerPositionパラメータで渡す
+            setCurrentOpponentPosition(urlFourBetter);
+          }
+        }
+        
+        if (!openerPosition) {
+          const positionIndex = getPositionIndex(position);
+          if (positionIndex > 0) {
+            const validFourBetters = POSITION_ORDER.slice(0, positionIndex);
+            if (validFourBetters.length > 0) {
+              openerPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+            }
           }
         }
       }
+      
+      console.log('🎯 vs4bet 4ベッターポジション設定完了:', {
+        heroPosition: position,
+        fourBetterPosition: openerPosition,
+        heroIndex: getPositionIndex(position),
+        fourBetterIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
+        isValid: openerPosition && openerPosition !== position && getPositionIndex(openerPosition) < getPositionIndex(position),
+        isRandomMode
+      });
     }
     
     // 15BBのvs3ベット専用デバッグ（openerPosition確定後）
