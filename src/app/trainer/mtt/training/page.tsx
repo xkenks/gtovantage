@@ -3740,7 +3740,7 @@ function MTTTrainingPage() {
         actionType === 'vs5bet' ? 'vs 5ベット' : 
         'ランダム'
       }`,
-      heroPosition: position,
+      heroPosition: isRandomMode ? currentPosition : position,
       heroHand: newHand,
       potSize: potSize,
       // ポットサイズのデバッグログ
@@ -3972,9 +3972,11 @@ function MTTTrainingPage() {
     });
     
     // GTOデータを生成（newSpot定義後に実行）
+    // ランダムモードの場合は現在のポジションを使用
+    const effectivePosition = isRandomMode ? currentPosition : position;
     const data = simulateMTTGTOData(
       newHand, 
-      position, 
+      effectivePosition, 
       stackSize, 
       actionType as string,
       latestCustomRanges, // 最新のカスタムレンジを渡す
@@ -6375,7 +6377,7 @@ function MTTTrainingPage() {
                   ? 'bg-yellow-600/20 border-yellow-500/30 text-yellow-200' 
                   : 'bg-green-600/20 border-green-500/30'
               }`}>
-                {position}
+                {isRandomMode ? currentPosition : position}
               </span>
               <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30">
                 {actionType === 'open' || actionType === 'openraise' ? 'オープンレイズ' : 
@@ -7142,6 +7144,8 @@ function MTTTrainingPage() {
                 <PokerTable
                   currentSpot={{
                     ...spot,
+                    // ランダムモードの場合は正しいポジションを設定
+                    heroPosition: isRandomMode ? currentPosition : spot.heroPosition,
                     // gtoDataと完全に同期させる
                     correctAction: gtoData.correctAction,
                     frequencies: gtoData.frequencies
@@ -7759,13 +7763,13 @@ function MTTTrainingPage() {
             {actionType === 'vsopen' && (
               <div className="mt-2 p-2 bg-blue-900/20 rounded">
                 <div className="text-blue-300">現在のvsオープン設定:</div>
-                <div>ポジション: {position}</div>
+                <div>ポジション: {isRandomMode ? currentPosition : position}</div>
                 <div>スタック: {stackSize}</div>
                 {spot?.openRaiserPosition && (
                   <div>オープンレイザー: {spot.openRaiserPosition}</div>
                 )}
                 {spot?.openRaiserPosition && (
-                  <div>レンジキー: vsopen_{position}_vs_{spot.openRaiserPosition}_{stackSize}</div>
+                  <div>レンジキー: vsopen_{isRandomMode ? currentPosition : position}_vs_{spot.openRaiserPosition}_{stackSize}</div>
                 )}
               </div>
             )}
