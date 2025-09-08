@@ -22,30 +22,36 @@ export default function Home() {
             {isAuthenticated ? (
               <div className="mb-4 md:mb-6">
                 <div className="text-lg md:text-xl text-green-400 mb-2">ようこそ、{user?.displayName || user?.email}さん！</div>
-                <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
-                  <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-                今日も
-              </span>
-              <span className="text-white">GTOトレーニングで</span>
-              <br />
-              <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
-                スキルアップ
-              </span>
-              <span className="text-white">しましょう。</span>
-                </h1>
+                <div className="flex items-center justify-center mb-4">
+                  <img src="/favicon.ico" alt="GTO Vantage" className="w-8 h-8 md:w-12 md:h-12 mr-3" />
+                  <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white leading-tight">
+                    <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                  今日も
+                </span>
+                <span className="text-white">GTOトレーニングで</span>
+                <br />
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                  スキルアップ
+                </span>
+                <span className="text-white">しましょう。</span>
+                  </h1>
+                </div>
               </div>
             ) : (
-              <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white mb-4 md:mb-6 leading-tight">
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  GTO
-                </span>
-                <span className="text-white">を知る者が、</span>
-                <br />
-                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  アドバンテージ
-                </span>
-                <span className="text-white">を得る。</span>
-              </h1>
+              <div className="flex items-center justify-center mb-4 md:mb-6">
+                <img src="/favicon.ico" alt="GTO Vantage" className="w-8 h-8 md:w-12 md:h-12 mr-3" />
+                <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-white leading-tight">
+                  <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    GTO
+                  </span>
+                  <span className="text-white">を知る者が、</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    アドバンテージ
+                  </span>
+                  <span className="text-white">を得る。</span>
+                </h1>
+              </div>
             )}
             
             {/* Subtitle */}
@@ -395,8 +401,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-black bg-opacity-60 border-t border-gray-700 py-8 md:py-12">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">
-            GTO Vantage
+          <div className="flex items-center justify-center text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">
+            <img src="/favicon.ico" alt="GTO Vantage" className="w-6 h-6 md:w-8 md:h-8 mr-2" />
+            <span>GTO Vantage</span>
           </div>
           <p className="text-sm md:text-base text-gray-400 mb-4 md:mb-6">
             GTOを知る者が、アドバンテージを得る。

@@ -26,8 +26,9 @@ const Header = () => {
   return (
     <header className="bg-blue-700 text-white p-4 shadow-md">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
-        <Link href="/" className="text-xl font-bold">
-          GTO Vantage
+        <Link href="/" className="text-xl font-bold flex items-center space-x-2">
+          <img src="/favicon.ico" alt="GTO Vantage" className="w-6 h-6" />
+          <span>GTO Vantage</span>
         </Link>
 
         <button

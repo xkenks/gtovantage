@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'GTO Vantage' }],
   creator: 'GTO Vantage',
   publisher: 'GTO Vantage',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
   formatDetection: {
     email: false,
     address: false,
