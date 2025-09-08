@@ -1275,7 +1275,9 @@ export default function MTTTrainingPage() {
     // vs open, vs3bet, vs4betの場合、相手のポジションを動的に決定
     let openerPosition: string | undefined;
     // ランダムモードの場合は、ランダムで選択されたポジションを使用
-    const effectivePosition = isRandomMode ? currentPosition : position;
+    const isRandomMode = position === 'RANDOM';
+    const allPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    const effectivePosition = isRandomMode ? allPositions[Math.floor(Math.random() * allPositions.length)] : position;
     
     if (actionType === 'vsopen') {
       // URLパラメータでオープンレイザーが指定されている場合はそれを使用
