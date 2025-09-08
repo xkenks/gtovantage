@@ -4204,49 +4204,6 @@ function MTTTrainingPage() {
       }
       
       try {
-        // 一般ユーザーのカスタムレンジを読み込み
-        if (!isAdmin && token) {
-          console.log('🎯 一般ユーザーカスタムレンジの読み込みを試行');
-          try {
-            const userRangesResponse = await fetch('/api/user-ranges', {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-            
-            if (userRangesResponse.ok) {
-              const userRangesData = await userRangesResponse.json();
-              if (userRangesData.ranges && Object.keys(userRangesData.ranges).length > 0) {
-                console.log('✅ 一般ユーザーカスタムレンジ取得成功:', {
-                  userRangeCount: Object.keys(userRangesData.ranges).length,
-                  userRangeKeys: Object.keys(userRangesData.ranges).slice(0, 5)
-                });
-                
-                // 一般ユーザーのカスタムレンジをマージ
-                const mergedRanges = {
-                  ...userRangesData.ranges
-                };
-                
-                setCustomRanges(mergedRanges);
-                setLastRangeUpdate(Date.now());
-                
-                // ローカルストレージにも保存
-                const timestampResult = storageManager.safeSetItem('mtt-ranges-timestamp', new Date().toISOString());
-                const saveResult = await storageManager.saveRanges(mergedRanges);
-                
-                console.log('✅ 一般ユーザーカスタムレンジをマージして保存完了:', {
-                  totalRanges: Object.keys(mergedRanges).length,
-                  saveMethod: saveResult.method
-                });
-                
-                return; // 一般ユーザーのカスタムレンジ読み込み完了
-              }
-            }
-          } catch (error) {
-            console.log('⚠️ 一般ユーザーカスタムレンジ読み込みエラー:', error);
-          }
-        }
-        
         // APIからの読み込みを試行（常に実行）
         console.log('🎯 システムAPIからの読み込みを試行');
         const response = await fetch('/api/mtt-ranges');
@@ -4495,63 +4452,32 @@ function MTTTrainingPage() {
       }
       
       try {
-        console.log('🔄 定期的なレンジ同期を実行中...');
-        
-        // 管理者の場合はシステムレンジを同期
-        if (isAdmin) {
-          const response = await fetch('/api/mtt-ranges');
-          if (response.ok) {
-            const systemData = await response.json();
-            if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
-              const currentRangesString = JSON.stringify(customRanges);
-              const serverRangesString = JSON.stringify(systemData.ranges);
+        console.log('🔄 定期的なサーバーGTOレンジ同期を実行中...');
+        const response = await fetch('/api/mtt-ranges');
+        if (response.ok) {
+          const systemData = await response.json();
+          if (systemData.ranges && Object.keys(systemData.ranges).length > 0) {
+            // 現在のレンジと比較（インポートしたデータを保護）
+            const currentRangesString = JSON.stringify(customRanges);
+            const serverRangesString = JSON.stringify(systemData.ranges);
+            
+            // 管理者のみサーバーレンジで更新、一般ユーザーは既存データを保持
+            if (isAdmin && currentRangesString !== serverRangesString) {
+              console.log('🚀 管理者モード: サーバーGTOレンジが更新されました');
               
-              if (currentRangesString !== serverRangesString) {
-                console.log('🚀 管理者モード: サーバーGTOレンジが更新されました');
-                setCustomRanges(systemData.ranges);
-                setLastRangeUpdate(Date.now());
-                console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
-              }
+              // 管理者の場合のみサーバーレンジを適用
+              setCustomRanges(systemData.ranges);
+              setLastRangeUpdate(Date.now());
+              
+              console.log('✅ 定期同期完了: サーバーから最新GTOレンジを取得');
+            } else {
+              console.log('📋 インポートデータを保護: 同期をスキップ');
             }
-          }
-        } else if (token) {
-          // 一般ユーザーの場合はカスタムレンジを同期
-          const userRangesResponse = await fetch('/api/user-ranges', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (userRangesResponse.ok) {
-            const userRangesData = await userRangesResponse.json();
-            if (userRangesData.ranges && Object.keys(userRangesData.ranges).length > 0) {
-              // システムレンジとマージ
-              const systemResponse = await fetch('/api/mtt-ranges');
-              let mergedRanges = { ...userRangesData.ranges };
-              
-              if (systemResponse.ok) {
-                const systemData = await systemResponse.json();
-                if (systemData.ranges) {
-                  mergedRanges = {
-                    ...systemData.ranges,
-                    ...userRangesData.ranges
-                  };
-                }
-              }
-              
-              const currentRangesString = JSON.stringify(customRanges);
-              const mergedRangesString = JSON.stringify(mergedRanges);
-              
-              if (currentRangesString !== mergedRangesString) {
-                console.log('🔄 一般ユーザー: カスタムレンジが更新されました');
-                setCustomRanges(mergedRanges);
-                setLastRangeUpdate(Date.now());
-                console.log('✅ 定期同期完了: カスタムレンジを同期');
-              }
-            }
+          } else {
+            console.log('⚠️ サーバーにGTOレンジが存在しません');
           }
         } else {
-          console.log('📋 認証なし: 同期をスキップ');
+          console.log('⚠️ サーバーGTOレンジAPI応答エラー:', response.status);
         }
       } catch (error) {
         console.log('⚠️ 定期同期エラー:', error);
@@ -4873,37 +4799,10 @@ function MTTTrainingPage() {
             console.error('❌ API保存エラー:', error);
           }
         } else {
-          console.log('📌 一般ユーザー: カスタムレンジをサーバーに保存して他ユーザーと同期');
+          console.log('📌 管理者でないため、サーバーベースレンジシステムを利用（ローカル保存は使用しない）');
           
-          // 一般ユーザーもカスタムレンジをサーバーに保存（他ユーザーとの同期のため）
-          try {
-            console.log('🔒 一般ユーザーとしてカスタムレンジをサーバーに保存開始');
-            const response = await fetch('/api/user-ranges', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                ranges: newCustomRanges,
-                metadata: {
-                  creator: (user as any)?.email || 'Anonymous',
-                  totalRanges: Object.keys(newCustomRanges).length,
-                  timestamp: new Date().toISOString()
-                }
-              })
-            });
-            
-            if (response.ok) {
-              const result = await response.json();
-              console.log('✅ 一般ユーザーカスタムレンジ保存成功:', result);
-            } else {
-              const error = await response.json();
-              console.error('❌ 一般ユーザーカスタムレンジ保存失敗:', error.error || '保存に失敗しました');
-            }
-          } catch (error) {
-            console.error('❌ 一般ユーザーAPI保存エラー:', error);
-          }
+          // 一般ユーザーはサーバーレンジを直接参照するため、保存は行わない
+          console.log('ℹ️ 一般ユーザーのレンジ変更は保存されません - 管理者GTOレンジが常に適用されます');
         }
         
         console.log('🎯 保存詳細:', {

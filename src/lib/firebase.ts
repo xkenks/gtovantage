@@ -46,6 +46,4 @@ try {
 }
 
 export { db };
-
-
 export default app;

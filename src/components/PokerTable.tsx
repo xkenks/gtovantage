@@ -1862,7 +1862,12 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 
                 // 10時の位置（左上）のチップは少し下に移動
                 if (pos.x > 15 && pos.x < 45 && pos.y <= 20) {
-                  transform += ' translateY(45px)';
+                  transform += ' translateY(45px) translateX(15px)';
+                }
+                
+                // LJプレイヤーのチップ（2.1のチップ）を少し右下に移動
+                if (pos.x > 0 && pos.x < 50 && pos.y <= 35) {
+                  transform += ' translateY(15px) translateX(8px)';
                 }
                 
                 // 8時の位置（左下）のチップは少し上に移動
@@ -1890,10 +1895,9 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                   transform += ' translateY(35px) translateX(12px)';
                 }
                 
-                // SBプレイヤーのチップ（0.5のチップ）を下に移動
-                if (pos.x > 65 && pos.x < 95 && pos.y > 35 && pos.y < 65) {
-                  console.log('SBチップ座標:', pos.x, pos.y);
-                  transform += ' translateY(40px)';
+                // SBプレイヤーのチップ（0.5のチップ）を少し下に移動
+                if (pos.x > 60 && pos.x < 100 && pos.y > 30 && pos.y < 70) {
+                  transform += ' translateY(5px)';
                 }
                 
                 // 9時の位置（左下）のチップはほんの少しだけ上に移動
@@ -2078,7 +2082,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                       left: `${chipPos.x}%`,
                       top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform({...openRaiserPosition, label: openRaiserPos || '', isHero: false})
+                  transform: getUnifiedChipTransform({...openRaiserPosition, label: 'OpenRaiser', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2123,7 +2127,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform({...threeBetterInfoMobile, label: threeBetterPosMobile || '', isHero: false})
+                  transform: getUnifiedChipTransform({...threeBetterInfoMobile, label: 'ThreeBetter', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">
@@ -2146,7 +2150,7 @@ export const PokerTable: React.FC<PokerTableProps> = ({
                 style={{ 
                   left: `${chipPos.x}%`, 
                   top: `${chipPos.y}%`,
-                  transform: getUnifiedChipTransform({...fourBetterInfoMobile, label: fourBetterPosMobile || '', isHero: false})
+                  transform: getUnifiedChipTransform({...fourBetterInfoMobile, label: 'FourBetter', isHero: false})
                 }}
               >
                 <div className="flex items-center space-x-1">

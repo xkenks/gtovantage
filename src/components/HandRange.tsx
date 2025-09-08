@@ -1098,8 +1098,8 @@ const HandRangeGrid: React.FC<{
   };
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-700">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] overflow-y-auto shadow-2xl border border-gray-700" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
@@ -1210,15 +1210,10 @@ export const HandRangeButton: React.FC<{
 
 // トレーニング用ハンドテンプレート定義
 export const HAND_TEMPLATES = {
-  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
-  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
-  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
-  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
-  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
-  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s'],
-  '際どい判断': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
-  '際どい判断2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
-  'CO練習': [
+  'おすすめ': ['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', 'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'AKo', 'AQo', 'AJo', 'KQs', 'KJs', 'KTs', 'JTs', 'T9s', 'KQo', 'QJs', 'QTs', 'K9s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'ATo', 'K8s', 'Q9s', 'J9s', 'T8s', '98s', '87s', '76s', 'A2s'],
+  'おすすめ2': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s', 'AJo', 'ATo', 'A9o', 'A8o', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '87s', '76s', '66', '55', '44', '33'],
+  'おすすめ3': ['KTs', 'K9s', 'K8s', 'K7s', 'QTs', 'Q9s', 'Q8s', 'J9s', 'J8s', 'T9s', 'T8s', 'T7s', '97s', '98s', '87s', '86s', '76s', '75s', '65s', '54s', '77', '66', '55', '44'],
+  'おすすめ4': [
     // Axオフスーツ
     'A8o', 'A7o', 'A6o', 'A5o', 'A4o', 'A3o', 'A2o',
     // Kxスーテッド
@@ -1244,8 +1239,14 @@ export const HAND_TEMPLATES = {
     // ポケットペア
     '44', '33', '22',
     // オフスーツブロードウェイ
-    'T9o', 'J9o', 'J8o', '98o', 'Q9o', 'Q8o', 'K9o', 'K8o'
-  ]
+    'T9o', 'J9o', 'J8o', 'Q9o', 'Q8o', 'K9o', 'K8o'
+  ],
+  'プレミアム': ['AA', 'KK', 'QQ', 'JJ', 'TT', 'AKs', 'AKo', 'AQs', 'AQo'],
+  'ブロードウェイ': ['KQs', 'KJs', 'KTs', 'QJs', 'QTs', 'JTs', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo'],
+  'スーコネ': ['T9s', '98s', '87s', '76s', '65s', '54s', '43s', '32s'],
+  'スモールペア': ['99', '88', '77', '66', '55', '44', '33', '22'],
+  'エーススート': ['A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s'],
+  'ギャッパー': ['J9s', 'J8s', 'T8s', 'T7s', '97s', '96s', '86s', '85s', '75s']
 };
 
 // ハンドレンジセレクターコンポーネント
@@ -1351,6 +1352,7 @@ export const HandRangeSelector: React.FC<{
   }
   
   const [selectedHands, setSelectedHands] = useState<string[]>(initialSelectedHands);
+  const [showAllTemplates, setShowAllTemplates] = useState<boolean>(false);
 
   // selectedHandsの変更を監視して親に通知
   useEffect(() => {
@@ -1424,8 +1426,8 @@ export const HandRangeSelector: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 max-h-[90vh] shadow-2xl border border-gray-700 flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] p-4 md:p-6 pt-32 md:pt-36 pb-safe-bottom" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="bg-gray-900 rounded-xl p-6 max-w-6xl w-full mx-4 h-[calc(100dvh-9rem)] md:h-[calc(100vh-10rem)] max-h-[calc(100dvh-9rem)] md:max-h-[calc(100vh-10rem)] shadow-2xl border border-gray-700 flex flex-col" style={{ maxHeight: 'calc(100dvh - 9rem)' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white hover:bg-gray-700 p-2 rounded-lg transition-all duration-200">✕</button>
@@ -1462,6 +1464,81 @@ export const HandRangeSelector: React.FC<{
             </div>
           </div>
         </div>
+
+        {/* ハンドテンプレートセクション */}
+        {onTemplateSelect && (
+          <div className="mb-4">
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold">📚 ハンドテンプレート</h3>
+                <button
+                  onClick={() => setShowAllTemplates(!showAllTemplates)}
+                  className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+                >
+                  {showAllTemplates ? '▼ 閉じる' : '▶ 詳細表示'}
+                </button>
+              </div>
+              
+              {/* おすすめテンプレート（常に表示） */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => onTemplateSelect('おすすめ')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                >
+                  おすすめ<br/>42ハンド
+                </button>
+                <button
+                  onClick={() => onTemplateSelect('おすすめ2')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                >
+                  おすすめ2<br/>32ハンド
+                </button>
+              </div>
+              
+              {/* アコーディオンメニュー */}
+              {showAllTemplates && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onTemplateSelect('おすすめ3')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    おすすめ3<br/>24ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('プレミアム')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    プレミアム<br/>9ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('ブロードウェイ')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    ブロードウェイ<br/>12ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('スーコネ')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    スーコネ<br/>8ハンド
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('スモールペア')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    スモールペア
+                  </button>
+                  <button
+                    onClick={() => onTemplateSelect('エーススート')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                  >
+                    エーススート
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 選択完了ボタン */}
         <div className="mt-auto">

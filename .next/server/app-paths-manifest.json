@@ -1,3 +1,8 @@
 {
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/mypage/page": "app/mypage/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js",
+  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js",
   "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js"
 }
