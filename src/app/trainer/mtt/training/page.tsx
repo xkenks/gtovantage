@@ -2132,19 +2132,6 @@ function MTTTrainingPageContent() {
     updateTrainingStats(correct);
   };
   
-  // 次のスポットへ進むハンドラー
-  const handleNextSpot = () => {
-    // 練習回数をカウント
-    incrementPracticeCount();
-    
-    // 結果をリセット
-    setSelectedAction(null);
-    setIsCorrect(false);
-    setShowResults(false);
-    
-    // 新しいシナリオを生成
-    generateNewScenario();
-  };
   
   // 同じスポットを繰り返すハンドラー
   const handleRepeatSpot = () => {
@@ -2186,6 +2173,20 @@ function MTTTrainingPageContent() {
     <AuthGuard>
       {() => {
         const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
+        
+        // 次のスポットへ進むハンドラー
+        const handleNextSpot = () => {
+          // 練習回数をカウント
+          incrementPracticeCount();
+          
+          // 結果をリセット
+          setSelectedAction(null);
+          setIsCorrect(false);
+          setShowResults(false);
+          
+          // 新しいシナリオを生成
+          generateNewScenario();
+        };
         
         return (
           <div className="relative">
