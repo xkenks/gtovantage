@@ -396,7 +396,7 @@ export default function Home() {
       <footer className="bg-black bg-opacity-60 border-t border-gray-700 py-8 md:py-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex items-center justify-center mb-3 md:mb-4">
-            <img src="/logo.png" alt="GTO Vantage" className="h-10 md:h-12 w-auto" />
+            <img src="/logo.png" alt="GTO Vantage" className="h-8 md:h-10 w-auto" />
           </div>
           <p className="text-sm md:text-base text-gray-400 mb-4 md:mb-6">
             GTOを知る者が、アドバンテージを得る。

@@ -27,7 +27,7 @@ const Header = () => {
     <header className="bg-black bg-opacity-60 border-b border-gray-700 text-white p-4 shadow-md">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
         <Link href="/" className="text-xl font-bold flex items-center space-x-2">
-          <img src="/logo.png" alt="GTO Vantage" className="h-8 w-auto" />
+          <img src="/logo.png" alt="GTO Vantage" className="h-6 w-auto" />
         </Link>
 
         <button
