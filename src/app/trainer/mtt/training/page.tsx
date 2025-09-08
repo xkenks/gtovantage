@@ -1140,7 +1140,6 @@ function MTTTrainingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
-  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
@@ -2185,7 +2184,11 @@ function MTTTrainingPageContent() {
   
   return (
     <AuthGuard>
-      <div className="relative">
+      {() => {
+        const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
+        
+        return (
+          <div className="relative">
       {/* 管理者ログインボタン（未ログイン時のみ表示、PC版のみ） */}
       {!isAdmin && !isMobile && (
         <button
@@ -3206,7 +3209,9 @@ function MTTTrainingPageContent() {
           </div>
         </div>
       )}
-    </div>
+          </div>
+        );
+      }}
     </AuthGuard>
   );
 }

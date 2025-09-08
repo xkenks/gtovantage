@@ -1,6 +1,7 @@
 {
-  "/trainer/mtt/page": "app/trainer/mtt/page.js",
   "/page": "app/page.js",
+  "/trainer/mtt/page": "app/trainer/mtt/page.js",
   "/login/page": "app/login/page.js",
-  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js"
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
+  "/mypage/page": "app/mypage/page.js"
 }
