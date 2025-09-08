@@ -2897,42 +2897,62 @@ function MTTTrainingPage() {
     // vs open, vs3bet, vs4betの場合、相手のポジションを動的に決定
     let openerPosition: string | undefined;
     if (actionType === 'vsopen') {
+      // ランダムモードの場合は、ランダムで選択されたポジションを使用
+      const effectivePosition = isRandomMode ? currentPosition : position;
+      
       // URLパラメータでオープンレイザーが指定されている場合はそれを使用
       const urlOpener = searchParams.get('opener');
-      if (urlOpener && isValidVsOpenCombination(position, urlOpener, stackSize)) {
+      if (urlOpener && isValidVsOpenCombination(effectivePosition, urlOpener, stackSize)) {
         openerPosition = urlOpener;
         setCurrentOpponentPosition(urlOpener);
       } else {
         // 指定されていない、または無効な場合はランダムに選択
-        const validOpeners = getValidOpenerPositions(position, stackSize);
+        const validOpeners = getValidOpenerPositions(effectivePosition, stackSize);
         if (validOpeners.length > 0) {
           openerPosition = validOpeners[Math.floor(Math.random() * validOpeners.length)];
           setCurrentOpponentPosition(openerPosition);
         }
       }
+      
+      console.log('🎯 vsオープン オープンレイザーポジション設定:', {
+        heroPosition: effectivePosition,
+        openerPosition,
+        isRandomMode,
+        validOpeners: getValidOpenerPositions(effectivePosition, stackSize)
+      });
     } else if (actionType === 'vs3bet') {
       // vs3betの場合、3ベッターをランダムに選択（ヒーローより後のポジション）
+      // ランダムモードの場合は、ランダムで選択されたポジションを使用
+      const effectivePosition = isRandomMode ? currentPosition : position;
+      
       console.log('🎯 vs3bet 3ベッターポジション設定開始:', {
-        heroPosition: position,
-        heroIndex: getPositionIndex(position),
+        heroPosition: effectivePosition,
+        heroIndex: getPositionIndex(effectivePosition),
         urlThreeBetter: searchParams.get('threebetter'),
         isRandomMode
       });
       
-      // ランダムモードの場合は、ヒーローをオープンレイザーに設定
+      // ランダムモードの場合は、ヒーローより後のポジションから3ベッターを選択
       if (isRandomMode) {
-        openerPosition = currentPosition; // ランダムで選択されたポジションをオープンレイザーに設定
-        setCurrentOpponentPosition(currentPosition);
-        console.log('🎯 ランダムモード: ヒーローをオープンレイザーに設定:', {
-          heroPosition: position,
-          openerPosition: currentPosition,
-          isRandomMode
-        });
+        const positionIndex = getPositionIndex(currentPosition);
+        if (positionIndex < POSITION_ORDER.length - 1) {
+          const validThreeBetters = POSITION_ORDER.slice(positionIndex + 1);
+          if (validThreeBetters.length > 0) {
+            openerPosition = validThreeBetters[Math.floor(Math.random() * validThreeBetters.length)];
+            setCurrentOpponentPosition(openerPosition);
+            console.log('🎯 ランダムモード: ヒーローをオープンレイザー、相手を3ベッターに設定:', {
+              heroPosition: currentPosition,
+              openerPosition: openerPosition,
+              isRandomMode,
+              validThreeBetters
+            });
+          }
+        }
       } else {
         const urlThreeBetter = searchParams.get('threebetter');
         if (urlThreeBetter) {
           const threeBetterIndex = getPositionIndex(urlThreeBetter);
-          const positionIndex = getPositionIndex(position);
+          const positionIndex = getPositionIndex(effectivePosition);
           if (threeBetterIndex > positionIndex) {
             openerPosition = urlThreeBetter; // vs3betでは3ベッターの情報をopenerPositionパラメータで渡す
             setCurrentOpponentPosition(urlThreeBetter);
@@ -2954,9 +2974,9 @@ function MTTTrainingPage() {
       }
       
       if (!openerPosition) {
-        const positionIndex = getPositionIndex(position);
+        const positionIndex = getPositionIndex(effectivePosition);
         console.log('🎯 3ベッターポジション選択開始:', {
-          heroPosition: position,
+          heroPosition: effectivePosition,
           heroIndex: positionIndex,
           totalPositions: POSITION_ORDER.length,
           availablePositions: POSITION_ORDER.slice(positionIndex + 1)
@@ -2965,13 +2985,13 @@ function MTTTrainingPage() {
         if (positionIndex < POSITION_ORDER.length - 1) {
           // ヒーローより後のポジションから、ヒーローと同じポジションを除外して選択
           const allAfterHero = POSITION_ORDER.slice(positionIndex + 1);
-          const validThreeBetters = allAfterHero.filter(pos => pos !== position);
+          const validThreeBetters = allAfterHero.filter(pos => pos !== effectivePosition);
           
           console.log('🎯 有効な3ベッターポジション候補:', {
             allAfterHero,
             validThreeBetters,
-            heroPosition: position,
-            excludedPosition: position
+            heroPosition: effectivePosition,
+            excludedPosition: effectivePosition
           });
           
           if (validThreeBetters.length > 0) {
@@ -2981,7 +3001,7 @@ function MTTTrainingPage() {
             setCurrentOpponentPosition(openerPosition);
             
             console.log('🔄 ランダムに3ベッターポジションを選択:', {
-              heroPosition: position,
+              heroPosition: effectivePosition,
               heroIndex: positionIndex,
               validThreeBetters,
               randomIndex,
@@ -2989,19 +3009,19 @@ function MTTTrainingPage() {
               selectedIndex: getPositionIndex(openerPosition),
               reason: 'URLパラメータが無効または未設定',
               validation: {
-                isDifferentFromHero: openerPosition !== position,
-                isAfterHero: getPositionIndex(openerPosition) > getPositionIndex(position),
+                isDifferentFromHero: openerPosition !== effectivePosition,
+                isAfterHero: getPositionIndex(openerPosition) > getPositionIndex(effectivePosition),
                 isValid: true
               }
             });
             
             // 選択されたポジションの有効性を再確認
             const selectedIndex = getPositionIndex(openerPosition);
-            const heroIndex = getPositionIndex(position);
+            const heroIndex = getPositionIndex(effectivePosition);
             
-            if (openerPosition === position || selectedIndex <= heroIndex) {
+            if (openerPosition === effectivePosition || selectedIndex <= heroIndex) {
               console.error('❌ 選択された3ベッターポジションが無効です:', {
-                heroPosition: position,
+                heroPosition: effectivePosition,
                 selectedPosition: openerPosition,
                 heroIndex: heroIndex,
                 selectedIndex: selectedIndex,
@@ -3105,35 +3125,45 @@ function MTTTrainingPage() {
       }
       
       console.log('🎯 vs3bet 3ベッターポジション設定完了:', {
-        heroPosition: position,
+        heroPosition: effectivePosition,
         threeBetterPosition: openerPosition,
-        heroIndex: getPositionIndex(position),
+        heroIndex: getPositionIndex(effectivePosition),
         threeBetterIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
-        isValid: openerPosition && openerPosition !== position && getPositionIndex(openerPosition) > getPositionIndex(position)
+        isValid: openerPosition && openerPosition !== effectivePosition && getPositionIndex(openerPosition) > getPositionIndex(effectivePosition)
       });
     } else if (actionType === 'vs4bet') {
       // vs4betの場合、4ベッターをランダムに選択（3ベッターより前のポジション）
+      // ランダムモードの場合は、ランダムで選択されたポジションを使用
+      const effectivePosition = isRandomMode ? currentPosition : position;
+      
       console.log('🎯 vs4bet 4ベッターポジション設定開始:', {
-        heroPosition: position,
-        heroIndex: getPositionIndex(position),
+        heroPosition: effectivePosition,
+        heroIndex: getPositionIndex(effectivePosition),
         urlFourBetter: searchParams.get('fourbetter'),
         isRandomMode
       });
       
-      // ランダムモードの場合は、ヒーローを3ベッターに設定
+      // ランダムモードの場合は、ヒーローより前のポジションから4ベッターを選択
       if (isRandomMode) {
-        openerPosition = currentPosition; // ランダムで選択されたポジションを3ベッターに設定
-        setCurrentOpponentPosition(currentPosition);
-        console.log('🎯 ランダムモード: ヒーローを3ベッターに設定:', {
-          heroPosition: position,
-          threeBetterPosition: currentPosition,
-          isRandomMode
-        });
+        const positionIndex = getPositionIndex(currentPosition);
+        if (positionIndex > 0) {
+          const validFourBetters = POSITION_ORDER.slice(0, positionIndex);
+          if (validFourBetters.length > 0) {
+            openerPosition = validFourBetters[Math.floor(Math.random() * validFourBetters.length)];
+            setCurrentOpponentPosition(openerPosition);
+            console.log('🎯 ランダムモード: ヒーローを3ベッター、相手を4ベッターに設定:', {
+              heroPosition: currentPosition,
+              fourBetterPosition: openerPosition,
+              isRandomMode,
+              validFourBetters
+            });
+          }
+        }
       } else {
         const urlFourBetter = searchParams.get('fourbetter');
         if (urlFourBetter) {
           const fourBetterIndex = getPositionIndex(urlFourBetter);
-          const positionIndex = getPositionIndex(position);
+          const positionIndex = getPositionIndex(effectivePosition);
           if (fourBetterIndex < positionIndex) {
             openerPosition = urlFourBetter; // vs4betでは4ベッターの情報をopenerPositionパラメータで渡す
             setCurrentOpponentPosition(urlFourBetter);
@@ -3141,7 +3171,7 @@ function MTTTrainingPage() {
         }
         
         if (!openerPosition) {
-          const positionIndex = getPositionIndex(position);
+          const positionIndex = getPositionIndex(effectivePosition);
           if (positionIndex > 0) {
             const validFourBetters = POSITION_ORDER.slice(0, positionIndex);
             if (validFourBetters.length > 0) {
@@ -3152,11 +3182,11 @@ function MTTTrainingPage() {
       }
       
       console.log('🎯 vs4bet 4ベッターポジション設定完了:', {
-        heroPosition: position,
+        heroPosition: effectivePosition,
         fourBetterPosition: openerPosition,
-        heroIndex: getPositionIndex(position),
+        heroIndex: getPositionIndex(effectivePosition),
         fourBetterIndex: openerPosition ? getPositionIndex(openerPosition) : -1,
-        isValid: openerPosition && openerPosition !== position && getPositionIndex(openerPosition) < getPositionIndex(position),
+        isValid: openerPosition && openerPosition !== effectivePosition && getPositionIndex(openerPosition) < getPositionIndex(effectivePosition),
         isRandomMode
       });
     }
