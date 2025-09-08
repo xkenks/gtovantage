@@ -2371,8 +2371,46 @@ function MTTTrainingPage() {
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
-  const position = searchParams.get('position') || 'BTN';
+  const positionParam = searchParams.get('position') || 'RANDOM';
   const actionType = searchParams.get('action') || 'openraise';
+  
+  // ランダムポジション機能
+  const [currentPosition, setCurrentPosition] = useState<string>('BTN');
+  const [isRandomMode, setIsRandomMode] = useState<boolean>(positionParam === 'RANDOM');
+  
+  // ランダムポジションを生成する関数（アクションタイプに応じて有効なポジションのみ）
+  const generateRandomPosition = (): string => {
+    const allPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    
+    // アクションタイプに応じて有効なポジションをフィルタリング
+    let availablePositions = allPositions;
+    
+    if (actionType === 'vsopen') {
+      // vsオープン: UTGは除外（オープンレイザーが存在しない）
+      availablePositions = allPositions.filter(pos => pos !== 'UTG');
+    } else if (actionType === 'vs3bet') {
+      // vs3ベット: BBは除外（3ベッターが存在しない）
+      availablePositions = allPositions.filter(pos => pos !== 'BB');
+    } else if (actionType === 'vs4bet') {
+      // vs4ベット: UTGは除外（4ベッターが存在しない）
+      availablePositions = allPositions.filter(pos => pos !== 'UTG');
+    }
+    // openraise, randomの場合は全ポジションが有効
+    
+    const selectedPosition = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+    
+    console.log('🎲 ランダムポジション生成:', {
+      actionType,
+      allPositions,
+      availablePositions,
+      selectedPosition
+    });
+    
+    return selectedPosition;
+  };
+  
+  // 現在のポジションを決定
+  const position = isRandomMode ? currentPosition : positionParam;
   
   // URLからカスタム選択ハンドを取得
   const customHandsString = searchParams.get('hands') || '';
@@ -2701,6 +2739,13 @@ function MTTTrainingPage() {
   // 新しいシナリオを生成
   const generateNewScenario = () => {
     console.log('🎯 generateNewScenario 関数が呼び出されました！');
+    
+    // ランダムモードの場合は新しいポジションを生成
+    if (isRandomMode) {
+      const newPosition = generateRandomPosition();
+      setCurrentPosition(newPosition);
+      console.log('🎲 ランダムポジション生成:', { from: currentPosition, to: newPosition });
+    }
     console.log('🎯 generateNewScenario 開始:', {
       position,
       stackSize,
@@ -4187,6 +4232,19 @@ function MTTTrainingPage() {
     loadServerRanges();
   }, [lastRangeUpdate, isInitialized]); // isInitializedを追加
   
+  // ランダムモードの初期化とアクションタイプ変更時の再生成
+  useEffect(() => {
+    if (isRandomMode) {
+      const newPosition = generateRandomPosition();
+      setCurrentPosition(newPosition);
+      console.log('🎲 ランダムポジション更新:', { 
+        reason: '初期化またはアクションタイプ変更',
+        actionType,
+        newPosition 
+      });
+    }
+  }, [isRandomMode, actionType]);
+
   // StorageEventリスナーを追加（他のタブでの変更を検知）
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -4281,6 +4339,13 @@ function MTTTrainingPage() {
             }
             
             if (shouldUpdate) {
+              // カスタムレンジが存在する場合は上書きをスキップ（インポートデータ保護）
+              const hasCustomRanges = Object.keys(customRanges).length > 0;
+              if (hasCustomRanges) {
+                console.log('📋 カスタムレンジが存在するため、システムレンジの自動同期をスキップ（インポートデータ保護）');
+                return;
+              }
+              
               // QQ設定の復元保証
               const vs3betKeys = Object.keys(systemData.ranges).filter(key => key.startsWith('vs3bet_') && key.includes('_40BB'));
               vs3betKeys.forEach(key => {
@@ -4342,6 +4407,13 @@ function MTTTrainingPage() {
             }
             
             if (shouldUpdate) {
+              // カスタムレンジが存在する場合は上書きをスキップ（インポートデータ保護）
+              const hasCustomRanges = Object.keys(customRanges).length > 0;
+              if (hasCustomRanges) {
+                console.log('📋 カスタムレンジが存在するため、ファイルレンジの自動同期をスキップ（インポートデータ保護）');
+                return;
+              }
+              
               // QQ設定の復元保証
               const vs3betKeys = Object.keys(fileData.ranges).filter(key => key.startsWith('vs3bet_') && key.includes('_40BB'));
               vs3betKeys.forEach(key => {
@@ -4484,10 +4556,17 @@ function MTTTrainingPage() {
         return;
       }
       
-      // ユーザーがレンジをインポートしてから5分間は同期をスキップ
+      // ユーザーがレンジをインポートしてから10分間は同期をスキップ（保護期間を延長）
       const lastUpdate = Date.now() - lastRangeUpdate;
-      if (lastUpdate < 300000) { // 5分 = 300000ms
+      if (lastUpdate < 600000) { // 10分 = 600000ms
         console.log('⏸️ 最近インポートされたため、GTOレンジ同期をスキップ');
+        return;
+      }
+      
+      // カスタムレンジが存在する場合は同期をスキップ（インポートデータ保護）
+      const hasCustomRanges = Object.keys(customRanges).length > 0;
+      if (hasCustomRanges) {
+        console.log('📋 カスタムレンジが存在するため、定期同期をスキップ（インポートデータ保護）');
         return;
       }
       
@@ -4524,14 +4603,21 @@ function MTTTrainingPage() {
       }
     }, 10000); // 10秒間隔でリアルタイム同期
 
-    // ページフォーカス時のサーバー同期（インポート保護付き）
+    // ページフォーカス時のサーバー同期（インポート保護強化）
     const handleFocus = async () => {
       if (isSaving) return;
       
-      // ユーザーがレンジをインポートしてから5分間は同期をスキップ
+      // ユーザーがレンジをインポートしてから10分間は同期をスキップ（保護期間を延長）
       const lastUpdate = Date.now() - lastRangeUpdate;
-      if (lastUpdate < 300000) { // 5分 = 300000ms
+      if (lastUpdate < 600000) { // 10分 = 600000ms
         console.log('⏸️ 最近インポートされたため、フォーカス時同期をスキップ');
+        return;
+      }
+      
+      // カスタムレンジが存在する場合は同期をスキップ（インポートデータ保護）
+      const hasCustomRanges = Object.keys(customRanges).length > 0;
+      if (hasCustomRanges) {
+        console.log('📋 カスタムレンジが存在するため、フォーカス時同期をスキップ（インポートデータ保護）');
         return;
       }
       
@@ -5444,10 +5530,12 @@ function MTTTrainingPage() {
             // まずStateを更新
             setCustomRanges(importedRanges);
             
-            // 管理者の場合はサーバーに保存、一般ユーザーはローカルセッションのみ
-            let saveResult = { success: true, method: 'session' };
+            // 統合ストレージシステムを使用して確実に保存
+            const saveResult = await storageManager.saveRanges(importedRanges);
+            console.log('💾 統合ストレージ保存結果:', saveResult);
             
-            if (isAdmin) {
+            // 管理者の場合はサーバーにも保存
+            if (isAdmin && saveResult.success) {
               try {
                 console.log('🔑 管理者モード: サーバーへの保存を実行');
                 const response = await fetch('/api/mtt-ranges', {
@@ -5463,16 +5551,13 @@ function MTTTrainingPage() {
                 });
                 
                 if (response.ok) {
-                  saveResult = { success: true, method: 'server' };
                   console.log('✅ サーバーへの保存成功');
                 } else {
-                  console.warn('⚠️ サーバー保存失敗、セッションのみ');
+                  console.warn('⚠️ サーバー保存失敗、ローカル保存は成功');
                 }
               } catch (error) {
-                console.warn('⚠️ サーバー保存エラー、セッションのみ:', error);
+                console.warn('⚠️ サーバー保存エラー、ローカル保存は成功:', error);
               }
-            } else {
-              console.log('👤 一般ユーザー: セッションのみでの保存');
             }
             
             // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
@@ -6285,7 +6370,11 @@ function MTTTrainingPage() {
               <span className="bg-blue-600/20 px-2 md:px-3 py-1 rounded-full border border-blue-500/30">
                 {stackSize}
               </span>
-              <span className="bg-green-600/20 px-2 md:px-3 py-1 rounded-full border border-green-500/30">
+              <span className={`px-2 md:px-3 py-1 rounded-full border ${
+                isRandomMode 
+                  ? 'bg-yellow-600/20 border-yellow-500/30 text-yellow-200' 
+                  : 'bg-green-600/20 border-green-500/30'
+              }`}>
                 {position}
               </span>
               <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30">
@@ -6305,7 +6394,7 @@ function MTTTrainingPage() {
             <Link 
               href={`/trainer/mtt?${new URLSearchParams({
                 stack: stackSize,
-                position: position,
+                position: isRandomMode ? 'RANDOM' : position,
                 action: actionType,
                 ...(customHands.length > 0 ? { hands: encodeURIComponent(customHands.join(',')) } : {})
               }).toString()}`} 
