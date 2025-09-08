@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PokerTable, Spot } from '@/components/PokerTable';
 import Link from 'next/link';
@@ -1136,7 +1136,7 @@ const getVsOpenAdvice = (heroPosition: string, openerPosition: string, action: s
 
 
 
-export default function MTTTrainingPage() {
+function MTTTrainingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
@@ -3208,5 +3208,13 @@ export default function MTTTrainingPage() {
       )}
     </div>
     </AuthGuard>
+  );
+}
+
+export default function MTTTrainingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MTTTrainingPageContent />
+    </Suspense>
   );
 } 
