@@ -1140,6 +1140,7 @@ function MTTTrainingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
+  const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
@@ -2132,6 +2133,19 @@ function MTTTrainingPageContent() {
     updateTrainingStats(correct);
   };
   
+  // 次のスポットへ進むハンドラー
+  const handleNextSpot = () => {
+    // 練習回数をカウント
+    incrementPracticeCount();
+    
+    // 結果をリセット
+    setSelectedAction(null);
+    setIsCorrect(false);
+    setShowResults(false);
+    
+    // 新しいシナリオを生成
+    generateNewScenario();
+  };
   
   // 同じスポットを繰り返すハンドラー
   const handleRepeatSpot = () => {
@@ -2171,25 +2185,7 @@ function MTTTrainingPageContent() {
   
   return (
     <AuthGuard>
-      {() => {
-        const { canPractice, practiceCount, maxPracticeCount, incrementPracticeCount } = useAuth();
-        
-        // 次のスポットへ進むハンドラー
-        const handleNextSpot = () => {
-          // 練習回数をカウント
-          incrementPracticeCount();
-          
-          // 結果をリセット
-          setSelectedAction(null);
-          setIsCorrect(false);
-          setShowResults(false);
-          
-          // 新しいシナリオを生成
-          generateNewScenario();
-        };
-        
-        return (
-          <div className="relative">
+      <div className="relative">
       {/* 管理者ログインボタン（未ログイン時のみ表示、PC版のみ） */}
       {!isAdmin && !isMobile && (
         <button
@@ -3210,9 +3206,7 @@ function MTTTrainingPageContent() {
           </div>
         </div>
       )}
-          </div>
-        );
-      }}
+      </div>
     </AuthGuard>
   );
 }
