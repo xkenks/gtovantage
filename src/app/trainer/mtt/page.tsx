@@ -462,25 +462,6 @@ export default function MTTTrainerPage() {
     { id: 'random', label: 'ランダム' },
   ];
 
-  // URLパラメータから設定を読み込み
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlStack = searchParams.get('stack');
-      const urlPosition = searchParams.get('position');
-      const urlAction = searchParams.get('action');
-      const urlHands = searchParams.get('hands');
-      
-      if (urlStack) setStackSize(urlStack);
-      if (urlPosition) setPosition(urlPosition);
-      if (urlAction) setActionType(urlAction);
-      if (urlHands) {
-        const hands = decodeURIComponent(urlHands).split(',').filter(hand => hand.trim() !== '');
-        setSelectedHands(hands);
-      }
-    }
-  }, []);
-
   // 設定をlocalStorageから読み込み
   useEffect(() => {
     try {
@@ -556,7 +537,7 @@ export default function MTTTrainerPage() {
     }
   }, [actionType, isInitialLoad]);
   
-  // スタックサイズ・ポジション変更時にアクションタイプをチェック
+  // スタックサイズ変更時にアクションタイプをチェック
   useEffect(() => {
     if (!isInitialLoad) {
       const currentAction = actionTypes.find(a => a.id === actionType);
@@ -678,13 +659,6 @@ export default function MTTTrainerPage() {
           <div className="mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-medium mb-2">あなたのポジション</h3>
             <div className="flex flex-wrap gap-1 md:gap-2">
-              <button 
-                key="RANDOM"
-                className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${position === 'RANDOM' ? 'bg-yellow-600' : 'bg-gray-700'} transition-colors hover:bg-yellow-500`}
-                onClick={() => setPosition('RANDOM')}
-              >
-                ランダム
-              </button>
               {positions.map(pos => (
                 <button 
                   key={pos}
@@ -730,6 +704,11 @@ export default function MTTTrainerPage() {
                 );
               })}
             </div>
+            {!validOpponentPositions.length && (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
+              <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
+                ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
+              </div>
+            )}
           </div>
           
           <div className="mb-4 md:mb-6">
