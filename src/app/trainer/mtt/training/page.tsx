@@ -2371,8 +2371,44 @@ function MTTTrainingPage() {
   
   // URLからシナリオパラメータを取得（簡略化）
   const stackSize = searchParams.get('stack') || '75BB';
-  const position = searchParams.get('position') || 'BTN';
+  const positionParam = searchParams.get('position') || 'BTN';
   const actionType = searchParams.get('action') || 'openraise';
+  
+  // ランダムポジション処理
+  const getRandomPosition = (): string => {
+    // アクションタイプに応じて有効なポジションのみを選択
+    let validPositions: string[] = [];
+    
+    if (actionType === 'openraise') {
+      // オープンレイズはBB以外のポジションで可能（BBはオープンレイズできない）
+      validPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    } else if (actionType === 'vsopen') {
+      // vsオープンは、オープンレイザーより後のポジションのみ
+      validPositions = ['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    } else if (actionType === 'vs3bet') {
+      // vs3betは、3ベッターより後のポジションのみ
+      validPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    } else if (actionType === 'vs4bet') {
+      // vs4betは、4ベッターより後のポジションのみ
+      validPositions = ['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    } else {
+      // その他のアクションタイプは全てのポジション
+      validPositions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    }
+    
+    return validPositions[Math.floor(Math.random() * validPositions.length)];
+  };
+  
+  const position = positionParam === 'RANDOM' ? getRandomPosition() : positionParam;
+  
+  // デバッグ: ポジション情報をログ出力
+  console.log('🎯 ポジション情報:', {
+    positionParam,
+    position,
+    actionType,
+    stackSize,
+    isRandom: positionParam === 'RANDOM'
+  });
   
   // URLからカスタム選択ハンドを取得
   const customHandsString = searchParams.get('hands') || '';
@@ -2388,6 +2424,18 @@ function MTTTrainingPage() {
   const [showResults, setShowResults] = useState<boolean>(false);
   const [gtoData, setGtoData] = useState<any>(null);
   const [spot, setSpot] = useState<Spot | null>(null);
+  
+  // GTO データとスポット情報のデバッグ
+  if (gtoData) {
+    console.log('🎯 GTO シナリオデバッグ:', {
+      headerPosition: position,
+      gtoHeroPosition: gtoData.heroPosition,
+      spotHeroPosition: spot?.heroPosition,
+      spotActionType: spot?.actionType,
+      positionsMatch: position === gtoData.heroPosition,
+      tableHeroPosition: spot?.positions ? Object.keys(spot.positions).find(pos => spot.positions?.[pos]?.isHero) : null
+    });
+  }
   const [trainingCount, setTrainingCount] = useState<number>(0);
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [currentOpponentPosition, setCurrentOpponentPosition] = useState<string | null>(opponentPositionParam);
@@ -4048,7 +4096,7 @@ function MTTTrainingPage() {
         setIsInitialized(true);
       }
     }
-  }, [position, stackSize, actionType, customHandsString, isInitialized, customRanges, subscriptionStatus, dailyPracticeCount]); // customRanges added to dependencies
+  }, [position, stackSize, actionType, customHandsString, isInitialized, lastRangeUpdate, subscriptionStatus, dailyPracticeCount]); // lastRangeUpdate used instead of customRanges
 
   // selectedTrainingHandsの変更を監視して新しいシナリオを生成
   useEffect(() => {
@@ -6286,7 +6334,7 @@ function MTTTrainingPage() {
                 {stackSize}
               </span>
               <span className="bg-green-600/20 px-2 md:px-3 py-1 rounded-full border border-green-500/30">
-                {position}
+                {spot?.heroPosition || gtoData?.heroPosition || position}
               </span>
               <span className="bg-purple-600/20 px-2 md:px-3 py-1 rounded-full border border-purple-500/30">
                 {actionType === 'open' || actionType === 'openraise' ? 'オープンレイズ' : 
@@ -6305,7 +6353,7 @@ function MTTTrainingPage() {
             <Link 
               href={`/trainer/mtt?${new URLSearchParams({
                 stack: stackSize,
-                position: position,
+                position: positionParam,
                 action: actionType,
                 ...(customHands.length > 0 ? { hands: encodeURIComponent(customHands.join(',')) } : {})
               }).toString()}`} 
@@ -7606,7 +7654,7 @@ function MTTTrainingPage() {
             rangeData={rangeData}
             title={`現在のスポットのハンドレンジ`}
             onClose={() => setShowHandRangeViewer(false)}
-            position={position}
+            position={spot?.heroPosition || gtoData?.heroPosition || position}
             stackSize={stackSize}
             actionType={actionType}
             opponentPosition={spotOpponentPosition}

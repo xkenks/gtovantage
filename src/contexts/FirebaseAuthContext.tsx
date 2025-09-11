@@ -466,6 +466,9 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   
   // スタックサイズ使用可能判定
   const canUseStackSize = (stackSize: string): boolean => {
+    // 75bb/50bbはマスターユーザーのみ利用可能
+    if (stackSize === '75BB' || stackSize === '50BB') return isMasterUser;
+    
     if (isMasterUser) return true;
     if (subscriptionStatus === 'premium') return true;
     if (subscriptionStatus === 'light') return true; // ライトプランは全スタック利用可能
@@ -474,8 +477,13 @@ export function FirebaseAuthProvider({ children }: FirebaseAuthProviderProps) {
   
   // 使用可能スタックサイズ一覧
   const getAllowedStackSizes = (): string[] => {
-    if (isMasterUser || subscriptionStatus === 'premium' || subscriptionStatus === 'light') {
+    if (isMasterUser) {
+      // マスターユーザーは全スタックサイズ利用可能
       return ['10BB', '15BB', '20BB', '30BB', '40BB', '50BB', '75BB'];
+    }
+    if (subscriptionStatus === 'premium' || subscriptionStatus === 'light') {
+      // プレミアム/ライトユーザーは75bb/50bbを除外
+      return ['10BB', '15BB', '20BB', '30BB', '40BB'];
     }
     return ['20BB']; // 無料プランは20BBのみ
   };

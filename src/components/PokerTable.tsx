@@ -2010,9 +2010,15 @@ export const PokerTable: React.FC<PokerTableProps> = ({
               // 1. 3ベッターがSBの場合
               // 2. BBがヒーローでSBがオープンレイザーの場合
               // 3. vs3betでBBが3ベッターの場合（BBがオールインした場合）
+              // 4. vs3ベットでヒーローがSBの場合（オープンレイザー）
+              // 5. vsオープンでヒーローがBB、相手がSBの場合
+              // 6. vs4ベットでヒーローがBB、相手がSBの場合
               const shouldHideSBChipMobile = (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') || 
                                             (currentSpot.threeBetterPosition === 'SB') ||
-                                            (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetterPosition === 'BB');
+                                            (currentSpot.actionType === 'vs3bet' && currentSpot.threeBetterPosition === 'BB') ||
+                                            (currentSpot.actionType === 'vs3bet' && currentSpot.heroPosition === 'SB') ||
+                                            (currentSpot.actionType === 'vsopen' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') ||
+                                            (currentSpot.actionType === 'vs4bet' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB');
               
               console.log('🔍 モバイル版SBチップ表示条件:', {
                 sbPos: !!sbPos,
@@ -2468,31 +2474,40 @@ export const PokerTable: React.FC<PokerTableProps> = ({
           });
           
           // 0.5BBチップを非表示にする条件
-          const shouldHideSBChip = (currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') || 
-                                   (threeBetterPos === 'SB');
+          // 1. SBが3ベッターの場合
+          // 2. vs3ベットでヒーローがSBの場合（オープンレイザー）
+          // 3. vsオープンでヒーローがBB、相手がSBの場合
+          // 4. vs4ベットでヒーローがBB、相手がSBの場合
+          const shouldHideSBChip = (threeBetterPos === 'SB') || 
+                                  (currentSpot.actionType === 'vs3bet' && currentSpot.heroPosition === 'SB') ||
+                                  (currentSpot.actionType === 'vsopen' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') ||
+                                  (currentSpot.actionType === 'vs4bet' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB');
           console.log('🔍 Should hide 0.5BB chip?', shouldHideSBChip, {
             isBBHero: currentSpot.heroPosition === 'BB',
             isSBOpener: openRaiserPos === 'SB',
             isSBThreeBetter: threeBetterPos === 'SB',
+            isSBHeroVs3bet: currentSpot.actionType === 'vs3bet' && currentSpot.heroPosition === 'SB',
+            isBBHeroVsOpenSB: currentSpot.actionType === 'vsopen' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB',
+            isBBHeroVs4betSB: currentSpot.actionType === 'vs4bet' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB',
             openRaiseSize: currentSpot?.openRaiseSize
           });
           
           if (shouldHideSBChip) {
-            console.log('🚫 SB chip hidden - reason:', threeBetterPos === 'SB' ? 'SB is 3-better' : 'BB hero + SB opener');
+            if (threeBetterPos === 'SB') {
+              console.log('🚫 SB chip hidden - reason: SB is 3-better');
+            } else if (currentSpot.actionType === 'vs3bet' && currentSpot.heroPosition === 'SB') {
+              console.log('🚫 SB chip hidden - reason: vs3bet with SB hero (open-raiser)');
+            } else if (currentSpot.actionType === 'vsopen' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') {
+              console.log('🚫 SB chip hidden - reason: vsopen with BB hero vs SB opener');
+            } else if (currentSpot.actionType === 'vs4bet' && currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') {
+              console.log('🚫 SB chip hidden - reason: vs4bet with BB hero vs SB 4-better');
+            }
           }
           
-          // BBがヒーローかつSBがオープンレイザーの場合は0.5BBチップを絶対に表示しない
-          const shouldHide = currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB';
-          console.log('🔍 Should hide 0.5BB chip?', shouldHide, {
-            isBBHero: currentSpot.heroPosition === 'BB',
-            isSBOpener: openRaiserPos === 'SB', 
-            openRaiseSize: currentSpot?.openRaiseSize
-          });
-          
-          if (shouldHide) {
-            console.log('🚫 BB hero + SB opener: 0.5BB chip hidden');
+          // 条件に該当する場合は0.5BBチップを非表示
+          if (shouldHideSBChip) {
             // 0.5BBチップは表示しない
-          } else if (sbPosition && !sbPosition.isHero && !(currentSpot.heroPosition === 'BB' && openRaiserPos === 'SB') && currentSpot.threeBetterPosition !== 'SB') {
+          } else if (sbPosition && currentSpot.threeBetterPosition !== 'SB') {
             // テーブル中央に向かって少し移動した位置
             const centerX = 50;
             const centerY = 35;

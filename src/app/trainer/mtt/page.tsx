@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAdmin } from '@/contexts/AdminContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { HAND_TEMPLATES, getMTTRange, HandInfo } from '@/components/HandRange';
@@ -410,12 +410,13 @@ const SimpleHandRangeSelector: React.FC<{
   );
 };
 
-export default function MTTTrainerPage() {
+function MTTTrainerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { canUseStackSize, getAllowedStackSizes } = useAuth();
   
-  const [stackSize, setStackSize] = useState('75BB');
-  const [position, setPosition] = useState('BTN');
+  const [stackSize, setStackSize] = useState('20BB');
+  const [position, setPosition] = useState('RANDOM');
   const [actionType, setActionType] = useState('openraise');
   const [opponentPosition, setOpponentPosition] = useState<string>('random');
   const [selectedHands, setSelectedHands] = useState<string[]>([]);
@@ -426,6 +427,26 @@ export default function MTTTrainerPage() {
   const allStackSizes = ['75BB', '50BB', '40BB', '30BB', '20BB', '15BB'];
   const stackSizes = getAllowedStackSizes();
   const positions = ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  
+  // アクションタイプ別の有効なポジションを取得
+  const getValidPositions = (action: string): string[] => {
+    if (action === 'openraise') {
+      // オープンレイズはBB以外のポジションで可能（BBはオープンレイズできない）
+      return ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    } else if (action === 'vsopen') {
+      // vsオープンは、オープンレイザーより後のポジションのみ
+      return ['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    } else if (action === 'vs3bet') {
+      // vs3betは、3ベッターより後のポジションのみ
+      return ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'];
+    } else if (action === 'vs4bet') {
+      // vs4betは、4ベッターより後のポジションのみ
+      return ['UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    } else {
+      // その他のアクションタイプは全てのポジション
+      return positions;
+    }
+  };
   
   // アクション別の有効な相手ポジションを計算
   const getValidOpponentPositions = (heroPos: string, action: string): string[] => {
@@ -462,6 +483,36 @@ export default function MTTTrainerPage() {
     { id: 'random', label: 'ランダム' },
   ];
 
+  // URLパラメータから設定を読み込み
+  useEffect(() => {
+    const urlStack = searchParams.get('stack');
+    const urlPosition = searchParams.get('position');
+    const urlAction = searchParams.get('action');
+    const urlHands = searchParams.get('hands');
+
+    if (urlStack && canUseStackSize(urlStack)) {
+      setStackSize(urlStack);
+    }
+    if (urlPosition) {
+      if (urlPosition === 'RANDOM') {
+        setPosition('RANDOM');
+      } else if (positions.includes(urlPosition)) {
+        setPosition(urlPosition);
+      }
+    }
+    if (urlAction && actionTypes.some(a => a.id === urlAction)) {
+      setActionType(urlAction);
+    }
+    if (urlHands) {
+      try {
+        const hands = decodeURIComponent(urlHands).split(',').filter(hand => hand.trim() !== '');
+        setSelectedHands(hands);
+      } catch (error) {
+        console.error('ハンドのデコードに失敗:', error);
+      }
+    }
+  }, [searchParams, canUseStackSize]);
+
   // 設定をlocalStorageから読み込み
   useEffect(() => {
     try {
@@ -473,8 +524,8 @@ export default function MTTTrainerPage() {
         if (settings.stackSize && canUseStackSize(settings.stackSize)) {
           setStackSize(settings.stackSize);
         } else if (settings.stackSize && !canUseStackSize(settings.stackSize)) {
-          // 保存されたスタックサイズが使用できない場合は30BBに変更
-          setStackSize('30BB');
+          // 保存されたスタックサイズが使用できない場合は20BBに変更
+          setStackSize('20BB');
         }
         if (settings.position && positions.includes(settings.position)) {
           setPosition(settings.position);
@@ -537,6 +588,17 @@ export default function MTTTrainerPage() {
     }
   }, [actionType, isInitialLoad]);
   
+  // アクションタイプ変更時にポジションを有効なものに調整
+  useEffect(() => {
+    if (!isInitialLoad && position !== 'RANDOM') {
+      const validPositions = getValidPositions(actionType);
+      if (!validPositions.includes(position)) {
+        // 現在のポジションが無効な場合は、最初の有効なポジションに変更
+        setPosition(validPositions[0]);
+      }
+    }
+  }, [actionType, isInitialLoad]);
+  
   // スタックサイズ変更時にアクションタイプをチェック
   useEffect(() => {
     if (!isInitialLoad) {
@@ -592,15 +654,20 @@ export default function MTTTrainerPage() {
   // 設定をリセットする関数
   const resetSettings = () => {
     if (confirm('🔄 すべての設定をリセットしますか？\n\n現在の設定：\n・スタック: ' + stackSize + '\n・ポジション: ' + position + '\n・アクション: ' + actionTypes.find(a => a.id === actionType)?.label + '\n・選択ハンド: ' + selectedHands.length + '個')) {
-      setStackSize('75BB');
-      setPosition('BTN');
+      // リセット時のデフォルト値を設定
+      setStackSize('20BB');
+      setPosition('RANDOM');
       setActionType('openraise');
+      setOpponentPosition('random');
       setSelectedHands([]);
       
       try {
         localStorage.removeItem('mtt-trainer-settings');
         console.log('🔄 設定をリセットしました（自動保存により設定クリア）');
         setHasLocalStorage(false);
+        
+        // リセット完了をユーザーに通知
+        alert('✅ 設定をリセットしました！\n\nデフォルト設定：\n・エフェクティブスタック: 20BB\n・あなたのポジション: ランダム\n・アクションタイプ: オープン');
       } catch (error) {
         console.error('❌ 設定のリセットに失敗:', error);
       }
@@ -642,7 +709,7 @@ export default function MTTTrainerPage() {
                   }`}
                   onClick={() => canUseStackSize(stack) && setStackSize(stack)}
                   disabled={!canUseStackSize(stack)}
-                  title={!canUseStackSize(stack) ? '無料プランでは30BBのみ利用可能です' : ''}
+                  title={!canUseStackSize(stack) ? '無料プランでは20BBのみ利用可能です' : ''}
                 >
                   {stack}
                   {!canUseStackSize(stack) && <span className="ml-1 text-xs">🔒</span>}
@@ -651,7 +718,7 @@ export default function MTTTrainerPage() {
             </div>
             {stackSizes.length === 1 && (
               <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                💡 無料プランでは30BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
+                💡 無料プランでは20BBモードのみ利用可能です。プランアップグレードで全スタックサイズが利用できます。
               </div>
             )}
           </div>
@@ -659,7 +726,13 @@ export default function MTTTrainerPage() {
           <div className="mb-4 md:mb-6">
             <h3 className="text-sm md:text-lg font-medium mb-2">あなたのポジション</h3>
             <div className="flex flex-wrap gap-1 md:gap-2">
-              {positions.map(pos => (
+              <button 
+                className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${position === 'RANDOM' ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
+                onClick={() => setPosition('RANDOM')}
+              >
+                ランダム
+              </button>
+              {getValidPositions(actionType).map(pos => (
                 <button 
                   key={pos}
                   className={`px-2 md:px-3 py-1 md:py-2 rounded text-sm md:text-base ${position === pos ? 'bg-green-600' : 'bg-gray-700'} transition-colors hover:bg-green-500`}
@@ -704,11 +777,6 @@ export default function MTTTrainerPage() {
                 );
               })}
             </div>
-            {!validOpponentPositions.length && (actionType === 'vsopen' || actionType === 'vs3bet' || actionType === 'vs4bet') && (
-              <div className="mt-2 text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-2">
-                ⚠️ 現在の設定では有効な相手ポジションがありません。ヒーローポジションまたはアクションタイプを変更してください。
-              </div>
-            )}
           </div>
           
           <div className="mb-4 md:mb-6">
@@ -786,5 +854,14 @@ export default function MTTTrainerPage() {
       </div>
     </div>
     </AuthGuard>
+  );
+}
+
+// Suspenseでラップしたコンポーネント
+export default function MTTTrainerPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white">読み込み中...</div>}>
+      <MTTTrainerPage />
+    </Suspense>
   );
 } 
