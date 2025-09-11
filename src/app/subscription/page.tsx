@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/FirebaseAuthContext';
 import { AuthGuard } from '@/components/AuthGuard';
-import { FaArrowLeft, FaCrown, FaCheck, FaTimes, FaCreditCard, FaHistory } from 'react-icons/fa';
+import { FaArrowLeft, FaCrown, FaCheck, FaTimes, FaCreditCard, FaHistory, FaBolt, FaLock } from 'react-icons/fa';
 
 export default function SubscriptionPage() {
   const { user, isMasterUser, hasActiveSubscription } = useAuth();
@@ -87,7 +87,12 @@ export default function SubscriptionPage() {
               <div className={`grid grid-cols-1 ${isMasterUser ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 md:gap-6`}>
                 {/* Free Plan */}
                 <div className="bg-gray-700 rounded-lg p-4 md:p-6">
-                  <h3 className="text-lg font-semibold text-white mb-2">無料プラン</h3>
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaLock className="text-lg text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">無料プラン</h3>
+                  </div>
                   <p className="text-3xl font-bold text-gray-300 mb-4">¥0<span className="text-sm">/月</span></p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
@@ -120,7 +125,12 @@ export default function SubscriptionPage() {
                       アクティブ
                     </div>
                   )}
-                  <h3 className={`text-lg font-semibold ${(user?.subscriptionStatus === 'premium' || isMasterUser) && user?.subscriptionStatus !== 'light' ? 'text-gray-400' : 'text-white'} mb-2`}>ライト</h3>
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaBolt className="text-lg text-white" />
+                    </div>
+                    <h3 className={`text-lg font-semibold ${(user?.subscriptionStatus === 'premium' || isMasterUser) && user?.subscriptionStatus !== 'light' ? 'text-gray-400' : 'text-white'} mb-2`}>ライト</h3>
+                  </div>
                   <p className={`text-3xl font-bold ${(user?.subscriptionStatus === 'premium' || isMasterUser) && user?.subscriptionStatus !== 'light' ? 'text-gray-500' : 'text-blue-400'} mb-4`}>¥980<span className="text-sm">/月</span></p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">
@@ -158,7 +168,12 @@ export default function SubscriptionPage() {
                       アクティブ
                     </div>
                   )}
-                  <h3 className="text-lg font-semibold text-white mb-2">プレミアム</h3>
+                  <div className="text-center mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <FaCrown className="text-lg text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">プレミアム</h3>
+                  </div>
                   <p className="text-3xl font-bold text-yellow-400 mb-4">¥1,980<span className="text-sm">/月</span></p>
                   <ul className="space-y-2 mb-6">
                     <li className="flex items-center text-sm text-gray-300">

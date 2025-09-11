@@ -11,6 +11,11 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/login/page.js"
+    ],
     "/trainer/mtt/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -25,6 +30,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/trainer/mtt/training/page.js"
+    ],
+    "/subscription/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/subscription/page.js"
     ]
   }
 }

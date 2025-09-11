@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaChalkboardTeacher, FaClipboardList, FaGraduationCap, FaUsers, FaTrophy, FaChartLine, FaBrain, FaRocket, FaPlay, FaUser, FaCrown, FaInfinity, FaLock, FaCheck } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaClipboardList, FaGraduationCap, FaUsers, FaTrophy, FaChartLine, FaBrain, FaRocket, FaPlay, FaUser, FaCrown, FaInfinity, FaLock, FaCheck, FaBolt } from 'react-icons/fa';
 import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 export default function Home() {
@@ -126,8 +126,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Premium Upgrade Section - Only show for non-premium users */}
-      {isAuthenticated && !hasActiveSubscription && (
+      {/* Premium Upgrade Section - Only show for free and light plan users */}
+      {isAuthenticated && (user?.subscriptionStatus === 'free' || user?.subscriptionStatus === 'light') && (
         <section className="py-12 md:py-20 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-y border-yellow-600/30">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12 md:mb-16">
@@ -143,25 +143,50 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
+            <div className={`grid grid-cols-1 ${user?.subscriptionStatus === 'light' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-6 md:gap-8 max-w-5xl mx-auto`}>
               {/* Current Plan */}
-              <div className="bg-gray-800/50 border border-gray-600/50 p-6 md:p-8 rounded-xl">
+              <div className={`${user?.subscriptionStatus === 'light' ? 'bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-600/50' : 'bg-gray-800/50 border-gray-600/50'} border p-6 md:p-8 rounded-xl`}>
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaLock className="text-2xl text-gray-400" />
+                  <div className={`w-16 h-16 ${user?.subscriptionStatus === 'light' ? 'bg-blue-600' : 'bg-gray-600'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    {user?.subscriptionStatus === 'light' ? (
+                      <FaBolt className="text-2xl text-white" />
+                    ) : (
+                      <FaLock className="text-2xl text-gray-400" />
+                    )}
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">現在のプラン</h3>
-                  <p className="text-gray-400 text-sm">制限付き</p>
+                  <p className={`text-sm ${user?.subscriptionStatus === 'light' ? 'text-blue-400' : 'text-gray-400'}`}>
+                    {user?.subscriptionStatus === 'light' ? 'ライトプラン' : '制限付き'}
+                  </p>
                 </div>
                 <ul className="space-y-3 text-sm text-gray-300">
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400 text-xs" />
-                    <span>1日5ハンドまで練習</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400 text-xs" />
-                    <span>MTTシナリオ（20BB限定）</span>
-                  </li>
+                  {user?.subscriptionStatus === 'light' ? (
+                    <>
+                      <li className="flex items-center gap-2">
+                        <FaCheck className="text-green-400 text-xs" />
+                        <span>1日50ハンドまで練習</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <FaCheck className="text-green-400 text-xs" />
+                        <span>すべてのGTOトレーニング</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <FaCheck className="text-green-400 text-xs" />
+                        <span>無制限のMTTシナリオ</span>
+                      </li>
+                    </>
+                  ) : (
+                    <>
+                      <li className="flex items-center gap-2">
+                        <FaCheck className="text-green-400 text-xs" />
+                        <span>1日5ハンドまで練習</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <FaCheck className="text-green-400 text-xs" />
+                        <span>MTTシナリオ（20BB限定）</span>
+                      </li>
+                    </>
+                  )}
                 </ul>
               </div>
 
@@ -169,7 +194,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 p-6 md:p-8 rounded-xl relative transform scale-105">
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                   <div className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    おすすめ
+                    {user?.subscriptionStatus === 'light' ? 'アップグレード' : 'おすすめ'}
                   </div>
                 </div>
                 <div className="text-center mb-6">
@@ -203,11 +228,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Light Plan */}
+              {/* Light Plan - Only show for free plan users */}
+              {user?.subscriptionStatus === 'free' && (
               <div className="bg-gray-800/50 border border-gray-600/50 p-6 md:p-8 rounded-xl">
                 <div className="text-center mb-6">
                   <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaInfinity className="text-2xl text-white" />
+                    <FaBolt className="text-2xl text-white" />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">ライト</h3>
                   <p className="text-blue-400 font-semibold">¥980/月</p>
@@ -235,6 +261,7 @@ export default function Home() {
                   </Link>
                 </div>
               </div>
+              )}
             </div>
           </div>
         </section>
