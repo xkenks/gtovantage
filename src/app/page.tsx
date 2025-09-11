@@ -55,7 +55,7 @@ export default function Home() {
                   今日の練習回数: {dailyPracticeCount}回
                   {!hasActiveSubscription && (
                     <>
-                      <br className="hidden sm:block" />
+                      <br />
                       プランアップグレードでより多くの練習が可能です。
                     </>
                   )}
