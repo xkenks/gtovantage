@@ -126,119 +126,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Service Appeal Section */}
-      <section className="py-12 md:py-20 bg-black bg-opacity-40">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">GTO Vantage</span>の魅力
-            </h2>
-            <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
-              最新のGTO Solver技術と圧倒的なコスパで、あなたのポーカースキルを次のレベルへ
-            </p>
-          </div>
-          
-          <div className="max-w-7xl mx-auto">
-            {/* Main Features Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
-              {/* Feature 1: Cost Performance */}
-              <div className="bg-gradient-to-br from-green-900/50 to-emerald-900/50 border border-green-500/30 p-6 md:p-8 rounded-xl hover:border-green-400/50 transition-all duration-300">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaCrown className="text-2xl md:text-3xl text-white" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">圧倒的なコスパ</h3>
-                </div>
-                <p className="text-gray-300 leading-relaxed mb-6 text-center">
-                  高品質なGTOトレーニングを手頃な価格で提供。他のGTOツールと比較して、圧倒的なコストパフォーマンスを実現しています。
-                </p>
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-3 bg-green-800/30 px-4 py-2 rounded-full">
-                    <span className="text-green-400 font-bold text-lg">980円〜</span>
-                    <span className="text-gray-300 text-sm">従来の1/10の価格</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 2: GTO Solver */}
-              <div className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30 p-6 md:p-8 rounded-xl hover:border-blue-400/50 transition-all duration-300">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaBrain className="text-2xl md:text-3xl text-white" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">最新GTO Solver技術</h3>
-                </div>
-                <p className="text-gray-300 leading-relaxed mb-6 text-center">
-                  最新のゲーム理論最適化エンジンを搭載。感情に左右されない、科学的な意思決定をサポートします。
-                </p>
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-3 bg-blue-800/30 px-4 py-2 rounded-full">
-                    <span className="text-blue-400 font-semibold">感情排除</span>
-                    <span className="text-gray-300 text-sm">科学的アプローチ</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 3: Preflop Training */}
-              <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-6 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaChartLine className="text-2xl md:text-3xl text-white" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">勝負を決める初手戦略</h3>
-                </div>
-                <p className="text-gray-300 leading-relaxed mb-6 text-center">
-                  プリフロップこそが勝負の分かれ道。正確なレンジ戦略で、ゲーム開始から圧倒的アドバンテージを構築。科学的根拠に基づいた最適解を身につけましょう。
-                </p>
-                <div className="text-center">
-                  <div className="inline-flex items-center gap-3 bg-purple-800/30 px-4 py-2 rounded-full">
-                    <span className="text-purple-400 font-semibold">プリフロップGTO</span>
-                    <span className="text-gray-300 text-sm">完全習得</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
-          </div>
-        </div>
-      </section>
-
-      {/* Training Types Section */}
-      <section className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
-              トレーニング<span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">メニュー</span>
-            </h2>
-            <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
-              あなたの目標に合わせて、最適なトレーニングを選択してください。
-            </p>
-          </div>
-          
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-4 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
-              <div className="flex items-center mb-4 md:mb-6">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
-                  <FaTrophy className="text-lg md:text-xl text-white" />
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-white">MTTプリフロップトレーニング - チップEV</h3>
-              </div>
-              <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
-                トーナメントに特化したプリフロップ戦略を学び、MTTでの勝率を向上させます。このトレーニングではチップEVを考慮しており、ICMは考慮していません。スタックサイズに応じた戦略調整や、ポジション別の最適プレイを習得。プリフロップGTO戦略を実践的に学習できます。
-              </p>
-              <Link 
-                href="/trainer/mtt"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm md:text-base font-semibold transition-all duration-300"
-              >
-                トレーニング開始
-                <FaPlay className="text-sm" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Premium Upgrade Section - Only show for non-premium users */}
       {isAuthenticated && !hasActiveSubscription && (
         <section className="py-12 md:py-20 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border-y border-yellow-600/30">
@@ -368,6 +255,120 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* Service Appeal Section */}
+      <section className="py-12 md:py-20 bg-black bg-opacity-40">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
+              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">GTO Vantage</span>の魅力
+            </h2>
+            <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
+              最新のGTO Solver技術と圧倒的なコスパで、あなたのポーカースキルを次のレベルへ
+            </p>
+          </div>
+          
+          <div className="max-w-7xl mx-auto">
+            {/* Main Features Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
+              {/* Feature 1: Cost Performance */}
+              <div className="bg-gradient-to-br from-green-900/50 to-emerald-900/50 border border-green-500/30 p-6 md:p-8 rounded-xl hover:border-green-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaCrown className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">圧倒的なコスパ</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  高品質なGTOトレーニングを手頃な価格で提供。他のGTOツールと比較して、圧倒的なコストパフォーマンスを実現しています。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-green-800/30 px-4 py-2 rounded-full">
+                    <span className="text-green-400 font-bold text-lg">980円〜</span>
+                    <span className="text-gray-300 text-sm">従来の1/10の価格</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 2: GTO Solver */}
+              <div className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30 p-6 md:p-8 rounded-xl hover:border-blue-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaBrain className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">最新GTO Solver技術</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  最新のゲーム理論最適化エンジンを搭載。感情に左右されない、科学的な意思決定をサポートします。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-blue-800/30 px-4 py-2 rounded-full">
+                    <span className="text-blue-400 font-semibold">感情排除</span>
+                    <span className="text-gray-300 text-sm">科学的アプローチ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature 3: Preflop Training */}
+              <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-6 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaChartLine className="text-2xl md:text-3xl text-white" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-3">勝負を決める初手戦略</h3>
+                </div>
+                <p className="text-gray-300 leading-relaxed mb-6 text-center">
+                  プリフロップこそが勝負の分かれ道。正確なレンジ戦略で、ゲーム開始から圧倒的アドバンテージを構築。科学的根拠に基づいた最適解を身につけましょう。
+                </p>
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-3 bg-purple-800/30 px-4 py-2 rounded-full">
+                    <span className="text-purple-400 font-semibold">プリフロップGTO</span>
+                    <span className="text-gray-300 text-sm">完全習得</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </section>
+
+      {/* Training Types Section */}
+      <section className="py-12 md:py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6">
+              トレーニング<span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">メニュー</span>
+            </h2>
+            <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto px-2">
+              あなたの目標に合わせて、最適なトレーニングを選択してください。
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 p-4 md:p-8 rounded-xl hover:border-purple-400/50 transition-all duration-300">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
+                  <FaTrophy className="text-lg md:text-xl text-white" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-bold text-white">MTTプリフロップトレーニング - チップEV</h3>
+              </div>
+              <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
+                トーナメントに特化したプリフロップ戦略を学び、MTTでの勝率を向上させます。このトレーニングではチップEVを考慮しており、ICMは考慮していません。スタックサイズに応じた戦略調整や、ポジション別の最適プレイを習得。プリフロップGTO戦略を実践的に学習できます。
+              </p>
+              <Link 
+                href="/trainer/mtt"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm md:text-base font-semibold transition-all duration-300"
+              >
+                トレーニング開始
+                <FaPlay className="text-sm" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* CTA Section - Only show for non-authenticated users */}
       {!isAuthenticated && (
