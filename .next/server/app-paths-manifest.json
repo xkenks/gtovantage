@@ -1,7 +1,7 @@
 {
   "/trainer/mtt/page": "app/trainer/mtt/page.js",
-  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
   "/page": "app/page.js",
-  "/api/mtt-ranges/route": "app/api/mtt-ranges/route.js",
+  "/subscription/page": "app/subscription/page.js",
+  "/trainer/mtt/training/page": "app/trainer/mtt/training/page.js",
   "/login/page": "app/login/page.js"
 }

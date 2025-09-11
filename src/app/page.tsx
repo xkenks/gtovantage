@@ -156,19 +156,11 @@ export default function Home() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>基本トレーニング</span>
+                    <span>1日5ハンドまで練習</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>30BBモード</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-500">
-                    <span className="text-red-400">×</span>
-                    <span>練習回数制限</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-500">
-                    <span className="text-red-400">×</span>
-                    <span>全スタックサイズ</span>
+                    <span>MTTシナリオ（20BB限定）</span>
                   </li>
                 </ul>
               </div>
@@ -190,19 +182,15 @@ export default function Home() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>無制限練習</span>
+                    <span>1日無制限練習</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>全スタックサイズ</span>
+                    <span>すべてのGTOトレーニング</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>高度な分析</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <FaCheck className="text-green-400 text-xs" />
-                    <span>優先サポート</span>
+                    <span>無制限のMTTシナリオ</span>
                   </li>
                 </ul>
                 <div className="mt-6">
@@ -227,19 +215,15 @@ export default function Home() {
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>50回/日練習</span>
+                    <span>1日50ハンドまで練習</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>全スタックサイズ</span>
+                    <span>すべてのGTOトレーニング</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <FaCheck className="text-green-400 text-xs" />
-                    <span>基本分析</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-500">
-                    <span className="text-red-400">×</span>
-                    <span>優先サポート</span>
+                    <span>無制限のMTTシナリオ</span>
                   </li>
                 </ul>
                 <div className="mt-6">
