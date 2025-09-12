@@ -69,7 +69,7 @@ export const btnOpenRaiseRange: Record<string, HandInfo> = {
   'K7s': { action: 'ALL_IN', frequency: 100 },
   'K6s': { action: 'ALL_IN', frequency: 100 },
   'K5s': { action: 'ALL_IN', frequency: 100 },
-  'K4s': { action: 'ALL_IN', frequency: 100 },
+  'K4s': { action: 'FOLD', frequency: 100 },
   'K3s': { action: 'ALL_IN', frequency: 100 },
   'K2s': { action: 'ALL_IN', frequency: 100 },
   
@@ -81,7 +81,7 @@ export const btnOpenRaiseRange: Record<string, HandInfo> = {
   'K7o': { action: 'ALL_IN', frequency: 100 },
   'K6o': { action: 'ALL_IN', frequency: 100 },
   'K5o': { action: 'ALL_IN', frequency: 100 },
-  'K4o': { action: 'ALL_IN', frequency: 100 },
+  'K4o': { action: 'FOLD', frequency: 100 },
   'K3o': { action: 'FOLD', frequency: 0 },
   'K2o': { action: 'FOLD', frequency: 0 },
   
@@ -1815,7 +1815,7 @@ export const btn15bbRange: Record<string, HandInfo> = {
   'K7s': { action: 'ALL_IN', frequency: 19.2 },
   'K6s': { action: 'ALL_IN', frequency: 19.2 },
   'K5s': { action: 'ALL_IN', frequency: 19.2 },
-  'K4s': { action: 'ALL_IN', frequency: 19.2 },
+  'K4s': { action: 'FOLD', frequency: 100 },
   'K3s': { action: 'ALL_IN', frequency: 19.2 },
   'K2s': { action: 'ALL_IN', frequency: 19.2 },
   
