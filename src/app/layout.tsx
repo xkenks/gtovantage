@@ -83,6 +83,9 @@ export default function RootLayout({
     <html lang="ja">
       <head>
         <GoogleAnalyticsScript />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
         <ChakraWrapper>
