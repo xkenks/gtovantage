@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   creator: 'GTO Vantage',
   publisher: 'GTO Vantage',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/favicon.ico?v=4',
+    shortcut: '/favicon.ico?v=4',
+    apple: '/favicon.ico?v=4',
   },
   formatDetection: {
     email: false,
@@ -83,9 +83,13 @@ export default function RootLayout({
     <html lang="ja">
       <head>
         <GoogleAnalyticsScript />
-        <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=4" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico?v=4" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico?v=4" />
+        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=4" />
+        <link rel="apple-touch-icon" href="/favicon.ico?v=4" />
+        <meta name="msapplication-TileImage" content="/favicon.ico?v=4" />
+        <meta name="msapplication-TileColor" content="#000000" />
       </head>
       <body className={inter.className}>
         <ChakraWrapper>

@@ -810,7 +810,7 @@ const simulateMTTGTOData = (
         }
         
         console.log('🎯 vs3bet 単一アクション処理デバッグ:', {
-          originalAction: originalAction,
+          originalAction: customHandData.action,
           convertedAction: customPrimaryAction,
           frequency: customHandData.frequency,
           actionKey,
