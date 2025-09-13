@@ -12,6 +12,9 @@ const DATA_DIR = process.env.NODE_ENV === 'production'
   ? '/tmp' 
   : path.join(process.cwd(), 'data');
 const RANGES_FILE = path.join(DATA_DIR, 'mtt-ranges.json');
+
+// 本番環境でのフォールバック用パス
+const FALLBACK_RANGES_FILE = path.join(process.cwd(), 'public', 'data', 'mtt-ranges.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-production-secret-key-2024-ultra-secure-admin-token-vercel-deployment';
 
 // データディレクトリが存在しない場合は作成
@@ -107,7 +110,31 @@ export async function GET(request: NextRequest) {
 
     // ファイルから読み込み
     if (!fs.existsSync(RANGES_FILE)) {
-      console.log('🎯 ファイルが存在しないため、空のデータを返却');
+      console.log('🎯 メインファイルが存在しないため、フォールバックファイルを確認');
+      
+      // フォールバックファイルを確認
+      if (fs.existsSync(FALLBACK_RANGES_FILE)) {
+        console.log('🎯 フォールバックファイルからデータを読み込み');
+        const fallbackData = fs.readFileSync(FALLBACK_RANGES_FILE, 'utf8');
+        const rangeData: SystemRangeData = JSON.parse(fallbackData);
+        
+        // キャッシュを更新
+        globalRangeCache = rangeData;
+        cacheLastUpdated = rangeData.lastUpdated;
+        
+        console.log('🎯 フォールバックファイルからデータを読み込み、キャッシュを更新:', {
+          lastUpdated: cacheLastUpdated,
+          totalPositions: rangeData.metadata.totalPositions,
+          totalHands: rangeData.metadata.totalHands,
+          hasRanges: !!rangeData.ranges,
+          rangesCount: rangeData.ranges ? Object.keys(rangeData.ranges).length : 0,
+          fileSize: fallbackData.length
+        });
+        
+        return NextResponse.json(rangeData);
+      }
+      
+      console.log('🎯 フォールバックファイルも存在しないため、空のデータを返却');
       // ファイルが存在しない場合は空のデータを返す
       const emptyData: SystemRangeData = {
         version: '1.0.0',
@@ -239,7 +266,17 @@ export async function POST(request: NextRequest) {
     
     try {
       fs.writeFileSync(RANGES_FILE, JSON.stringify(systemData, null, 2));
-      console.log('✅ ファイル保存成功');
+      console.log('✅ メインファイル保存成功');
+      
+      // 本番環境ではフォールバックファイルにも保存
+      if (process.env.NODE_ENV === 'production') {
+        try {
+          fs.writeFileSync(FALLBACK_RANGES_FILE, JSON.stringify(systemData, null, 2));
+          console.log('✅ フォールバックファイル保存成功');
+        } catch (fallbackError) {
+          console.warn('⚠️ フォールバックファイル保存失敗:', fallbackError);
+        }
+      }
       
       // キャッシュも更新
       globalRangeCache = systemData;
