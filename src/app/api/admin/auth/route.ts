@@ -12,7 +12,7 @@ const ADMIN_CREDENTIALS = {
   password: process.env.ADMIN_PASSWORD || 'GTO2024Admin!'
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-production-secret-key-2024-ultra-secure-admin-token-vercel-deployment';
 
 // IPアドレス取得ヘルパー
 function getClientIP(request: NextRequest): string {
@@ -141,7 +141,11 @@ export async function POST(request: NextRequest) {
       { expiresIn: '24h' }
     );
 
-    console.log(`管理者ログイン成功: ${username}, IP: ${clientIP}`);
+    console.log(`✅ 管理者ログイン成功: ${username}, IP: ${clientIP}`, {
+      tokenLength: token.length,
+      jwtSecret: JWT_SECRET.substring(0, 20) + '...',
+      expiresIn: '24h'
+    });
 
     const response = NextResponse.json({
       success: true,
@@ -177,7 +181,16 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
+    console.log('🔍 トークン検証開始:', {
+      tokenLength: token.length,
+      jwtSecret: JWT_SECRET.substring(0, 20) + '...'
+    });
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log('✅ トークン検証成功:', {
+      username: decoded.username,
+      role: decoded.role,
+      timestamp: decoded.timestamp
+    });
 
     const response = NextResponse.json({
       valid: true,
