@@ -64,7 +64,7 @@ const storageManager = {
       return { success: true, method: 'localStorage' };
     } catch (error) {
       console.warn('ストレージ保存失敗:', error);
-      return { success: false, method: 'none', error: error.message };
+      return { success: false, method: 'none', error: error instanceof Error ? error.message : String(error) };
     }
   },
 
@@ -148,7 +148,7 @@ const storageManager = {
       return { success: true, method: 'localStorage' };
     } catch (error) {
       console.warn('localStorage保存失敗:', error);
-      return { success: false, method: 'none', error: error.message };
+      return { success: false, method: 'none', error: error instanceof Error ? error.message : String(error) };
     }
   },
 
@@ -7350,7 +7350,7 @@ function MTTTrainingPage() {
                               })
                               .catch(error => {
                                 console.error('データファイル読み込みエラー:', error);
-                                alert(`❌ データファイルの読み込みに失敗しました: ${error.message}`);
+                                alert(`❌ データファイルの読み込みに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
                               });
                           }}
                           className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs font-medium bg-green-600 hover:bg-green-700 text-white border border-green-500 transition-all duration-200 flex items-center gap-1"
