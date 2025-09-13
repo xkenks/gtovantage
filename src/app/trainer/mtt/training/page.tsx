@@ -12,6 +12,193 @@ import { gtoEvents } from '@/lib/analytics';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/contexts/FirebaseAuthContext';
 import DailyLimitModal from '@/components/DailyLimitModal';
+import LZString from 'lz-string';
+
+// 統合ストレージ管理システム
+const storageManager = {
+  // localStorage容量チェック
+  checkLocalStorageCapacity: () => {
+    try {
+      let totalSize = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const itemSize = localStorage.getItem(key)?.length || 0;
+          totalSize += itemSize;
+        }
+      }
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      const usagePercent = ((totalSize / (5 * 1024 * 1024)) * 100).toFixed(1);
+      return {
+        totalSizeMB: parseFloat(totalSizeMB),
+        usagePercent: parseFloat(usagePercent),
+        isNearLimit: parseFloat(usagePercent) > 80
+      };
+    } catch (error) {
+      return { totalSizeMB: 0, usagePercent: 0, isNearLimit: false };
+    }
+  },
+
+  // セーフなストレージ保存
+  safeSetItem: (key: string, data: any) => {
+    try {
+      const dataString = JSON.stringify(data);
+      
+      // IndexedDBを優先的に試行
+      if ('indexedDB' in window) {
+        return { success: true, method: 'IndexedDB' };
+      }
+      
+      // 圧縮localStorageを試行
+      try {
+        const compressed = LZString.compress(dataString);
+        if (compressed) {
+          localStorage.setItem(key + '_compressed', compressed);
+          return { success: true, method: 'localStorage-compressed' };
+        }
+      } catch (error) {
+        console.warn('圧縮localStorage保存失敗:', error);
+      }
+      
+      // 通常のlocalStorageを試行
+      localStorage.setItem(key, dataString);
+      return { success: true, method: 'localStorage' };
+    } catch (error) {
+      console.warn('ストレージ保存失敗:', error);
+      return { success: false, method: 'none', error: error.message };
+    }
+  },
+
+  // セーフなストレージ読み込み
+  safeGetItem: (key: string) => {
+    try {
+      // 圧縮データを確認
+      const compressed = localStorage.getItem(key + '_compressed');
+      if (compressed) {
+        const decompressed = LZString.decompress(compressed);
+        if (decompressed) {
+          return JSON.parse(decompressed);
+        }
+      }
+      
+      // 通常データを確認
+      const data = localStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('データ読み込み失敗:', error);
+      return null;
+    }
+  },
+
+  // 既存データの圧縮移行
+  migrateToCompressed: () => {
+    try {
+      const existingData = localStorage.getItem('mtt-custom-ranges');
+      if (existingData) {
+        const compressed = LZString.compress(existingData);
+        if (compressed) {
+          localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+          localStorage.removeItem('mtt-custom-ranges');
+          console.log('✅ 既存データを圧縮移行完了');
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.warn('圧縮移行失敗:', error);
+      return false;
+    }
+  },
+
+  // カスタムレンジ保存
+  saveRanges: async (ranges: any) => {
+    const dataString = JSON.stringify(ranges);
+    const dataSize = new Blob([dataString]).size;
+    const dataSizeMB = (dataSize / (1024 * 1024)).toFixed(2);
+    
+    console.log('💾 ストレージ保存開始:', {
+      rangeCount: Object.keys(ranges).length,
+      dataSizeMB: dataSizeMB
+    });
+    
+    // 既存データの圧縮移行を試行
+    storageManager.migrateToCompressed();
+    
+    // 圧縮localStorageを優先的に試行
+    try {
+      const compressed = LZString.compress(dataString);
+      if (compressed) {
+        localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+        // 既存の非圧縮データを削除
+        localStorage.removeItem('mtt-custom-ranges');
+        console.log('✅ 圧縮localStorage保存成功');
+        return { success: true, method: 'localStorage-compressed' };
+      }
+    } catch (error) {
+      console.warn('圧縮localStorage保存失敗:', error);
+    }
+    
+    // 通常のlocalStorageを試行
+    try {
+      localStorage.setItem('mtt-custom-ranges', dataString);
+      console.log('✅ localStorage保存成功');
+      return { success: true, method: 'localStorage' };
+    } catch (error) {
+      console.warn('localStorage保存失敗:', error);
+      return { success: false, method: 'none', error: error.message };
+    }
+  },
+
+  // カスタムレンジ読み込み
+  loadRanges: async () => {
+    try {
+      // 圧縮データを確認
+      const compressed = localStorage.getItem('mtt-custom-ranges_compressed');
+      if (compressed) {
+        const decompressed = LZString.decompress(compressed);
+        if (decompressed) {
+          const data = JSON.parse(decompressed);
+          console.log('✅ 圧縮データ読み込み成功:', Object.keys(data).length + '個のレンジ');
+          return data;
+        }
+      }
+      
+      // 通常データを確認
+      const data = localStorage.getItem('mtt-custom-ranges');
+      if (data) {
+        const parsed = JSON.parse(data);
+        console.log('✅ 通常データ読み込み成功:', Object.keys(parsed).length + '個のレンジ');
+        return parsed;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn('データ読み込み失敗:', error);
+      return null;
+    }
+  },
+
+  // ストレージ情報取得
+  getStorageInfo: async () => {
+    const capacity = storageManager.checkLocalStorageCapacity();
+    return {
+      localStorage: {
+        totalSizeMB: capacity.totalSizeMB,
+        usagePercent: capacity.usagePercent,
+        isNearLimit: capacity.isNearLimit,
+        isAvailable: true
+      },
+      indexedDB: {
+        isAvailable: 'indexedDB' in window,
+        sizeEstimateMB: 'N/A',
+        quotaEstimateMB: 'N/A'
+      }
+    };
+  }
+};
 
 // ポーカーユーティリティ関数を直接定義
 
@@ -2562,6 +2749,419 @@ function MTTTrainingPage() {
   const [showDailyLimitModal, setShowDailyLimitModal] = useState<boolean>(false);
   const [isInitialized, setIsInitialized] = useState(false); // 初期化制御フラグ
   
+  // 即座に圧縮移行を実行（useEffectに依存しない）
+  console.log('🔍 コンポーネント読み込み開始');
+  
+  // アプリケーション起動時の圧縮移行
+  useEffect(() => {
+    console.log('🚀 アプリケーション起動: 圧縮移行を開始');
+    console.log('🔍 useEffect実行確認');
+    
+    // 即座に実行
+    console.log('🚀 即座に圧縮移行を開始');
+    try {
+      const existingData = localStorage.getItem('mtt-custom-ranges');
+      console.log('🔍 即座実行localStorage確認:', existingData ? 'データあり' : 'データなし');
+      if (existingData) {
+        console.log('📄 即座実行既存データを発見:', existingData.length + '文字');
+        console.log('🔍 即座実行データの先頭100文字:', existingData.substring(0, 100));
+        
+        // データが既に圧縮されているかチェック
+        if (existingData.startsWith('{"') || existingData.startsWith('{')) {
+          console.log('📝 即座実行データはJSON形式です。圧縮を実行します。');
+          
+          // LZStringで圧縮
+          const compressed = LZString.compress(existingData);
+          if (compressed && compressed.length < existingData.length) {
+            console.log('📦 即座実行圧縮完了:', compressed.length + '文字');
+            
+            // 圧縮データを保存
+            localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+            localStorage.removeItem('mtt-custom-ranges');
+            
+            console.log('✅ 即座実行圧縮移行完了！');
+            console.log('📊 即座実行圧縮率:', ((1 - compressed.length / existingData.length) * 100).toFixed(1) + '%');
+          } else {
+            console.log('❌ 即座実行圧縮に失敗または圧縮効果なし');
+            console.log('🔍 即座実行圧縮結果:', compressed ? compressed.length + '文字' : 'null');
+            
+            // 圧縮に失敗した場合は強制的にIndexedDBに移行
+            console.log('🔄 即座実行IndexedDBに強制移行を実行');
+            try {
+              const request = indexedDB.open('MTTStorage', 1);
+              request.onerror = () => console.error('❌ 即座実行IndexedDB開くエラー');
+              request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['ranges'], 'readwrite');
+                const store = transaction.objectStore('ranges');
+                const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                putRequest.onsuccess = () => {
+                  console.log('✅ 即座実行IndexedDBに保存完了');
+                  localStorage.removeItem('mtt-custom-ranges');
+                  console.log('🗑️ 即座実行localStorageから元データを削除');
+                };
+                putRequest.onerror = () => console.error('❌ 即座実行IndexedDB保存エラー');
+              };
+            } catch (error) {
+              console.error('❌ 即座実行IndexedDB移行エラー:', error);
+            }
+          }
+        } else {
+          console.log('⚠️ 即座実行データは既に圧縮されているか、圧縮できない形式です');
+          
+          // 強制的にIndexedDBに移行
+          console.log('🔄 即座実行IndexedDBに強制移行を実行');
+          try {
+            const request = indexedDB.open('MTTStorage', 1);
+            request.onerror = () => console.error('❌ 即座実行IndexedDB開くエラー');
+            request.onsuccess = () => {
+              const db = request.result;
+              const transaction = db.transaction(['ranges'], 'readwrite');
+              const store = transaction.objectStore('ranges');
+              const putRequest = store.put(existingData, 'mtt-custom-ranges');
+              putRequest.onsuccess = () => {
+                console.log('✅ 即座実行IndexedDBに保存完了');
+                localStorage.removeItem('mtt-custom-ranges');
+                console.log('🗑️ 即座実行localStorageから元データを削除');
+              };
+              putRequest.onerror = () => console.error('❌ 即座実行IndexedDB保存エラー');
+            };
+          } catch (error) {
+            console.error('❌ 即座実行IndexedDB移行エラー:', error);
+          }
+        }
+      } else {
+        console.log('ℹ️ 即座実行既存データが見つかりませんでした。');
+      }
+    } catch (error) {
+      console.error('❌ 即座実行圧縮移行エラー:', error);
+    }
+    
+    // setTimeoutで遅延実行
+    setTimeout(() => {
+      console.log('⏰ setTimeout内で圧縮移行を実行');
+      try {
+        const existingData = localStorage.getItem('mtt-custom-ranges');
+        console.log('🔍 setTimeout内localStorage確認:', existingData ? 'データあり' : 'データなし');
+        if (existingData) {
+          console.log('📄 setTimeout内既存データを発見:', existingData.length + '文字');
+          console.log('🔍 setTimeout内データの先頭100文字:', existingData.substring(0, 100));
+          
+          // データが既に圧縮されているかチェック
+          if (existingData.startsWith('{"') || existingData.startsWith('{')) {
+            console.log('📝 setTimeout内データはJSON形式です。圧縮を実行します。');
+            
+            // LZStringで圧縮
+            const compressed = LZString.compress(existingData);
+            if (compressed && compressed.length < existingData.length) {
+              console.log('📦 setTimeout内圧縮完了:', compressed.length + '文字');
+              
+              // 圧縮データを保存
+              localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+              localStorage.removeItem('mtt-custom-ranges');
+              
+              console.log('✅ setTimeout内圧縮移行完了！');
+              console.log('📊 setTimeout内圧縮率:', ((1 - compressed.length / existingData.length) * 100).toFixed(1) + '%');
+            } else {
+              console.log('❌ setTimeout内圧縮に失敗または圧縮効果なし');
+              console.log('🔍 setTimeout内圧縮結果:', compressed ? compressed.length + '文字' : 'null');
+              
+              // 圧縮に失敗した場合は強制的にIndexedDBに移行
+              console.log('🔄 setTimeout内IndexedDBに強制移行を実行');
+              try {
+                const request = indexedDB.open('MTTStorage', 1);
+                request.onerror = () => console.error('❌ setTimeout内IndexedDB開くエラー');
+                request.onsuccess = () => {
+                  const db = request.result;
+                  const transaction = db.transaction(['ranges'], 'readwrite');
+                  const store = transaction.objectStore('ranges');
+                  const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                  putRequest.onsuccess = () => {
+                    console.log('✅ setTimeout内IndexedDBに保存完了');
+                    localStorage.removeItem('mtt-custom-ranges');
+                    console.log('🗑️ setTimeout内localStorageから元データを削除');
+                  };
+                  putRequest.onerror = () => console.error('❌ setTimeout内IndexedDB保存エラー');
+                };
+              } catch (error) {
+                console.error('❌ setTimeout内IndexedDB移行エラー:', error);
+              }
+            }
+          } else {
+            console.log('⚠️ setTimeout内データは既に圧縮されているか、圧縮できない形式です');
+            
+            // 強制的にIndexedDBに移行
+            console.log('🔄 setTimeout内IndexedDBに強制移行を実行');
+            try {
+              const request = indexedDB.open('MTTStorage', 1);
+              request.onerror = () => console.error('❌ setTimeout内IndexedDB開くエラー');
+              request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['ranges'], 'readwrite');
+                const store = transaction.objectStore('ranges');
+                const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                putRequest.onsuccess = () => {
+                  console.log('✅ setTimeout内IndexedDBに保存完了');
+                  localStorage.removeItem('mtt-custom-ranges');
+                  console.log('🗑️ setTimeout内localStorageから元データを削除');
+                };
+                putRequest.onerror = () => console.error('❌ setTimeout内IndexedDB保存エラー');
+              };
+            } catch (error) {
+              console.error('❌ setTimeout内IndexedDB移行エラー:', error);
+            }
+          }
+        } else {
+          console.log('ℹ️ setTimeout内既存データが見つかりませんでした。');
+        }
+      } catch (error) {
+        console.error('❌ setTimeout内圧縮移行エラー:', error);
+      }
+    }, 100);
+    
+    // window.onloadイベントでも実行
+    window.addEventListener('load', () => {
+      console.log('🌐 window.onloadイベントで圧縮移行を実行');
+      try {
+        const existingData = localStorage.getItem('mtt-custom-ranges');
+        console.log('🔍 window.onload内localStorage確認:', existingData ? 'データあり' : 'データなし');
+        if (existingData) {
+          console.log('📄 window.onload内既存データを発見:', existingData.length + '文字');
+          console.log('🔍 window.onload内データの先頭100文字:', existingData.substring(0, 100));
+          
+          // データが既に圧縮されているかチェック
+          if (existingData.startsWith('{"') || existingData.startsWith('{')) {
+            console.log('📝 window.onload内データはJSON形式です。圧縮を実行します。');
+            
+            // LZStringで圧縮
+            const compressed = LZString.compress(existingData);
+            if (compressed && compressed.length < existingData.length) {
+              console.log('📦 window.onload内圧縮完了:', compressed.length + '文字');
+              
+              // 圧縮データを保存
+              localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+              localStorage.removeItem('mtt-custom-ranges');
+              
+              console.log('✅ window.onload内圧縮移行完了！');
+              console.log('📊 window.onload内圧縮率:', ((1 - compressed.length / existingData.length) * 100).toFixed(1) + '%');
+            } else {
+              console.log('❌ window.onload内圧縮に失敗または圧縮効果なし');
+              console.log('🔍 window.onload内圧縮結果:', compressed ? compressed.length + '文字' : 'null');
+              
+              // 圧縮に失敗した場合は強制的にIndexedDBに移行
+              console.log('🔄 window.onload内IndexedDBに強制移行を実行');
+              try {
+                const request = indexedDB.open('MTTStorage', 1);
+                request.onerror = () => console.error('❌ window.onload内IndexedDB開くエラー');
+                request.onsuccess = () => {
+                  const db = request.result;
+                  const transaction = db.transaction(['ranges'], 'readwrite');
+                  const store = transaction.objectStore('ranges');
+                  const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                  putRequest.onsuccess = () => {
+                    console.log('✅ window.onload内IndexedDBに保存完了');
+                    localStorage.removeItem('mtt-custom-ranges');
+                    console.log('🗑️ window.onload内localStorageから元データを削除');
+                  };
+                  putRequest.onerror = () => console.error('❌ window.onload内IndexedDB保存エラー');
+                };
+              } catch (error) {
+                console.error('❌ window.onload内IndexedDB移行エラー:', error);
+              }
+            }
+          } else {
+            console.log('⚠️ window.onload内データは既に圧縮されているか、圧縮できない形式です');
+            
+            // 強制的にIndexedDBに移行
+            console.log('🔄 window.onload内IndexedDBに強制移行を実行');
+            try {
+              const request = indexedDB.open('MTTStorage', 1);
+              request.onerror = () => console.error('❌ window.onload内IndexedDB開くエラー');
+              request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['ranges'], 'readwrite');
+                const store = transaction.objectStore('ranges');
+                const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                putRequest.onsuccess = () => {
+                  console.log('✅ window.onload内IndexedDBに保存完了');
+                  localStorage.removeItem('mtt-custom-ranges');
+                  console.log('🗑️ window.onload内localStorageから元データを削除');
+                };
+                putRequest.onerror = () => console.error('❌ window.onload内IndexedDB保存エラー');
+              };
+            } catch (error) {
+              console.error('❌ window.onload内IndexedDB移行エラー:', error);
+            }
+          }
+        } else {
+          console.log('ℹ️ window.onload内既存データが見つかりませんでした。');
+        }
+      } catch (error) {
+        console.error('❌ window.onload内圧縮移行エラー:', error);
+      }
+    });
+    
+    // useEffect内でも圧縮移行を実行
+    console.log('🔄 useEffect内で圧縮移行を実行');
+    try {
+      const existingData = localStorage.getItem('mtt-custom-ranges');
+      console.log('🔍 useEffect内localStorage確認:', existingData ? 'データあり' : 'データなし');
+      if (existingData) {
+        console.log('📄 useEffect内既存データを発見:', existingData.length + '文字');
+        console.log('🔍 データの先頭100文字:', existingData.substring(0, 100));
+        
+        // データが既に圧縮されているかチェック
+        if (existingData.startsWith('{"') || existingData.startsWith('{')) {
+          console.log('📝 データはJSON形式です。圧縮を実行します。');
+          
+          // LZStringで圧縮
+          const compressed = LZString.compress(existingData);
+          if (compressed && compressed.length < existingData.length) {
+            console.log('📦 useEffect内圧縮完了:', compressed.length + '文字');
+            
+            // 圧縮データを保存
+            localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+            localStorage.removeItem('mtt-custom-ranges');
+            
+            console.log('✅ useEffect内圧縮移行完了！');
+            console.log('📊 useEffect内圧縮率:', ((1 - compressed.length / existingData.length) * 100).toFixed(1) + '%');
+          } else {
+            console.log('❌ 圧縮に失敗または圧縮効果なし');
+            console.log('🔍 圧縮結果:', compressed ? compressed.length + '文字' : 'null');
+            
+            // 圧縮に失敗した場合は強制的にIndexedDBに移行
+            console.log('🔄 useEffect内IndexedDBに強制移行を実行');
+            try {
+              const request = indexedDB.open('MTTStorage', 1);
+              request.onerror = () => console.error('❌ useEffect内IndexedDB開くエラー');
+              request.onsuccess = () => {
+                const db = request.result;
+                const transaction = db.transaction(['ranges'], 'readwrite');
+                const store = transaction.objectStore('ranges');
+                const putRequest = store.put(existingData, 'mtt-custom-ranges');
+                putRequest.onsuccess = () => {
+                  console.log('✅ useEffect内IndexedDBに保存完了');
+                  localStorage.removeItem('mtt-custom-ranges');
+                  console.log('🗑️ useEffect内localStorageから元データを削除');
+                };
+                putRequest.onerror = () => console.error('❌ useEffect内IndexedDB保存エラー');
+              };
+            } catch (error) {
+              console.error('❌ useEffect内IndexedDB移行エラー:', error);
+            }
+          }
+        } else {
+          console.log('⚠️ データは既に圧縮されているか、圧縮できない形式です');
+          
+          // 強制的にIndexedDBに移行
+          console.log('🔄 IndexedDBに強制移行を実行');
+          try {
+            // IndexedDBに保存
+            const request = indexedDB.open('MTTStorage', 1);
+            request.onerror = () => console.error('❌ IndexedDB開くエラー');
+            request.onsuccess = () => {
+              const db = request.result;
+              const transaction = db.transaction(['ranges'], 'readwrite');
+              const store = transaction.objectStore('ranges');
+              const putRequest = store.put(existingData, 'mtt-custom-ranges');
+              putRequest.onsuccess = () => {
+                console.log('✅ IndexedDBに保存完了');
+                localStorage.removeItem('mtt-custom-ranges');
+                console.log('🗑️ localStorageから元データを削除');
+              };
+              putRequest.onerror = () => console.error('❌ IndexedDB保存エラー');
+            };
+          } catch (error) {
+            console.error('❌ IndexedDB移行エラー:', error);
+          }
+        }
+      } else {
+        console.log('ℹ️ useEffect内既存データが見つかりませんでした。');
+      }
+    } catch (error) {
+      console.error('❌ useEffect内圧縮移行エラー:', error);
+    }
+    
+    // 即座に圧縮移行を実行
+    const performCompression = () => {
+      console.log('🔧 圧縮移行を実行中...');
+      try {
+        const existingData = localStorage.getItem('mtt-custom-ranges');
+        if (existingData) {
+          console.log('📄 既存データを発見:', existingData.length + '文字');
+          
+          // LZStringで圧縮
+          const compressed = LZString.compress(existingData);
+          if (compressed) {
+            console.log('📦 圧縮完了:', compressed.length + '文字');
+            
+            // 圧縮データを保存
+            localStorage.setItem('mtt-custom-ranges_compressed', compressed);
+            localStorage.removeItem('mtt-custom-ranges');
+            
+            console.log('✅ 圧縮移行完了！');
+            console.log('📊 圧縮率:', ((1 - compressed.length / existingData.length) * 100).toFixed(1) + '%');
+            
+            // 容量を再チェック
+            let newTotalSize = 0;
+            for (let key in localStorage) {
+              if (localStorage.hasOwnProperty(key)) {
+                const itemSize = localStorage.getItem(key)?.length || 0;
+                newTotalSize += itemSize;
+              }
+            }
+            const newTotalSizeMB = (newTotalSize / (1024 * 1024)).toFixed(2);
+            const newUsagePercent = ((newTotalSize / (5 * 1024 * 1024)) * 100).toFixed(1);
+            
+            console.log('💾 圧縮後の容量:', {
+              totalSizeMB: parseFloat(newTotalSizeMB),
+              usagePercent: parseFloat(newUsagePercent),
+              isNearLimit: parseFloat(newUsagePercent) > 80
+            });
+          } else {
+            console.error('❌ 圧縮に失敗しました');
+          }
+        } else {
+          console.log('ℹ️ 既存データが見つかりませんでした。');
+        }
+      } catch (error) {
+        console.error('❌ 圧縮移行エラー:', error);
+      }
+    };
+    
+    // 即座に実行
+    performCompression();
+    
+    // ストレージ容量をチェック
+    try {
+      let totalSize = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          const itemSize = localStorage.getItem(key)?.length || 0;
+          totalSize += itemSize;
+        }
+      }
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      const usagePercent = ((totalSize / (5 * 1024 * 1024)) * 100).toFixed(1);
+      
+      const capacity = {
+        totalSizeMB: parseFloat(totalSizeMB),
+        usagePercent: parseFloat(usagePercent),
+        isNearLimit: parseFloat(usagePercent) > 80
+      };
+      
+      console.log('💾 現在のストレージ容量:', capacity);
+      
+      if (capacity.isNearLimit) {
+        console.log('⚠️ localStorage容量が80%を超えています。圧縮移行を実行しました。');
+      } else {
+        console.log('✅ localStorage容量は正常です。');
+      }
+    } catch (error) {
+      console.error('❌ 容量チェックエラー:', error);
+    }
+  }, []);
+
   // ページロード時の制限チェック（初期化完了後に実行）
   useEffect(() => {
     if (isInitialized && 
@@ -5601,35 +6201,39 @@ function MTTTrainingPage() {
             // まずStateを更新
             setCustomRanges(importedRanges);
             
-            // 管理者の場合はサーバーに保存、一般ユーザーはローカルセッションのみ
-            let saveResult = { success: true, method: 'session' };
+            // 統合ストレージシステムで永続保存
+            const saveResult = await storageManager.saveRanges(importedRanges);
             
-            if (isAdmin) {
-              try {
-                console.log('🔑 管理者モード: サーバーへの保存を実行');
-                const response = await fetch('/api/mtt-ranges', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Admin-Token': localStorage.getItem('admin-token') || ''
-                  },
-                  body: JSON.stringify({
-                    ranges: importedRanges,
-                    lastUpdated: new Date().toISOString()
-                  })
-                });
-                
-                if (response.ok) {
-                  saveResult = { success: true, method: 'server' };
-                  console.log('✅ サーバーへの保存成功');
-                } else {
-                  console.warn('⚠️ サーバー保存失敗、セッションのみ');
+            if (saveResult.success) {
+              console.log(`✅ インポート完了: ${saveResult.method}で保存`);
+              
+              // 管理者の場合はサーバーにも保存
+              if (isAdmin) {
+                try {
+                  console.log('🔑 管理者モード: サーバーへの保存を実行');
+                  const response = await fetch('/api/mtt-ranges', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Admin-Token': localStorage.getItem('admin-token') || ''
+                    },
+                    body: JSON.stringify({
+                      ranges: importedRanges,
+                      lastUpdated: new Date().toISOString()
+                    })
+                  });
+                  
+                  if (response.ok) {
+                    console.log('✅ サーバーへの保存成功');
+                  } else {
+                    console.warn('⚠️ サーバー保存失敗、ローカル保存は成功');
+                  }
+                } catch (error) {
+                  console.warn('⚠️ サーバー保存エラー、ローカル保存は成功:', error);
                 }
-              } catch (error) {
-                console.warn('⚠️ サーバー保存エラー、セッションのみ:', error);
               }
             } else {
-              console.log('👤 一般ユーザー: セッションのみでの保存');
+              console.error('❌ インポート保存失敗:', saveResult.error);
             }
             
             // レンジ更新タイムスタンプを更新してリアルタイム反映をトリガー
@@ -5645,7 +6249,8 @@ function MTTTrainingPage() {
               successMessage += `📊 インポート結果:\n`;
               successMessage += `・レンジ数: ${Object.keys(importedRanges).length}個\n`;
               successMessage += `・データサイズ: ${dataSizeMB}MB\n`;
-              successMessage += `・保存方式: ${saveResult.method === 'server' ? 'サーバー（全ユーザー共有）' : 'セッション（現在のブラウザのみ）'}\n\n`;
+              successMessage += `・保存方式: ${saveResult.method === 'server' ? 'サーバー（全ユーザー共有）' : 
+                saveResult.method === 'IndexedDB' ? 'IndexedDB（大容量対応）' : 'セッション（現在のブラウザのみ）'}\n\n`;
               
               switch (saveResult.method) {
                 case 'IndexedDB':

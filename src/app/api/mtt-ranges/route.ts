@@ -12,7 +12,7 @@ const DATA_DIR = process.env.NODE_ENV === 'production'
   ? '/tmp' 
   : path.join(process.cwd(), 'data');
 const RANGES_FILE = path.join(DATA_DIR, 'mtt-ranges.json');
-const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024-super-secure';
 
 // データディレクトリが存在しない場合は作成
 if (!fs.existsSync(DATA_DIR)) {
@@ -51,17 +51,24 @@ export interface SystemRangeData {
 // 管理者認証チェック関数
 function verifyAdminToken(request: NextRequest): boolean {
   try {
+    // Authorization: Bearer ヘッダーをチェック
     const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return false;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      return decoded.role === 'admin';
     }
-
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
     
-    return decoded.role === 'admin';
+    // Admin-Token ヘッダーをチェック（フロントエンド用）
+    const adminToken = request.headers.get('admin-token');
+    if (adminToken) {
+      const decoded = jwt.verify(adminToken, JWT_SECRET) as any;
+      return decoded.role === 'admin';
+    }
+    
+    return false;
   } catch (error) {
+    console.log('❌ 認証エラー:', error);
     return false;
   }
 }
