@@ -2653,6 +2653,19 @@ function MTTTrainingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAdmin, token, user, logout, loading } = useAdmin();
+  
+  // 管理者状態のデバッグログ
+  useEffect(() => {
+    if (!loading) {
+      console.log('🔍 管理者状態確認:', {
+        isAdmin,
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        adminToken: typeof window !== 'undefined' ? localStorage.getItem('admin-token')?.length || 0 : 'N/A',
+        user: user?.username || 'N/A'
+      });
+    }
+  }, [isAdmin, token, user, loading]);
   const { canPractice, maxPracticeCount, dailyPracticeCount, incrementPracticeCount, user: authUser, isMasterUser, subscriptionStatus } = useAuth();
   
   // 開発環境でのみデバッグログを表示
@@ -6210,7 +6223,12 @@ function MTTTrainingPage() {
               // 管理者の場合はサーバーにも保存
               if (isAdmin) {
                 try {
-                  console.log('🔑 管理者モード: サーバーへの保存を実行');
+                  console.log('🔑 管理者モード: サーバーへの保存を実行', {
+                    isAdmin,
+                    hasToken: !!token,
+                    tokenLength: token?.length || 0,
+                    adminToken: localStorage.getItem('admin-token')?.length || 0
+                  });
                   const response = await fetch('/api/mtt-ranges', {
                     method: 'POST',
                     headers: {
@@ -6412,7 +6430,13 @@ function MTTTrainingPage() {
     });
 
     if (!isAdmin || !token) {
-      alert('❌ 管理者権限が必要です。\n\n管理者としてログインしてください。');
+      console.log('❌ 管理者権限チェック失敗:', {
+        isAdmin,
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        adminToken: localStorage.getItem('admin-token')?.length || 0
+      });
+      alert('❌ 管理者権限が必要です。\n\n管理者としてログインしてください。\n\n現在の状態:\n- 管理者: ' + (isAdmin ? 'はい' : 'いいえ') + '\n- トークン: ' + (token ? 'あり' : 'なし'));
       return;
     }
 
