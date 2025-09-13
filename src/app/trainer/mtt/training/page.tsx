@@ -5085,60 +5085,7 @@ function MTTTrainingPage() {
         }
         
         // API読み込みが失敗した場合の処理
-        console.log('❌ APIからの読み込みに失敗しました。ローカルデータまたはファイルデータを使用します。');
-        
-        // APIからの読み込みが失敗した場合、データファイルから直接読み込み
-        console.log('ローカルデータがないため、データファイルから読み込みます...');
-        const fileResponse = await fetch('/data/mtt-ranges.json');
-        if (fileResponse.ok) {
-          const fileData = await fileResponse.json();
-          
-          if (fileData.ranges && Object.keys(fileData.ranges).length > 0) {
-            const localRanges = localStorage.getItem('mtt-custom-ranges');
-            const localTimestamp = localStorage.getItem('mtt-ranges-timestamp');
-            let shouldUpdate = false;
-            
-            if (!localRanges) {
-              shouldUpdate = true;
-            } else {
-              // タイムスタンプベースで更新チェック
-              if (!localTimestamp || (fileData.lastUpdated && fileData.lastUpdated > localTimestamp)) {
-                shouldUpdate = true;
-              }
-              // 数量ベースのフォールバック
-              else if (Object.keys(fileData.ranges).length > Object.keys(JSON.parse(localRanges)).length) {
-                shouldUpdate = true;
-              }
-            }
-            
-            if (shouldUpdate) {
-              // QQ設定の復元保証
-              const vs3betKeys = Object.keys(fileData.ranges).filter(key => key.startsWith('vs3bet_') && key.includes('_40BB'));
-              vs3betKeys.forEach(key => {
-                if (!fileData.ranges[key]['QQ']) {
-                  console.log(`🎯 ファイルからQQ設定を復元: ${key}`);
-                  fileData.ranges[key]['QQ'] = {
-                    action: 'MIXED' as const,
-                    mixedFrequencies: { FOLD: 0, CALL: 0, RAISE: 10, ALL_IN: 90 }
-                  };
-                }
-              });
-              
-              setCustomRanges(fileData.ranges);
-              localStorage.setItem('mtt-custom-ranges', JSON.stringify(fileData.ranges));
-              localStorage.setItem('mtt-ranges-timestamp', fileData.lastUpdated || new Date().toISOString());
-              console.log(`✅ データファイルからレンジデータを自動同期しました（QQ復元済み、${Object.keys(fileData.ranges).length}ポジション）`);
-              console.log('🎯 ファイルレンジ詳細:', {
-                rangeKeys: Object.keys(fileData.ranges),
-                rangeCount: Object.keys(fileData.ranges).length,
-                qqRestored: vs3betKeys.filter(key => fileData.ranges[key]['QQ']).length,
-                sampleRange: Object.keys(fileData.ranges)[0] ? fileData.ranges[Object.keys(fileData.ranges)[0]] : null
-              });
-            } else {
-              console.log('📋 ファイルレンジは最新です');
-            }
-          }
-        }
+        console.log('❌ APIからの読み込みに失敗しました。ローカルデータを保持します。');
       } catch (error) {
         console.log('自動レンジ読み込みエラー:', (error as Error).message);
         
