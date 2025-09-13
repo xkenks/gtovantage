@@ -6215,7 +6215,7 @@ function MTTTrainingPage() {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
-                      'Admin-Token': localStorage.getItem('admin-token') || ''
+                      'Authorization': `Bearer ${localStorage.getItem('admin-token') || ''}`
                     },
                     body: JSON.stringify({
                       ranges: importedRanges,
@@ -7289,7 +7289,7 @@ function MTTTrainingPage() {
                                         method: 'POST',
                                         headers: {
                                           'Content-Type': 'application/json',
-                                          'Admin-Token': localStorage.getItem('admin-token') || ''
+                                          'Authorization': `Bearer ${localStorage.getItem('admin-token') || ''}`
                                         },
                                         body: JSON.stringify({
                                           ranges: dataFileRanges.ranges,
