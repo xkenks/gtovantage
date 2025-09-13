@@ -269,7 +269,7 @@ export async function POST(request: NextRequest) {
       console.log('✅ メインファイル保存成功');
       
       // 本番環境ではフォールバックファイルにも保存
-      if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
+      if (process.env.VERCEL === '1') {
         try {
           fs.writeFileSync(FALLBACK_RANGES_FILE, JSON.stringify(systemData, null, 2));
           console.log('✅ フォールバックファイル保存成功');
