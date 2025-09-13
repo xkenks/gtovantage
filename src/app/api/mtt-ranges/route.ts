@@ -12,7 +12,7 @@ const DATA_DIR = process.env.NODE_ENV === 'production'
   ? '/tmp' 
   : path.join(process.cwd(), 'data');
 const RANGES_FILE = path.join(DATA_DIR, 'mtt-ranges.json');
-const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-admin-secret-key-2024-super-secure';
+const JWT_SECRET = process.env.JWT_SECRET || 'gto-vantage-production-secret-key-2024-ultra-secure-admin-token-vercel-deployment';
 
 // データディレクトリが存在しない場合は作成
 if (!fs.existsSync(DATA_DIR)) {
@@ -51,24 +51,39 @@ export interface SystemRangeData {
 // 管理者認証チェック関数
 function verifyAdminToken(request: NextRequest): boolean {
   try {
+    console.log('🔍 管理者認証開始:', {
+      environment: process.env.NODE_ENV,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      jwtSecretLength: JWT_SECRET.length
+    });
+    
     // Authorization: Bearer ヘッダーをチェック
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
+      console.log('🔑 Bearer トークン検証中:', { tokenLength: token.length });
       const decoded = jwt.verify(token, JWT_SECRET) as any;
+      console.log('✅ Bearer トークン検証成功:', { role: decoded.role });
       return decoded.role === 'admin';
     }
     
     // Admin-Token ヘッダーをチェック（フロントエンド用）
     const adminToken = request.headers.get('admin-token');
     if (adminToken) {
+      console.log('🔑 Admin-Token 検証中:', { tokenLength: adminToken.length });
       const decoded = jwt.verify(adminToken, JWT_SECRET) as any;
+      console.log('✅ Admin-Token 検証成功:', { role: decoded.role });
       return decoded.role === 'admin';
     }
     
+    console.log('❌ 認証トークンが見つかりません');
     return false;
   } catch (error) {
-    console.log('❌ 認証エラー:', error);
+    console.log('❌ 認証エラー:', {
+      error: error instanceof Error ? error.message : String(error),
+      environment: process.env.NODE_ENV,
+      hasJwtSecret: !!process.env.JWT_SECRET
+    });
     return false;
   }
 }
