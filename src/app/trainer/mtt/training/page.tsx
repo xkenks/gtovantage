@@ -636,7 +636,13 @@ const simulateMTTGTOData = (
     // 1. メインレンジキーを試行
     if (customRanges && customRanges[rangeKey] && customRanges[rangeKey][normalizedHandType]) {
       customHandData = customRanges[rangeKey][normalizedHandType];
-      console.log('✅ オープンレイズ カスタムレンジ発見 (スタック固有):', { rangeKey, handType: normalizedHandType, customHandData });
+      console.log('✅ オープンレイズ カスタムレンジ発見 (スタック固有):', { 
+        rangeKey, 
+        handType: normalizedHandType, 
+        customHandData,
+        action: customHandData.action,
+        frequency: customHandData.frequency
+      });
     } 
     // 2. 15BBフォールバックを試行
     else if (fallbackRangeKey && customRanges && customRanges[fallbackRangeKey] && customRanges[fallbackRangeKey][normalizedHandType]) {
@@ -1642,19 +1648,36 @@ const simulateMTTGTOData = (
       
       // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
       if (customFrequencies['FOLD'] === 100) {
-        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
-        return {
-          correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
-          normalizedHandType: finalHandType,
-          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
-          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
-          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
-          recommendedBetSize: 0,
-          isRangeOut: true,
-          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
-        };
+        console.log('🎯 カスタムレンジFOLD 100%検出:', { 
+          actionType, 
+          normalizedHandType, 
+          rangeKey,
+          customHandData,
+          customFrequencies,
+          customPrimaryAction
+        });
+        
+        // カスタムレンジでFOLD 100%に設定されている場合のみFOLDとして扱う
+        if (customHandData && customHandData.action === 'FOLD' && customHandData.frequency === 100) {
+          return {
+            correctAction: 'FOLD',
+            evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+            frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
+            normalizedHandType: finalHandType,
+            effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
+            stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
+            icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
+            recommendedBetSize: 0,
+            isRangeOut: true,
+            exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
+          };
+        }
+        
+        // カスタムレンジでFOLD 100%に設定されていない場合は、通常の処理を続行
+        console.log('🎯 カスタムレンジFOLD 100%検出だが、実際の設定はFOLDではない。通常処理を続行:', {
+          customHandData,
+          customPrimaryAction
+        });
       }
 
       console.log('🎯 vs3bet カスタムレンジ処理完了:', {
@@ -1925,19 +1948,36 @@ const simulateMTTGTOData = (
       
       // カスタムレンジでFOLD 100%の場合はレンジ外として扱う
       if (customFrequencies['FOLD'] === 100) {
-        console.log('🎯 カスタムレンジFOLD 100%検出:', { actionType, normalizedHandType, rangeKey });
-        return {
-          correctAction: 'FOLD',
-          evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
-          frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
-          normalizedHandType: finalHandType,
-          effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
-          stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
-          icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
-          recommendedBetSize: 0,
-          isRangeOut: true,
-          exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
-        };
+        console.log('🎯 カスタムレンジFOLD 100%検出:', { 
+          actionType, 
+          normalizedHandType, 
+          rangeKey,
+          customHandData,
+          customFrequencies,
+          customPrimaryAction
+        });
+        
+        // カスタムレンジでFOLD 100%に設定されている場合のみFOLDとして扱う
+        if (customHandData && customHandData.action === 'FOLD' && customHandData.frequency === 100) {
+          return {
+            correctAction: 'FOLD',
+            evData: { 'FOLD': 0, 'CALL': -5, 'RAISE': -5, 'ALL_IN': -5 },
+            frequencies: { 'FOLD': 100, 'CALL': 0, 'RAISE': 0, 'ALL_IN': 0 },
+            normalizedHandType: finalHandType,
+            effectiveStackExplanation: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。`,
+            stackSizeStrategy: `カスタムレンジでレンジ外として設定されたハンドです。`,
+            icmConsideration: `カスタムレンジでFOLD 100%に設定されているため、レンジ外として扱われます。`,
+            recommendedBetSize: 0,
+            isRangeOut: true,
+            exploitSuggestion: `このハンド(${normalizedHandType})はカスタムレンジでFOLD 100%に設定されています。レンジ外として扱われます。`
+          };
+        }
+        
+        // カスタムレンジでFOLD 100%に設定されていない場合は、通常の処理を続行
+        console.log('🎯 カスタムレンジFOLD 100%検出だが、実際の設定はFOLDではない。通常処理を続行:', {
+          customHandData,
+          customPrimaryAction
+        });
       }
 
       console.log('🎯 vs4bet カスタムレンジ処理完了:', {
